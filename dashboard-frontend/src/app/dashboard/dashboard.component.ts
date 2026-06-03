@@ -529,8 +529,9 @@ export class DashboardComponent implements OnInit {
   loadCompare(): void {
     this.currentCompareMode = 'all';
     this.selectedCode = '';
-    this.dashboardService.getCompareData().subscribe(data => {
-      this.renderCompareChart(data);
+    this.dashboardService.getCompareData().subscribe({
+      next: data => this.renderCompareChart(data),
+      error: err => console.error('Error al cargar comparativo:', err)
     });
   }
 

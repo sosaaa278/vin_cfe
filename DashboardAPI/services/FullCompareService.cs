@@ -1,6 +1,8 @@
 using HtmlAgilityPack;
 using Microsoft.Playwright;
+using DashboardAPI.Data;
 using DashboardAPI.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DashboardAPI.Services
 {
@@ -8,6 +10,7 @@ namespace DashboardAPI.Services
     /// Singleton service that caches a full two-year scrape.
     /// Cache TTL: 4 hours. Invalidate manually via InvalidateCache().
     /// Thread-safe via SemaphoreSlim (double-checked locking pattern).
+    /// Falls back to DB when the CFE portal is unreachable.
     /// </summary>
     public class FullCompareService
     {
@@ -23,10 +26,12 @@ namespace DashboardAPI.Services
             "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
         private readonly ILogger<FullCompareService> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public FullCompareService(ILogger<FullCompareService> logger)
+        public FullCompareService(ILogger<FullCompareService> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
         // ── Public API ─────────────────────────────────────────────────────────────
@@ -67,6 +72,13 @@ namespace DashboardAPI.Services
 
                     _logger.LogInformation("Scraped {Count} rows for {Year}", data2026.Count, currentYear);
 
+                    // If scraping returned no data, fall back to DB
+                    if (data2026.Count == 0 && data2025.Count == 0)
+                    {
+                        _logger.LogWarning("Scraping returned 0 rows for both years — falling back to DB");
+                        return await GetFromDbAsync(previousYear, currentYear);
+                    }
+
                     _cache     = new FullCompareResponse
                     {
                         RawData2026 = data2026,
@@ -100,7 +112,7 @@ namespace DashboardAPI.Services
         private static async Task<(IPlaywright pw, IBrowserContext ctx)> CreateBrowserAsync()
         {
             var pw      = await Playwright.CreateAsync();
-            var dataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright-data");
+            var dataDir = Path.Combine(Directory.GetCurrentDirectory(), "playwright-data-compare");
 
             var ctx = await pw.Chromium.LaunchPersistentContextAsync(dataDir,
                 new BrowserTypeLaunchPersistentContextOptions
@@ -270,6 +282,77 @@ namespace DashboardAPI.Services
             }
 
             return result;
+        }
+
+        // ── DB Fallback ────────────────────────────────────────────────────────────
+
+        private async Task<FullCompareResponse> GetFromDbAsync(int previousYear, int currentYear)
+        {
+            using var scope   = _scopeFactory.CreateScope();
+            var context       = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var startPrev = new DateTime(previousYear, 1, 1);
+            var startCurr = new DateTime(currentYear,  1, 1);
+            var endCurr   = new DateTime(currentYear + 1, 1, 1);
+
+            var latestPrev = await context.Inconformidades
+                .Where(x => x.FechaConsulta >= startPrev && x.FechaConsulta < startCurr)
+                .MaxAsync(x => (DateTime?)x.FechaConsulta);
+
+            var latestCurr = await context.Inconformidades
+                .Where(x => x.FechaConsulta >= startCurr && x.FechaConsulta < endCurr)
+                .MaxAsync(x => (DateTime?)x.FechaConsulta);
+
+            if (latestCurr == null)
+            {
+                _logger.LogWarning("No DB data available for {Year}", currentYear);
+                return new FullCompareResponse { RawData2026 = [], Compare = [] };
+            }
+
+            var currRecords = await context.Inconformidades
+                .Where(x => x.FechaConsulta == latestCurr.Value)
+                .ToListAsync();
+
+            var prevRecords = latestPrev.HasValue
+                ? await context.Inconformidades
+                    .Where(x => x.FechaConsulta == latestPrev.Value)
+                    .ToListAsync()
+                : [];
+
+            var data2026 = ToRawData(currRecords);
+            var data2025 = ToRawData(prevRecords);
+
+            _logger.LogInformation(
+                "DB fallback: {C26} rows for {Y26} (date {D26}), {C25} rows for {Y25} (date {D25})",
+                data2026.Count, currentYear, latestCurr.Value.ToString("yyyy-MM-dd"),
+                data2025.Count, previousYear, latestPrev?.ToString("yyyy-MM-dd") ?? "none");
+
+            var result = new FullCompareResponse
+            {
+                RawData2026 = data2026,
+                Compare     = BuildCompare(data2025, data2026)
+            };
+            _cache     = result;
+            _cacheTime = DateTime.UtcNow;
+            return result;
+        }
+
+        private static List<Dictionary<string, string>> ToRawData(List<Inconformidad> records)
+        {
+            return records
+                .GroupBy(x => new { x.SEC, x.AREA })
+                .Select(g =>
+                {
+                    var dict = new Dictionary<string, string>
+                    {
+                        ["SEC"]  = g.Key.SEC,
+                        ["AREA"] = g.Key.AREA
+                    };
+                    foreach (var r in g)
+                        dict[r.Codigo] = r.Valor;
+                    return dict;
+                })
+                .ToList();
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────────

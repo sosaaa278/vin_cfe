@@ -7,6 +7,16 @@ using Microsoft.EntityFrameworkCore;
 namespace DashboardAPI.Services
 {
     /// <summary>
+    /// Se lanza cuando no se puede contactar el portal de CFE por un problema de
+    /// red/DNS (p.ej. ERR_NAME_NOT_RESOLVED): no tiene sentido reintentar y el
+    /// usuario debe revisar su conexión/VPN a la red interna de CFE.
+    /// </summary>
+    public class CfePortalUnreachableException : Exception
+    {
+        public CfePortalUnreachableException(string message) : base(message) { }
+    }
+
+    /// <summary>
     /// Scrapes inconformidades data from CFE's internal portal.
     /// Uses Playwright (persistent context) for JavaScript-rendered pages.
     /// Session/cookies are shared across scraping calls via the same userDataDir.
@@ -18,10 +28,11 @@ namespace DashboardAPI.Services
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
-        private const int MaxRetries       = 3;
-        private const int BaseRetryMs      = 2000;   // doubles on each retry (exponential backoff)
-        private const int SlowMoMs         = 300;
-        private const string PlaywrightDir = "playwright-data";
+        private const int MaxRetries            = 3;
+        private const int BaseRetryMs           = 2000;   // doubles on each retry (exponential backoff)
+        private const int SlowMoMs              = 300;
+        private const string PlaywrightDir      = "playwright-data-scraper";
+        private const string CausasPlaywrightDir = "playwright-data-causas";
 
         // ── Selectors (centralized for change detection) ────────────────────────────
         private static class Sel
@@ -63,10 +74,10 @@ namespace DashboardAPI.Services
         /// across calls. Always dispose via the returned tuple.
         /// </summary>
         private async Task<(IPlaywright pw, IBrowserContext ctx)> CreateBrowserAsync(
-            bool headless = true, int slowMo = SlowMoMs)
+            bool headless = true, int slowMo = SlowMoMs, string? dirName = null)
         {
             var pw      = await Playwright.CreateAsync();
-            var dataDir = Path.Combine(Directory.GetCurrentDirectory(), PlaywrightDir);
+            var dataDir = Path.Combine(Directory.GetCurrentDirectory(), dirName ?? PlaywrightDir);
 
             var ctx = await pw.Chromium.LaunchPersistentContextAsync(dataDir,
                 new BrowserTypeLaunchPersistentContextOptions
@@ -102,6 +113,19 @@ namespace DashboardAPI.Services
                 catch (Exception ex)
                 {
                     _logger.LogWarning("Navigate attempt {A}/{M} failed: {Err}", attempt + 1, MaxRetries, ex.Message);
+
+                    // Errores de red/DNS: reintentar no ayuda. Falla rápido con mensaje claro.
+                    if (ex.Message.Contains("ERR_NAME_NOT_RESOLVED") ||
+                        ex.Message.Contains("ERR_INTERNET_DISCONNECTED") ||
+                        ex.Message.Contains("ERR_CONNECTION") ||
+                        ex.Message.Contains("ERR_ADDRESS_UNREACHABLE") ||
+                        ex.Message.Contains("ERR_PROXY_CONNECTION_FAILED"))
+                    {
+                        throw new CfePortalUnreachableException(
+                            "No se pudo conectar al portal de CFE (cssnal.cfe.mx). " +
+                            "Verifica tu conexión a internet o la VPN/red interna de CFE.");
+                    }
+
                     if (attempt < MaxRetries - 1)
                         await Task.Delay(BaseRetryMs * (int)Math.Pow(2, attempt));
                 }
@@ -333,37 +357,27 @@ namespace DashboardAPI.Services
             string url, string fechaDesde, string fechaHasta)
             => GetTableData(url, fechaDesde, fechaHasta);
 
-        /// <summary>
-        /// Scrapes causas de terminacion de inconformidades.
-        /// Only updates the date fields via JS — leaves other selects at
-        /// their session-persisted values (which were valid in the previous run).
-        /// </summary>
-        public async Task<List<Dictionary<string, string>>> GetCausasData(
-            string fechaDesde, string fechaHasta, string tipoSolTermino = "E02")
+        // ══════════════════════════════════════════════════════════════════════════════
+        // CAUSAS — private core (one scrape per code, reuses an existing page)
+        // ══════════════════════════════════════════════════════════════════════════════
+
+        private async Task<List<Dictionary<string, string>>> ScrapeCausaCodeAsync(
+            IPage page, string desde, string hasta, string tipoSolTermino, string cveZona = "00000")
         {
             const string url = "https://cssnal.cfe.mx/iessInformesV2/causasTerminacion.asp";
-            _logger.LogInformation("GetCausasData {Desde} -> {Hasta} code={Code}", fechaDesde, fechaHasta, tipoSolTermino);
+            _logger.LogInformation("GetCausasData {Desde} -> {Hasta} code={Code}", desde.Replace("-", "/"), hasta.Replace("-", "/"), tipoSolTermino);
 
-            // input[type=date] requires YYYY-MM-DD; controller sends YYYY/MM/DD
-            var desde = fechaDesde.Replace("/", "-");
-            var hasta  = fechaHasta.Replace("/", "-");
+            bool noDataDialog = false;
+            EventHandler<IDialog> dlgHandler = async (_, dialog) =>
+            {
+                _logger.LogInformation("Dialog for {Code}: {Msg}", tipoSolTermino, dialog.Message);
+                noDataDialog = true;
+                await dialog.AcceptAsync();
+            };
+            page.Dialog += dlgHandler;
 
-            // headless:false so the browser window is visible during debugging
-            var (pw, ctx) = await CreateBrowserAsync(headless: false, slowMo: 1200);
             try
             {
-                var page = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();
-
-                // Track whether a "no data" JS alert fires — if it does, the old
-                // TABLE_12 stays in the DOM and must not be treated as real results.
-                bool noDataDialog = false;
-                page.Dialog += async (_, dialog) =>
-                {
-                    _logger.LogInformation("Dialog for {Code}: {Msg}", tipoSolTermino, dialog.Message);
-                    noDataDialog = true;
-                    await dialog.AcceptAsync();
-                };
-
                 if (!await NavigateWithRetryAsync(page, url))
                     throw new InvalidOperationException("Could not load causas page.");
 
@@ -383,9 +397,25 @@ namespace DashboardAPI.Services
                         "La página de causas no cargó el formulario (sesión expirada o error de red). Revisa debug_causas_initial.html", ex);
                 }
 
+                // CLAVE para el filtro por zona:
+                // El portal dispara en $(document).ready un AJAX a lib/llenaCombos.asp que
+                // REEMPLAZA el <select cveZona> con $("#cveZona").html(data). Si fijamos el
+                // valor antes de que ese AJAX termine, la respuesta lo borra y la zona queda
+                // en "00000" (Nacional) — ese era el bug de E02 (primer código, AJAX en vuelo).
+                // Esperamos a que la red quede inactiva para que el combo ya esté repoblado.
+                try
+                {
+                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("NetworkIdle (carga inicial de combos) timeout {Code}: {Err}", tipoSolTermino, ex.Message);
+                }
+                await page.WaitForTimeoutAsync(600);
+
                 // Fill form fields and return a diagnostic object so we can confirm values
                 var formState = await page.EvaluateAsync<Dictionary<string, string>>(
-                    "([d, h, ts]) => {" +
+                    "([d, h, ts, z]) => {" +
                     "  var setField = function(name, val) {" +
                     "    var el = document.querySelector(\"select[name='\" + name + \"']\");" +
                     "    if (el) el.value = val;" +
@@ -395,7 +425,7 @@ namespace DashboardAPI.Services
                     "  if (fd) fd.value = d;" +
                     "  if (fh) fh.value = h;" +
                     "  setField('cveDivision',          'DC000');" +
-                    "  setField('cveZona',              '00000');" +
+                    "  setField('cveZona',              z);" +
                     "  setField('cveArea',              '00000');" +
                     "  setField('entidadFederativa',    '0');" +
                     "  setField('cveMunicipio',         'T');" +
@@ -416,9 +446,29 @@ namespace DashboardAPI.Services
                     "    cvePivoteTerminacion: get('cvePivoteTerminacion')" +
                     "  };" +
                     "}",
-                    new[] { desde, hasta, tipoSolTermino });
+                    new[] { desde, hasta, tipoSolTermino, cveZona });
 
                 _logger.LogInformation("Form state before submit: {@State}", formState);
+
+                // Reafirma cveZona justo antes de enviar. El AJAX llenaCombos del portal
+                // suele dejar el <select> sin la opción esperada (por eso antes obteníamos
+                // ""). Como al servidor solo le importa el valor enviado en el POST, si la
+                // opción no existe la INYECTAMOS y la seleccionamos: así el form envía la
+                // zona correcta sin depender de lo que dejó el AJAX.
+                var zonaFijada = await page.EvaluateAsync<string>(
+                    "(z) => {" +
+                    "  var el = document.querySelector(\"select[name='cveZona']\");" +
+                    "  if (!el) return 'NO_SELECT';" +
+                    "  var existe = Array.prototype.some.call(el.options, function(o){ return o.value === z; });" +
+                    "  if (!existe) { var opt = document.createElement('option'); opt.value = z; opt.text = z; el.add(opt); }" +
+                    "  el.value = z;" +
+                    "  return el.value;" +
+                    "}",
+                    cveZona);
+                if (zonaFijada != cveZona)
+                    _logger.LogWarning("cveZona NO se fijó para {Code}: esperado={Exp} obtenido={Got}", tipoSolTermino, cveZona, zonaFijada);
+                else
+                    _logger.LogInformation("cveZona fijada en {Zona} para {Code}", cveZona, tipoSolTermino);
 
                 // Wait for the form POST to complete and the new page to settle.
                 // TABLE_12 already exists on initial load so we CANNOT wait for it —
@@ -427,7 +477,7 @@ namespace DashboardAPI.Services
                 try
                 {
                     await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
-                        new() { Timeout = 45_000 });
+                        new() { Timeout = 25_000 });
                 }
                 catch (Exception ex)
                 {
@@ -470,9 +520,65 @@ namespace DashboardAPI.Services
             }
             finally
             {
+                page.Dialog -= dlgHandler;
+            }
+        }
+
+        // ── Public: scrape one code (opens + closes its own browser) ──────────────────
+
+        public async Task<List<Dictionary<string, string>>> GetCausasData(
+            string fechaDesde, string fechaHasta, string tipoSolTermino = "E02", string cveZona = "00000")
+        {
+            var desde = fechaDesde.Replace("/", "-");
+            var hasta  = fechaHasta.Replace("/", "-");
+            var (pw, ctx) = await CreateBrowserAsync(headless: true, slowMo: 300, dirName: CausasPlaywrightDir);
+            try
+            {
+                var page = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();
+                return await ScrapeCausaCodeAsync(page, desde, hasta, tipoSolTermino, cveZona);
+            }
+            finally
+            {
                 await ctx.CloseAsync();
                 pw.Dispose();
             }
+        }
+
+        public async Task<Dictionary<string, List<Dictionary<string, string>>>> GetCausasDataAllAsync(
+            string fechaDesde, string fechaHasta, IEnumerable<string> codes, string cveZona = "00000")
+        {
+            var desde  = fechaDesde.Replace("/", "-");
+            var hasta  = fechaHasta.Replace("/", "-");
+            var result = new Dictionary<string, List<Dictionary<string, string>>>();
+
+            var (pw, ctx) = await CreateBrowserAsync(headless: true, slowMo: 300, dirName: CausasPlaywrightDir);
+            try
+            {
+                var page = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();
+                foreach (var code in codes)
+                {
+                    try
+                    {
+                        result[code] = await ScrapeCausaCodeAsync(page, desde, hasta, code, cveZona);
+                    }
+                    catch (CfePortalUnreachableException)
+                    {
+                        // Si el host no resuelve, los demás códigos también fallarán: aborta.
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("GetCausasDataAll code {Code} zone {Zone} failed: {Err}", code, cveZona, ex.Message);
+                        result[code] = [];
+                    }
+                }
+            }
+            finally
+            {
+                await ctx.CloseAsync();
+                pw.Dispose();
+            }
+            return result;
         }
     }
 }

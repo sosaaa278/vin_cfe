@@ -19,6 +19,22 @@ obj/
 # =========================
 
 playwright-data/
+playwright-data-*/
+
+# =========================
+# BUILD ESTÁTICO SERVIDO POR LA API
+# =========================
+
+DashboardAPI/wwwroot/
+
+# =========================
+# BINARIOS / HERRAMIENTAS DE TÚNEL (no versionar)
+# =========================
+
+*.exe
+*.zip
+ngrok.exe
+cloudflared.exe
 
 # =========================
 # DATABASES

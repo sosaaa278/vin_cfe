@@ -11,10 +11,6 @@
         </button>
         <div>
           <h1>Análisis de Causas (IMU)</h1>
-          <p class="dash-subtitle">
-            Causas de terminación — División Norte — Grupo RSS —
-            <span *ngIf="activeCode" class="badge-code ms-1">{{ activeCode }}</span>
-          </p>
         </div>
       </div>
     </div>
@@ -24,26 +20,22 @@
   </div>
 
   <!-- ==============================
-       CONTROLES
+       BOTONES DE CONSULTA
   =============================== -->
-  <div class="chart-controls card shadow-sm p-3 mb-3">
+  <div class="card shadow-sm p-3 mb-3">
     <div class="row g-3 align-items-end">
 
-      <div class="col-md-5">
-        <label class="form-label fw-semibold">Tipo de gráfica</label>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Zona</label>
         <select
           class="form-select"
-          [(ngModel)]="chartType"
-          (change)="onChartTypeChange(chartType)"
+          [(ngModel)]="selectedZona"
           [disabled]="status === 'LOADING'">
-          <option value="bar">Barras verticales</option>
-          <option value="line">Línea (tendencia)</option>
-          <option value="horizontalBar">Barras horizontales</option>
-          <option value="pie">Pastel</option>
+          <option *ngFor="let z of ZONAS" [value]="z.value">{{ z.label }}</option>
         </select>
       </div>
 
-      <div class="col-md-2 d-flex align-items-end">
+      <div class="col-md-3 d-flex align-items-end">
         <button
           class="btn btn-primary w-100 btn-generate"
           (click)="iniciarScrapingAll()"
@@ -56,17 +48,20 @@
         </button>
       </div>
 
-      <div class="col-md-3 d-flex align-items-end">
+      <div class="col-md-4 d-flex align-items-end flex-column gap-1">
         <button
           class="btn btn-outline-primary w-100"
           (click)="iniciarComparacion()"
-          [disabled]="status === 'LOADING'">
-          <span *ngIf="status !== 'LOADING'">Comparar con 2025</span>
+          [disabled]="status === 'LOADING' || !isAllMode">
+          <span *ngIf="status !== 'LOADING'">Comparar con {{ currentYear - 1 }}</span>
           <span *ngIf="status === 'LOADING'">
             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-            Cargando…
+            Cargando {{ currentYear - 1 }}…
           </span>
         </button>
+        <small *ngIf="status === 'LOADING' && isAllMode" class="text-muted text-center w-100" style="font-size:0.72rem;">
+          Esto puede tomar ~1 minuto
+        </small>
       </div>
 
     </div>
@@ -145,7 +140,7 @@
     <div class="waiting-icon">📋</div>
     <h4 class="mt-3 mb-2">Listo para consultar</h4>
     <p class="text-muted mb-0">
-      Presiona <strong>Consultar</strong> para cargar todos los tipos de inconformidad.
+      Presiona <strong>Consultar 2025 vs 2026</strong> para cargar el comparativo de causas de terminación.
     </p>
   </div>
 
@@ -155,6 +150,45 @@
   <div *ngIf="status === 'SUCCESS' && tableData.length === 0 && !isCompareMode" class="alert alert-warning mb-4">
     Sin datos para <strong>{{ activeCode }}</strong>.
     Revisa <code>debug_causas.html</code> en el servidor para diagnosticar.
+  </div>
+
+  <!-- ==============================
+       CONTROLES DE GRÁFICA
+  =============================== -->
+  <div *ngIf="isAllMode" class="card shadow-sm p-3 mb-3">
+    <div class="row g-3 align-items-end">
+
+      <div class="col-md-5">
+        <label class="form-label fw-semibold">Tipo de gráfica</label>
+        <select
+          class="form-select"
+          [(ngModel)]="chartType"
+          (change)="onChartTypeChange(chartType)"
+          [disabled]="status === 'LOADING'">
+          <option value="bar">Barras verticales</option>
+          <option value="line">Línea (tendencia)</option>
+          <option value="horizontalBar">Barras horizontales</option>
+          <option value="pie">Pastel</option>
+        </select>
+      </div>
+
+      <div *ngIf="chartType === 'pie' && isCompareMode" class="col-md-4 d-flex align-items-end">
+        <div>
+          <label class="form-label fw-semibold">Año del pastel</label>
+          <div class="btn-group w-100">
+            <button class="btn"
+              [class.btn-primary]="pieYear === '2026'"
+              [class.btn-outline-secondary]="pieYear !== '2026'"
+              (click)="onPieYearChange('2026')">2026</button>
+            <button class="btn"
+              [class.btn-primary]="pieYear === '2025'"
+              [class.btn-outline-secondary]="pieYear !== '2025'"
+              (click)="onPieYearChange('2025')">2025</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- ==============================
@@ -183,64 +217,22 @@
   </div>
 
   <!-- ==============================
-       TABLA COMPARACIÓN AÑO ANTERIOR
+       LEYENDA MODO COMPARACIÓN
   =============================== -->
-  <div *ngIf="isCompareMode && status === 'SUCCESS'" class="card shadow-sm p-4 mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <div>
-        <h3 class="mb-0">Comparación 2025 vs 2026 — <span class="badge-code">{{ activeCode }}</span></h3>
-        <small class="text-muted">Mismo período: 1 ene — hoy</small>
-      </div>
-    </div>
-
-    <!-- Pestañas códigos en modo comparación: switchCode actualiza el Pareto -->
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      <button
-        *ngFor="let c of CODES"
-        class="btn btn-sm"
-        [class.btn-primary]="activeCode === c.value"
-        [class.btn-outline-primary]="activeCode !== c.value"
-        (click)="switchCode(c.value)">
-        {{ c.value }}
-      </button>
-    </div>
-
-    <div *ngIf="getCompareRows(activeCode).length === 0" class="alert alert-warning mb-0">
-      Sin datos para <strong>{{ activeCode }}</strong> en ninguno de los dos años.
-    </div>
-
-    <div *ngIf="getCompareRows(activeCode).length > 0" class="table-responsive">
-      <table class="table table-bordered table-striped table-sm">
-        <thead class="table-dark">
-          <tr>
-            <th>Clave</th>
-            <th>Descripcion</th>
-            <th class="text-end">2025</th>
-            <th class="text-end">2026</th>
-            <th class="text-end">Variación %</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of getCompareRows(activeCode)">
-            <td><strong>{{ row.Clave }}</strong></td>
-            <td>{{ row.Descripcion }}</td>
-            <td class="text-end">{{ row.Anterior | number }}</td>
-            <td class="text-end">{{ row.Actual | number }}</td>
-            <td class="text-end"
-                [class.text-danger]="row.Variacion > 0"
-                [class.text-success]="row.Variacion < 0">
-              {{ row.Variacion > 0 ? '+' : '' }}{{ row.Variacion | number:'1.1-1' }}%
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+  <div *ngIf="isCompareMode && paretoRows.length > 0 && chartType !== 'pie'" class="d-flex align-items-center gap-3 mb-3 px-1 flex-wrap">
+    <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:rgba(220,53,69,0.09);border:2.5px solid rgb(220,53,69)"></span>
+    <span class="small text-muted">2026 mayor que 2025 (peor)</span>
+    <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:rgba(40,167,69,0.09);border:2.5px solid rgb(40,167,69)" class="ms-2"></span>
+    <span class="small text-muted">2026 menor que 2025 (mejor)</span>
+    <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:rgba(108,117,125,0.05);border:1px solid rgb(107,114,128)" class="ms-2"></span>
+    <span class="small text-muted">Sin cambio</span>
+    <span class="ms-3 small text-muted fst-italic">(fondo y borde de columna)</span>
   </div>
 
   <!-- ==============================
        TABLA COMPLETA DE RESULTADOS
   =============================== -->
-  <div *ngIf="tableData.length > 0 && !isCompareMode" class="card shadow-sm p-4 mb-4">
+  <div *ngIf="tableData.length > 0" class="card shadow-sm p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
         <h3 class="mb-0">
@@ -265,7 +257,213 @@
             <td *ngFor="let col of orderedColumns">{{ row[col] }}</td>
           </tr>
         </tbody>
+        <tfoot *ngIf="!hasPortalTotalRow">
+          <tr class="fw-bold table-secondary">
+            <td *ngFor="let col of orderedColumns; let i = index">{{ tableFooterValue(col, i) }}</td>
+          </tr>
+        </tfoot>
       </table>
+    </div>
+  </div>
+
+  <!-- ==============================
+       RESUMEN COMPARATIVO TODOS LOS CÓDIGOS
+  =============================== -->
+  <div *ngIf="isCompareMode && status === 'SUCCESS'" class="card shadow-sm p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="mb-0">Resumen comparativo {{ currentYear - 1 }} vs {{ currentYear }} — Todos los tipos</h3>
+        <small class="text-muted">Total de inconformidades por tipo de causa</small>
+      </div>
+      <button class="btn btn-success btn-sm" (click)="exportResumenExcel()" [disabled]="codeSummary.length === 0">
+        Exportar Excel
+      </button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th class="text-end">2025</th>
+            <th class="text-end">2026</th>
+            <th class="text-end">Variación %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of codeSummary">
+            <td>
+              <button class="btn btn-sm btn-link p-0 fw-bold text-decoration-none"
+                (click)="switchCode(row.code)">{{ row.code }}</button>
+            </td>
+            <td class="small">{{ row.label }}</td>
+            <td class="text-end">{{ row.anterior | number }}</td>
+            <td class="text-end fw-semibold"
+                [ngStyle]="{
+                  'background-color': row.actual > row.anterior ? 'rgba(220,53,69,0.25)'
+                                    : row.actual < row.anterior ? 'rgba(40,167,69,0.25)'
+                                    : 'transparent'
+                }">
+              {{ row.actual | number }}
+            </td>
+            <td class="text-end fw-semibold"
+                [ngStyle]="{
+                  'background-color': row.variacion > 0 ? 'rgba(220,53,69,0.25)'
+                                    : row.variacion < 0 ? 'rgba(40,167,69,0.25)'
+                                    : 'transparent'
+                }">
+              {{ row.variacion > 0 ? '+' : '' }}{{ row.variacion | number:'1.1-1' }}%
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="fw-bold table-secondary">
+            <td>TOTAL</td>
+            <td></td>
+            <td class="text-end">{{ codeSummaryTotals.anterior | number }}</td>
+            <td class="text-end">{{ codeSummaryTotals.actual | number }}</td>
+            <td class="text-end">{{ codeSummaryTotals.variacion > 0 ? '+' : '' }}{{ codeSummaryTotals.variacion | number:'1.1-1' }}%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TABLA COMPARATIVA 2025 vs 2026
+  =============================== -->
+  <div *ngIf="isCompareMode && status === 'SUCCESS'" class="card shadow-sm p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h3 class="mb-0">Comparación {{ currentYear - 1 }} vs {{ currentYear }} — <span class="badge-code">{{ activeCode }}</span></h3>
+      </div>
+      <button class="btn btn-success btn-sm" (click)="exportCompareExcel()" [disabled]="compareRows.length === 0">
+        Exportar Excel
+      </button>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <button
+        *ngFor="let c of CODES"
+        class="btn btn-sm"
+        [class.btn-primary]="activeCode === c.value"
+        [class.btn-outline-primary]="activeCode !== c.value"
+        (click)="switchCode(c.value)">
+        {{ c.value }}
+      </button>
+    </div>
+
+    <div *ngIf="compareRows.length === 0" class="alert alert-warning mb-0">
+      Sin datos para <strong>{{ activeCode }}</strong> en ninguno de los dos años.
+    </div>
+
+    <div *ngIf="compareRows.length > 0" class="table-responsive">
+      <table class="table table-bordered table-sm">
+        <thead class="table-dark">
+          <tr>
+            <th>Clave</th>
+            <th>Descripcion</th>
+            <th class="text-end">2025</th>
+            <th class="text-end">2026</th>
+            <th class="text-end">Variación %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of compareRows">
+            <td><strong>{{ row.Clave }}</strong></td>
+            <td>{{ row.Descripcion }}</td>
+            <td class="text-end">{{ row.Anterior | number }}</td>
+            <td class="text-end fw-semibold"
+                [ngStyle]="{
+                  'background-color': row.Actual > row.Anterior ? 'rgba(220,53,69,0.28)'
+                                    : row.Actual < row.Anterior ? 'rgba(40,167,69,0.28)'
+                                    : 'transparent'
+                }">
+              {{ row.Actual | number }}
+            </td>
+            <td class="text-end fw-semibold"
+                [ngStyle]="{
+                  'background-color': row.Variacion > 0 ? 'rgba(220,53,69,0.28)'
+                                    : row.Variacion < 0 ? 'rgba(40,167,69,0.28)'
+                                    : 'transparent'
+                }">
+              {{ row.Variacion > 0 ? '+' : '' }}{{ row.Variacion | number:'1.1-1' }}%
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="fw-bold table-secondary">
+            <td>TOTAL</td>
+            <td></td>
+            <td class="text-end">{{ compareTotals.anterior | number }}</td>
+            <td class="text-end">{{ compareTotals.actual | number }}</td>
+            <td class="text-end">{{ compareTotals.variacion > 0 ? '+' : '' }}{{ compareTotals.variacion | number:'1.1-1' }}%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==============================
+       CAUSAS EXCLUSIVAS POR AÑO
+  =============================== -->
+  <div *ngIf="isCompareMode && status === 'SUCCESS' && (soloAnterior.length > 0 || soloActual.length > 0)"
+       class="card shadow-sm p-4 mb-4">
+    <div class="mb-3">
+      <h3 class="mb-0">Causas exclusivas por año — <span class="badge-code">{{ activeCode }}</span></h3>
+      <small class="text-muted">Claves que aparecen en un año pero no en el otro</small>
+    </div>
+
+    <div class="row g-3">
+      <!-- Solo en el año anterior -->
+      <div class="col-md-6">
+        <h6 class="fw-semibold mb-2">
+          Solo en {{ currentYear - 1 }}
+          <span class="badge bg-secondary ms-1">{{ soloAnterior.length }}</span>
+        </h6>
+        <div *ngIf="soloAnterior.length === 0" class="text-muted small fst-italic">Ninguna.</div>
+        <table *ngIf="soloAnterior.length > 0" class="table table-bordered table-sm">
+          <thead class="table-dark">
+            <tr>
+              <th>Clave</th>
+              <th>Descripción</th>
+              <th class="text-end">{{ currentYear - 1 }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of soloAnterior">
+              <td><strong>{{ r.Clave }}</strong></td>
+              <td class="small">{{ r.Descripcion }}</td>
+              <td class="text-end fw-semibold">{{ r.valor | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Solo en el año actual -->
+      <div class="col-md-6">
+        <h6 class="fw-semibold mb-2">
+          Solo en {{ currentYear }}
+          <span class="badge bg-secondary ms-1">{{ soloActual.length }}</span>
+        </h6>
+        <div *ngIf="soloActual.length === 0" class="text-muted small fst-italic">Ninguna.</div>
+        <table *ngIf="soloActual.length > 0" class="table table-bordered table-sm">
+          <thead class="table-dark">
+            <tr>
+              <th>Clave</th>
+              <th>Descripción</th>
+              <th class="text-end">{{ currentYear }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of soloActual">
+              <td><strong>{{ r.Clave }}</strong></td>
+              <td class="small">{{ r.Descripcion }}</td>
+              <td class="text-end fw-semibold">{{ r.valor | number }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 

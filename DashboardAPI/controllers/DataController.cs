@@ -69,21 +69,30 @@ namespace DashboardAPI.Controllers
                 var currentYear  = now.Year;
                 var previousYear = currentYear - 1;
 
-                // Use explicit date ranges — DateTime.Year is not index-friendly in EF Core
                 var startPrev = new DateTime(previousYear, 1, 1);
                 var startCurr = new DateTime(currentYear,  1, 1);
                 var endCurr   = new DateTime(currentYear + 1, 1, 1);
 
-                var yearPrevious = await _context.Inconformidades
-                    .Where(x => x.FechaConsulta >= startPrev
-                             && x.FechaConsulta <  startCurr
-                             && x.Codigo == "TOTAL")
-                    .ToListAsync();
+                // Use only the most recent scrape date per year to avoid summing duplicates
+                var latestPrev = await _context.Inconformidades
+                    .Where(x => x.FechaConsulta >= startPrev && x.FechaConsulta < startCurr && x.Codigo == "TOTAL")
+                    .MaxAsync(x => (DateTime?)x.FechaConsulta);
+
+                var latestCurr = await _context.Inconformidades
+                    .Where(x => x.FechaConsulta >= startCurr && x.FechaConsulta < endCurr && x.Codigo == "TOTAL")
+                    .MaxAsync(x => (DateTime?)x.FechaConsulta);
+
+                if (latestCurr == null)
+                    return Ok(new List<Comparativo>());
+
+                var yearPrevious = latestPrev.HasValue
+                    ? await _context.Inconformidades
+                        .Where(x => x.FechaConsulta == latestPrev.Value && x.Codigo == "TOTAL")
+                        .ToListAsync()
+                    : new List<Inconformidad>();
 
                 var yearCurrent = await _context.Inconformidades
-                    .Where(x => x.FechaConsulta >= startCurr
-                             && x.FechaConsulta <  endCurr
-                             && x.Codigo == "TOTAL")
+                    .Where(x => x.FechaConsulta == latestCurr.Value && x.Codigo == "TOTAL")
                     .ToListAsync();
 
                 // O(1) area lookup via dictionary
@@ -385,33 +394,58 @@ namespace DashboardAPI.Controllers
         // =========================
 
         [HttpGet("causas/all")]
-        public async Task<IActionResult> CausasAll([FromQuery] int? year = null)
+        public async Task<IActionResult> CausasAll([FromQuery] int? year = null, [FromQuery] string zona = "00000")
         {
             var today   = DateTime.Now;
             var useYear = year ?? today.Year;
             var desde   = $"{useYear}/01/01";
-            // For a past year use the same month/day as today; for current year use today
             var hasta   = useYear == today.Year
                 ? today.ToString("yyyy/MM/dd")
                 : $"{useYear}/{today.Month:D2}/{today.Day:D2}";
 
             var codes  = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
-            var result = new Dictionary<string, List<Dictionary<string, string>>>();
-
-            foreach (var code in codes)
+            try
             {
-                try
-                {
-                    result[code] = await _scraper.GetCausasData(desde, hasta, code);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning("CausasAll({Year}): code {Code} failed: {Err}", useYear, code, ex.Message);
-                    result[code] = [];
-                }
+                var result = await _scraper.GetCausasDataAllAsync(desde, hasta, codes, zona);
+                return Ok(result);
             }
+            catch (CfePortalUnreachableException ex)
+            {
+                _logger.LogError("CausasAll: portal CFE inaccesible: {Err}", ex.Message);
+                return StatusCode(503, ex.Message);
+            }
+        }
 
-            return Ok(result);
+        // =========================
+        // AMBOS AÑOS EN UNA PETICIÓN
+        // =========================
+
+        [HttpGet("causas/bothyears")]
+        public async Task<IActionResult> CausasBothYears([FromQuery] string zona = "00000")
+        {
+            var today    = DateTime.Now;
+            var currYear = today.Year;
+            var prevYear = currYear - 1;
+            var codes    = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
+
+            var desdeCurr = $"{currYear}/01/01";
+            var hastaCurr = today.ToString("yyyy/MM/dd");
+            var desdePrev = $"{prevYear}/01/01";
+            var hastaPrev = $"{prevYear}/{today.Month:D2}/{today.Day:D2}";
+
+            _logger.LogInformation("CausasBothYears zona={Zona}: scraping {Curr} then {Prev}", zona, currYear, prevYear);
+
+            try
+            {
+                var current  = await _scraper.GetCausasDataAllAsync(desdeCurr, hastaCurr, codes, zona);
+                var previous = await _scraper.GetCausasDataAllAsync(desdePrev, hastaPrev, codes, zona);
+                return Ok(new { current, previous });
+            }
+            catch (CfePortalUnreachableException ex)
+            {
+                _logger.LogError("CausasBothYears: portal CFE inaccesible: {Err}", ex.Message);
+                return StatusCode(503, ex.Message);
+            }
         }
 
         [HttpGet("causas/compare")]

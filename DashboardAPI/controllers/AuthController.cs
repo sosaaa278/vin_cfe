@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using DashboardAPI.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DashboardAPI.Controllers;
@@ -18,6 +19,7 @@ public class AuthController : ControllerBase
         _config = config;
     }
 
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {

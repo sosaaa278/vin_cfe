@@ -33,8 +33,19 @@ export class DashboardService {
     return this.http.get<any[]>(`${this.API}/causas?code=${encodeURIComponent(code)}`);
   }
 
-  getCausasAll(year?: number) {
-    const q = year ? `?year=${year}` : '';
+  getCausasAll(year?: number, zona: string = '00000') {
+    const params: string[] = [];
+    if (year)          params.push(`year=${year}`);
+    if (zona !== '00000') params.push(`zona=${zona}`);
+    const q = params.length ? '?' + params.join('&') : '';
     return this.http.get<{ [code: string]: any[] }>(`${this.API}/causas/all${q}`);
+  }
+
+  getCausasBothYears(zona: string = '00000') {
+    const q = zona !== '00000' ? `?zona=${zona}` : '';
+    return this.http.get<{
+      current:  { [code: string]: any[] };
+      previous: { [code: string]: any[] };
+    }>(`${this.API}/causas/bothyears${q}`);
   }
 }
