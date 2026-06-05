@@ -42,6 +42,14 @@ cloudflared.exe
 
 *.db
 *.sqlite
+*.db-shm
+*.db-wal
+
+# =========================
+# VOLCADOS DE DEBUG DEL SCRAPER (se regeneran en cada scrapeo)
+# =========================
+
+debug*.html
 
 # =========================
 # LOGS

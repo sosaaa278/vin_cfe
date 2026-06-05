@@ -1,0 +1,82 @@
+.imu-wrapper {
+  padding: 1.25rem;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.dash-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.dash-subtitle {
+  color: #6c757d;
+  margin: .15rem 0 0;
+  font-size: .9rem;
+}
+
+/* Tabla compacta: columnas angostas (números de ≤3 dígitos) con encabezados legibles */
+.imu-table {
+  font-size: .72rem;
+  width: auto;                  /* se ajusta al contenido en vez de estirarse al 100% */
+  border-collapse: collapse;
+}
+
+.imu-table th,
+.imu-table td {
+  padding: 1px 5px;             /* mucho menos relleno = columnas más chicas */
+}
+
+.imu-table thead th {
+  background: #006341;          /* verde CFE */
+  color: #fff;
+  text-align: center;
+  vertical-align: bottom;
+  font-size: .6rem;             /* título de columna pequeño pero legible */
+  font-weight: 600;
+  line-height: 1.05;
+  white-space: normal;          /* permite que el título largo se acomode en varias líneas */
+  word-break: break-word;
+  max-width: 56px;
+  position: sticky;
+  top: 0;
+}
+
+.imu-table td {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* CVE y AREA: alineadas a la izquierda y con su ancho natural */
+.imu-table td:first-child,
+.imu-table td:nth-child(2) {
+  text-align: left;
+}
+.imu-table th:first-child,
+.imu-table th:nth-child(2) {
+  max-width: none;
+}
+
+/* Caja de gráfica con altura fija para que no ocupe toda la pantalla */
+.chart-box {
+  position: relative;
+  height: 300px;
+}
+.chart-box-pie {
+  position: relative;
+  height: 300px;
+}
+
+.fila-total {
+  font-weight: 700;
+  background: rgba(0, 99, 65, .1);
+}
+
+.leyenda {
+  display: inline-block;
+  padding: 0 .4rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.leyenda.rojo  { background: rgba(220, 53, 69, .28); }
+.leyenda.verde { background: rgba(40, 167, 69, .28); }

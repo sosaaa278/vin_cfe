@@ -20,5 +20,11 @@ export const routes: Routes = [
       import('./causas/causas.component').then(m => m.CausasComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'imu',
+    loadComponent: () =>
+      import('./imu/imu.component').then(m => m.ImuComponent),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: 'login' }
 ];

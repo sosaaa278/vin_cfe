@@ -1,22 +1,14 @@
 <div class="causas-wrapper">
 
+  <app-nav></app-nav>
+
+  <app-date-range-bar></app-date-range-bar>
+
   <!-- ==============================
        ENCABEZADO
   =============================== -->
-  <div class="dash-header d-flex justify-content-between align-items-start">
-    <div>
-      <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-outline-secondary btn-sm" (click)="volver()">
-          ← Volver
-        </button>
-        <div>
-          <h1>Análisis de Causas (IMU)</h1>
-        </div>
-      </div>
-    </div>
-    <button class="btn btn-outline-secondary btn-sm mt-1" (click)="auth.logout()">
-      Cerrar sesión
-    </button>
+  <div class="dash-header">
+    <h1>Análisis de Causas (IMU)</h1>
   </div>
 
   <!-- ==============================

@@ -1,20 +1,20 @@
 namespace DashboardAPI;
 
 /// <summary>
-/// Minimal .env loader (no external dependency).
-/// Reads KEY=VALUE lines and sets them as process environment variables,
-/// which ASP.NET Core's default configuration then picks up
-/// (using the "__" → ":" nesting convention, e.g. Jwt__Key → Jwt:Key).
+/// Cargador mínimo de archivos .env (sin dependencias externas).
+/// Lee líneas KEY=VALUE y las define como variables de entorno del proceso,
+/// que luego la configuración por defecto de ASP.NET Core recoge
+/// (usando la convención de anidado "__" → ":", ej. Jwt__Key → Jwt:Key).
 ///
-/// Must be called BEFORE WebApplication.CreateBuilder so the values are
-/// available to the default AddEnvironmentVariables() source.
-/// Existing environment variables are NOT overwritten (real env wins over .env).
+/// Debe llamarse ANTES de WebApplication.CreateBuilder para que los valores estén
+/// disponibles para el origen por defecto AddEnvironmentVariables().
+/// Las variables de entorno ya existentes NO se sobreescriben (el entorno real gana sobre el .env).
 /// </summary>
 public static class DotEnv
 {
     public static void Load()
     {
-        // Look for .env next to the working dir and next to the binary.
+        // Buscamos el .env junto al directorio de trabajo y junto al ejecutable.
         var candidates = new[]
         {
             Path.Combine(Directory.GetCurrentDirectory(), ".env"),
@@ -35,7 +35,7 @@ public static class DotEnv
             var key   = line[..idx].Trim();
             var value = line[(idx + 1)..].Trim();
 
-            // Strip optional surrounding quotes.
+            // Quitamos las comillas que rodean el valor, si las hay.
             if (value.Length >= 2 &&
                 ((value[0] == '"' && value[^1] == '"') ||
                  (value[0] == '\'' && value[^1] == '\'')))
@@ -43,7 +43,7 @@ public static class DotEnv
                 value = value[1..^1];
             }
 
-            // Real environment variables take precedence over .env entries.
+            // Las variables de entorno reales tienen prioridad sobre las del .env.
             if (Environment.GetEnvironmentVariable(key) is null)
                 Environment.SetEnvironmentVariable(key, value);
         }

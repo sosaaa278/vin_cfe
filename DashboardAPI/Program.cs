@@ -43,6 +43,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<WebScraperService>();
+builder.Services.AddScoped<ReporteStore>();
 builder.Services.AddSingleton<FullCompareService>();
 
 // Rate limiting: máx 5 intentos de login por IP por minuto

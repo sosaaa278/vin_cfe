@@ -7,6 +7,10 @@ import * as XLSX from 'xlsx-js-style';
 import { timeout } from 'rxjs/operators';
 import { DashboardService } from '../services/dashboard.service';
 import { AuthService } from '../services/auth.service';
+import { DateRangeService } from '../services/date-range.service';
+import { NavComponent } from '../shared/nav.component';
+import { DateRangeBarComponent } from '../shared/date-range-bar.component';
+import { Subscription } from 'rxjs';
 
 // Tope de espera para el scraping en vivo (7 códigos secuenciales en el portal CFE).
 // Si se supera, la petición falla con un mensaje claro en lugar de colgar la página.
@@ -124,7 +128,7 @@ const PIE_DATALABELS: any = {
 @Component({
   selector: 'app-causas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavComponent, DateRangeBarComponent],
   templateUrl: './causas.component.html',
   styleUrls: ['./causas.component.css']
 })
@@ -164,7 +168,10 @@ export class CausasComponent implements OnDestroy {
   soloAnterior: { Clave: string; Descripcion: string; valor: number }[] = [];
   soloActual:   { Clave: string; Descripcion: string; valor: number }[] = [];
 
-  readonly currentYear = new Date().getFullYear();
+  // El año "actual" sale de la fecha "hasta" del rango elegido por el usuario.
+  get currentYear(): number {
+    return Number(this.dateRange.current.hasta.slice(0, 4)) || new Date().getFullYear();
+  }
 
   readonly ZONAS = [
     { value: '00000', label: 'Todas las zonas' },
@@ -188,14 +195,27 @@ export class CausasComponent implements OnDestroy {
   chartType: 'bar' | 'line' | 'horizontalBar' | 'pie' = 'bar';
   pieYear: '2025' | '2026' = '2026';
 
+  private rangeSub?: Subscription;
+
   constructor(
     private dashboardService: DashboardService,
     public auth: AuthService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private dateRange: DateRangeService
+  ) {
+    // Causas no scrapea al entrar (es manual). Pero si el usuario ya consultó y
+    // luego cambia el rango global, recargamos con el nuevo rango. Ignoramos la
+    // primera emisión (el valor inicial del BehaviorSubject) para no auto-scrapear.
+    let first = true;
+    this.rangeSub = this.dateRange.range$.subscribe(() => {
+      if (first) { first = false; return; }
+      if (this.isAllMode) this.iniciarScrapingAll();
+    });
+  }
 
   ngOnDestroy(): void {
     if (this.paretoChart) this.paretoChart.destroy();
+    this.rangeSub?.unsubscribe();
   }
 
   // ── Estado ─────────────────────────────────────────────────────────────────
@@ -259,7 +279,7 @@ export class CausasComponent implements OnDestroy {
         const prevVal  = this.parseNum(p?.[countCol]);
         const variacion = prevVal > 0
           ? Math.round(((currVal - prevVal) / prevVal) * 10000) / 100
-          : (currVal > 0 ? 100 : 0);   // 2025=0 y 2026>0 → +100% (subió = rojo)
+          : (currVal > 0 ? currVal * 100 : 0);   // 2025=0 y 2026>0 → +N*100% (ej. 6 → +600%, subió = rojo)
         return {
           Clave:       clave,
           Descripcion: String(c?.[descCol] || p?.[descCol] || ''),
@@ -280,7 +300,7 @@ export class CausasComponent implements OnDestroy {
       const totalPrev = prev.reduce((s: number, r: any) => s + this.parseNum(r[countCol]), 0);
       const variacion = totalPrev > 0
         ? Math.round(((totalCurr - totalPrev) / totalPrev) * 10000) / 100
-        : (totalCurr > 0 ? 100 : 0);   // 2025=0 y 2026>0 → +100% (subió = rojo)
+        : (totalCurr > 0 ? totalCurr * 100 : 0);   // 2025=0 y 2026>0 → +N*100% (ej. 6 → +600%, subió = rojo)
       return { code: c.value, label: c.label, anterior: totalPrev, actual: totalCurr, variacion };
     });
   }
@@ -363,7 +383,8 @@ export class CausasComponent implements OnDestroy {
     this.compareRows    = [];
     if (this.paretoChart) { this.paretoChart.destroy(); this.paretoChart = null; }
 
-    this.dashboardService.getCausasAll(undefined, this.selectedZona)
+    const { desde, hasta } = this.dateRange.current;
+    this.dashboardService.getCausasAll(undefined, this.selectedZona, desde, hasta)
       .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
       .subscribe({
         next: (data) => {
@@ -389,7 +410,13 @@ export class CausasComponent implements OnDestroy {
     this.errorMessage = '';
     const prevYear    = this.currentYear - 1;
 
-    this.dashboardService.getCausasAll(prevYear, this.selectedZona)
+    // Mismo rango pero un año atrás (ej. 2026-01-01..2026-05-04 → 2025-01-01..2025-05-04)
+    const { desde, hasta } = this.dateRange.current;
+    const shiftYear = (d: string) => `${Number(d.slice(0, 4)) - 1}${d.slice(4)}`;
+    const desdePrev = shiftYear(desde);
+    const hastaPrev = shiftYear(hasta);
+
+    this.dashboardService.getCausasAll(undefined, this.selectedZona, desdePrev, hastaPrev)
       .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
       .subscribe({
         next: (data) => {
@@ -669,7 +696,7 @@ export class CausasComponent implements OnDestroy {
     const actual   = this.compareRows.reduce((s, r) => s + r.Actual, 0);
     const variacion = anterior > 0
       ? Math.round(((actual - anterior) / anterior) * 10000) / 100
-      : (actual > 0 ? 100 : 0);
+      : (actual > 0 ? actual * 100 : 0);
     return { anterior, actual, variacion };
   }
 
@@ -678,7 +705,7 @@ export class CausasComponent implements OnDestroy {
     const actual   = this.codeSummary.reduce((s, r) => s + r.actual, 0);
     const variacion = anterior > 0
       ? Math.round(((actual - anterior) / anterior) * 10000) / 100
-      : (actual > 0 ? 100 : 0);
+      : (actual > 0 ? actual * 100 : 0);
     return { anterior, actual, variacion };
   }
 

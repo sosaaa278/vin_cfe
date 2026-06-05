@@ -1,4 +1,5 @@
 using DashboardAPI.Services;
+using DashboardAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DashboardAPI.Data;
@@ -15,17 +16,20 @@ namespace DashboardAPI.Controllers
         private readonly AppDbContext _context;
         private readonly WebScraperService _scraper;
         private readonly FullCompareService _fullCompare;
+        private readonly ReporteStore _store;
         private readonly ILogger<DataController> _logger;
 
         public DataController(
             WebScraperService scraper,
             AppDbContext context,
             FullCompareService fullCompare,
+            ReporteStore store,
             ILogger<DataController> logger)
         {
             _scraper = scraper;
             _context = context;
             _fullCompare = fullCompare;
+            _store = store;
             _logger = logger;
         }
 
@@ -42,9 +46,9 @@ namespace DashboardAPI.Controllers
                     await _scraper.GetTableData(
                         "https://cssnal.cfe.mx/Inconformidades/solTermino.asp",
 
-                        $"{DateTime.Now.Year}/01/01",
+                        RangoFechas.Desde(DateTime.Now.Year),
 
-                        DateTime.Now.ToString("yyyy/MM/dd")
+                        RangoFechas.Hasta(DateTime.Now.Year)
                     );
 
                 return Ok(data);
@@ -57,26 +61,78 @@ namespace DashboardAPI.Controllers
         }
 
         // =========================
+        // POR CADA MIL USUARIOS
+        // =========================
+
+        [HttpGet("imu")]
+        public async Task<IActionResult> Imu(
+            [FromQuery] string zona = "00000",
+            [FromQuery] string? mes = null,
+            [FromQuery] int? year = null)
+        {
+            try
+            {
+                var hoy     = DateTime.Now;
+                var useMes  = mes  ?? hoy.Month.ToString("D2");
+                var useYear = year ?? hoy.Year;
+
+                var data = await _scraper.GetImuReportAsync(zona, useMes, useYear);
+
+                // Guardado tidy para Power BI (no rompe la respuesta si falla)
+                if (data.Count > 0)
+                    await _store.SaveImuAsync(data, useYear, int.Parse(useMes), zona);
+
+                return Ok(data);
+            }
+            catch (CfePortalUnreachableException ex)
+            {
+                _logger.LogError("Imu: portal CFE inaccesible: {Err}", ex.Message);
+                return StatusCode(503, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error scraping reporte IMU: {ex.Message}");
+            }
+        }
+
+        // =========================
         // COMPARATIVO TOTAL
         // =========================
 
         [HttpGet("compare")]
-        public async Task<IActionResult> Compare()
+        public async Task<IActionResult> Compare(
+            [FromQuery] string? desde = null, [FromQuery] string? hasta = null)
         {
             try
             {
                 var now = DateTime.Now;
-                var currentYear  = now.Year;
+                var currentYear  = hasta != null ? RangoFechas.Anio(hasta) : now.Year;
                 var previousYear = currentYear - 1;
 
                 var startPrev = new DateTime(previousYear, 1, 1);
                 var startCurr = new DateTime(currentYear,  1, 1);
                 var endCurr   = new DateTime(currentYear + 1, 1, 1);
 
-                // Use only the most recent scrape date per year to avoid summing duplicates
+                // Usamos solo la fecha de scrape más reciente por año para no sumar duplicados
                 var latestPrev = await _context.Inconformidades
                     .Where(x => x.FechaConsulta >= startPrev && x.FechaConsulta < startCurr && x.Codigo == "TOTAL")
                     .MaxAsync(x => (DateTime?)x.FechaConsulta);
+
+                // Si el año anterior (p. ej. 2025) todavía no está en la BD, lo scrapeamos
+                // (1 de enero → 4 de mayo) y lo guardamos. Así el comparativo del dashboard
+                // siempre tiene el año previo, no solo el actual.
+                if (latestPrev == null)
+                {
+                    const string urlPrev = "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
+                    await _scraper.GetComparisonData(
+                        urlPrev,
+                        desde != null ? RangoFechas.ConAnio(desde, previousYear) : RangoFechas.Desde(previousYear),
+                        hasta != null ? RangoFechas.ConAnio(hasta, previousYear) : RangoFechas.Hasta(previousYear));
+
+                    latestPrev = await _context.Inconformidades
+                        .Where(x => x.FechaConsulta >= startPrev && x.FechaConsulta < startCurr && x.Codigo == "TOTAL")
+                        .MaxAsync(x => (DateTime?)x.FechaConsulta);
+                }
 
                 var latestCurr = await _context.Inconformidades
                     .Where(x => x.FechaConsulta >= startCurr && x.FechaConsulta < endCurr && x.Codigo == "TOTAL")
@@ -95,7 +151,7 @@ namespace DashboardAPI.Controllers
                     .Where(x => x.FechaConsulta == latestCurr.Value && x.Codigo == "TOTAL")
                     .ToListAsync();
 
-                // O(1) area lookup via dictionary
+                // Búsqueda de área en O(1) usando un diccionario
                 var prevByArea = yearPrevious
                     .GroupBy(x => x.AREA.Trim())
                     .ToDictionary(g => g.Key, g => g.ToList());
@@ -112,7 +168,7 @@ namespace DashboardAPI.Controllers
 
                     var variacion = totalPrevious > 0
                         ? (totalCurrent - totalPrevious) / totalPrevious * 100
-                        : 0;
+                        : totalCurrent * 100;
 
                     result.Add(new Comparativo
                     {
@@ -206,6 +262,10 @@ namespace DashboardAPI.Controllers
                             ((totalCurrent - totalPrevious)
                             / totalPrevious) * 100;
                     }
+                    else
+                    {
+                        variacion = totalCurrent * 100;
+                    }
 
                     result.Add(new
                     {
@@ -255,16 +315,16 @@ namespace DashboardAPI.Controllers
                 // =========================
 
                 var desdePrevious =
-                    $"{previousYear}/01/01";
+                    RangoFechas.Desde(previousYear);
 
                 var hastaPrevious =
-                    $"{previousYear}/{today.Month:D2}/{today.Day:D2}";
+                    RangoFechas.Hasta(previousYear);
 
                 var desdeCurrent =
-                    $"{currentYear}/01/01";
+                    RangoFechas.Desde(currentYear);
 
                 var hastaCurrent =
-                    $"{currentYear}/{today.Month:D2}/{today.Day:D2}";
+                    RangoFechas.Hasta(currentYear);
 
                 var url =
                     "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
@@ -335,6 +395,10 @@ namespace DashboardAPI.Controllers
                             ((totalCurrent - totalPrevious)
                             / totalPrevious) * 100;
                     }
+                    else
+                    {
+                        variacion = totalCurrent * 100;
+                    }
 
                     result.Add(
                         new Comparativo
@@ -366,12 +430,13 @@ namespace DashboardAPI.Controllers
         // =========================
 
         [HttpGet("fullcompare")]
-        public async Task<IActionResult> FullCompare()
+        public async Task<IActionResult> FullCompare(
+            [FromQuery] string? desde = null, [FromQuery] string? hasta = null)
         {
             try
             {
                 var data =
-                    await _fullCompare.GetFullCompareAsync();
+                    await _fullCompare.GetFullCompareAsync(desde, hasta);
 
                 return Ok(data);
             }
@@ -394,19 +459,24 @@ namespace DashboardAPI.Controllers
         // =========================
 
         [HttpGet("causas/all")]
-        public async Task<IActionResult> CausasAll([FromQuery] int? year = null, [FromQuery] string zona = "00000")
+        public async Task<IActionResult> CausasAll(
+            [FromQuery] int? year = null,
+            [FromQuery] string zona = "00000",
+            [FromQuery] string? desde = null,
+            [FromQuery] string? hasta = null)
         {
             var today   = DateTime.Now;
-            var useYear = year ?? today.Year;
-            var desde   = $"{useYear}/01/01";
-            var hasta   = useYear == today.Year
-                ? today.ToString("yyyy/MM/dd")
-                : $"{useYear}/{today.Month:D2}/{today.Day:D2}";
+            // Si llega un rango (desde/hasta) lo usamos tal cual; el año para guardar
+            // sale de "hasta". Si no, caemos al rango fijo del año pedido (o el actual).
+            var useYear = hasta != null ? RangoFechas.Anio(hasta) : (year ?? today.Year);
+            var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(useYear);
+            var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(useYear);
 
             var codes  = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
             try
             {
-                var result = await _scraper.GetCausasDataAllAsync(desde, hasta, codes, zona);
+                var result = await _scraper.GetCausasDataAllAsync(desdeUse, hastaUse, codes, zona);
+                await _store.SaveCausasAsync(result, useYear, zona);
                 return Ok(result);
             }
             catch (CfePortalUnreachableException ex)
@@ -428,10 +498,10 @@ namespace DashboardAPI.Controllers
             var prevYear = currYear - 1;
             var codes    = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
 
-            var desdeCurr = $"{currYear}/01/01";
-            var hastaCurr = today.ToString("yyyy/MM/dd");
-            var desdePrev = $"{prevYear}/01/01";
-            var hastaPrev = $"{prevYear}/{today.Month:D2}/{today.Day:D2}";
+            var desdeCurr = RangoFechas.Desde(currYear);
+            var hastaCurr = RangoFechas.Hasta(currYear);
+            var desdePrev = RangoFechas.Desde(prevYear);
+            var hastaPrev = RangoFechas.Hasta(prevYear);
 
             _logger.LogInformation("CausasBothYears zona={Zona}: scraping {Curr} then {Prev}", zona, currYear, prevYear);
 
@@ -439,6 +509,8 @@ namespace DashboardAPI.Controllers
             {
                 var current  = await _scraper.GetCausasDataAllAsync(desdeCurr, hastaCurr, codes, zona);
                 var previous = await _scraper.GetCausasDataAllAsync(desdePrev, hastaPrev, codes, zona);
+                await _store.SaveCausasAsync(current,  currYear, zona);
+                await _store.SaveCausasAsync(previous, prevYear, zona);
                 return Ok(new { current, previous });
             }
             catch (CfePortalUnreachableException ex)
@@ -454,10 +526,10 @@ namespace DashboardAPI.Controllers
             var today        = DateTime.Now;
             var currYear     = today.Year;
             var prevYear     = currYear - 1;
-            var desdeCurr    = $"{currYear}/01/01";
-            var hastaCurr    = today.ToString("yyyy/MM/dd");
-            var desdePrev    = $"{prevYear}/01/01";
-            var hastaPrev    = $"{prevYear}/{today.Month:D2}/{today.Day:D2}";
+            var desdeCurr    = RangoFechas.Desde(currYear);
+            var hastaCurr    = RangoFechas.Hasta(currYear);
+            var desdePrev    = RangoFechas.Desde(prevYear);
+            var hastaPrev    = RangoFechas.Hasta(prevYear);
             var codes        = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
 
             var result = new Dictionary<string, object>();
@@ -488,8 +560,8 @@ namespace DashboardAPI.Controllers
             try
             {
                 var data = await _scraper.GetCausasData(
-                    $"{DateTime.Now.Year}/01/01",
-                    DateTime.Now.ToString("yyyy/MM/dd"),
+                    RangoFechas.Desde(DateTime.Now.Year),
+                    RangoFechas.Hasta(DateTime.Now.Year),
                     code
                 );
                 return Ok(data);
@@ -513,9 +585,9 @@ namespace DashboardAPI.Controllers
                 await _scraper.GetTableData(
                     "https://cssnal.cfe.mx/Inconformidades/solTermino.asp",
 
-                    $"{DateTime.Now.Year}/01/01",
+                    RangoFechas.Desde(DateTime.Now.Year),
 
-                    DateTime.Now.ToString("yyyy/MM/dd")
+                    RangoFechas.Hasta(DateTime.Now.Year)
                 );
 
                 return Ok(

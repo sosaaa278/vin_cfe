@@ -1,26 +1,26 @@
 using HtmlAgilityPack;
 using Microsoft.Playwright;
 using DashboardAPI.Data;
+using DashboardAPI.Helpers;
 using DashboardAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace DashboardAPI.Services
 {
     /// <summary>
-    /// Singleton service that caches a full two-year scrape.
-    /// Cache TTL: 4 hours. Invalidate manually via InvalidateCache().
-    /// Thread-safe via SemaphoreSlim (double-checked locking pattern).
-    /// Falls back to DB when the CFE portal is unreachable.
+    /// Servicio singleton que cachea un scrape completo de dos años.
+    /// Duración de la caché (TTL): 4 horas. Se invalida manualmente con InvalidateCache().
+    /// Seguro entre hilos gracias a SemaphoreSlim (patrón de doble verificación de bloqueo).
+    /// Recurre a la BD cuando el portal de CFE no está disponible.
     /// </summary>
     public class FullCompareService
     {
-        // ── Cache ──────────────────────────────────────────────────────────────────
+        // ── Caché (una entrada por rango de fechas) ─────────────────────────────────
         private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(4);
-        private FullCompareResponse? _cache;
-        private DateTime             _cacheTime = DateTime.MinValue;
+        private readonly Dictionary<string, (FullCompareResponse resp, DateTime time)> _cache = new();
         private readonly SemaphoreSlim _lock = new(1, 1);
 
-        // ── Browser config (mirrors WebScraperService) ─────────────────────────────
+        // ── Config del navegador (igual que WebScraperService) ──────────────────────
         private const string UserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -36,56 +36,63 @@ namespace DashboardAPI.Services
 
         // ── Public API ─────────────────────────────────────────────────────────────
 
-        public async Task<FullCompareResponse> GetFullCompareAsync()
+        /// <param name="desde">Inicio del rango "yyyy-MM-dd"/"yyyy/MM/dd". Si es null, usa 1-ene del año actual.</param>
+        /// <param name="hasta">Fin del rango. Si es null, usa el corte fijo de RangoFechas (4-may).</param>
+        public async Task<FullCompareResponse> GetFullCompareAsync(string? desde = null, string? hasta = null)
         {
-            // Fast path: valid cache (no lock needed)
-            if (_cache != null && DateTime.UtcNow - _cacheTime < CacheTtl)
-                return _cache;
+            // Año actual = año de "hasta" (o el de hoy si no se pasó rango)
+            var currentYear  = hasta != null ? RangoFechas.Anio(hasta) : DateTime.Now.Year;
+            var previousYear = currentYear - 1;
+
+            // Rango del año actual y su equivalente en el año anterior
+            var currDesde = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(currentYear);
+            var currHasta = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(currentYear);
+            var prevDesde = desde != null ? RangoFechas.ConAnio(desde, previousYear) : RangoFechas.Desde(previousYear);
+            var prevHasta = hasta != null ? RangoFechas.ConAnio(hasta, previousYear) : RangoFechas.Hasta(previousYear);
+
+            var cacheKey = $"{currDesde}|{currHasta}";
+
+            // Camino rápido: caché válida para este rango (no hace falta bloquear)
+            if (_cache.TryGetValue(cacheKey, out var hit) && DateTime.UtcNow - hit.time < CacheTtl)
+                return hit.resp;
 
             await _lock.WaitAsync();
             try
             {
-                // Double-checked locking: another thread may have populated cache
-                if (_cache != null && DateTime.UtcNow - _cacheTime < CacheTtl)
-                    return _cache;
+                // Doble verificación: otro hilo pudo haber llenado la caché mientras esperábamos
+                if (_cache.TryGetValue(cacheKey, out hit) && DateTime.UtcNow - hit.time < CacheTtl)
+                    return hit.resp;
 
-                _logger.LogInformation("Cache miss — starting full scrape (TTL expired or first run)");
+                _logger.LogInformation("Caché vacía para {Key} — iniciando scrape completo", cacheKey);
 
-                var today        = DateTime.Now;
-                var previousYear = today.Year - 1;
-                var currentYear  = today.Year;
                 const string url = "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
 
                 var (pw, ctx) = await CreateBrowserAsync();
                 try
                 {
-                    var data2025 = await ScrapeYearAsync(ctx, url,
-                        $"{previousYear}/01/01",
-                        $"{previousYear}/{today.Month:D2}/{today.Day:D2}");
+                    var data2025 = await ScrapeYearAsync(ctx, url, prevDesde, prevHasta);
 
                     _logger.LogInformation("Scraped {Count} rows for {Year}", data2025.Count, previousYear);
                     await Task.Delay(2000);
 
-                    var data2026 = await ScrapeYearAsync(ctx, url,
-                        $"{currentYear}/01/01",
-                        $"{currentYear}/{today.Month:D2}/{today.Day:D2}");
+                    var data2026 = await ScrapeYearAsync(ctx, url, currDesde, currHasta);
 
                     _logger.LogInformation("Scraped {Count} rows for {Year}", data2026.Count, currentYear);
 
-                    // If scraping returned no data, fall back to DB
+                    // Si el scraping no devolvió datos, recurrimos a la BD
                     if (data2026.Count == 0 && data2025.Count == 0)
                     {
-                        _logger.LogWarning("Scraping returned 0 rows for both years — falling back to DB");
+                        _logger.LogWarning("El scraping devolvió 0 filas en ambos años — recurriendo a la BD");
                         return await GetFromDbAsync(previousYear, currentYear);
                     }
 
-                    _cache     = new FullCompareResponse
+                    var resp = new FullCompareResponse
                     {
                         RawData2026 = data2026,
                         Compare     = BuildCompare(data2025, data2026)
                     };
-                    _cacheTime = DateTime.UtcNow;
-                    return _cache;
+                    _cache[cacheKey] = (resp, DateTime.UtcNow);
+                    return resp;
                 }
                 finally
                 {
@@ -99,15 +106,14 @@ namespace DashboardAPI.Services
             }
         }
 
-        /// <summary>Forces the next call to re-scrape regardless of TTL.</summary>
+        /// <summary>Obliga a que la siguiente llamada vuelva a hacer scrape sin importar el TTL.</summary>
         public void InvalidateCache()
         {
-            _cache     = null;
-            _cacheTime = DateTime.MinValue;
-            _logger.LogInformation("FullCompareService cache invalidated");
+            _cache.Clear();
+            _logger.LogInformation("Caché de FullCompareService invalidada");
         }
 
-        // ── Browser ────────────────────────────────────────────────────────────────
+        // ── Navegador ────────────────────────────────────────────────────────────────
 
         private static async Task<(IPlaywright pw, IBrowserContext ctx)> CreateBrowserAsync()
         {
@@ -135,7 +141,7 @@ namespace DashboardAPI.Services
             var result = new List<Dictionary<string, string>>();
             var page   = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();
 
-            // Navigate with up to 3 retries
+            // Navegar con hasta 3 reintentos
             bool loaded = false;
             for (int attempt = 0; attempt < 3 && !loaded; attempt++)
             {
@@ -150,20 +156,20 @@ namespace DashboardAPI.Services
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("Navigate attempt {A}/3 failed: {Err}", attempt + 1, ex.Message);
+                    _logger.LogWarning("Intento de navegación {A}/3 falló: {Err}", attempt + 1, ex.Message);
                     if (attempt < 2) await Task.Delay(2000 * (int)Math.Pow(2, attempt));
                 }
             }
 
             if (!loaded)
             {
-                _logger.LogError("Could not navigate to {Url}", url);
+                _logger.LogError("No se pudo navegar a {Url}", url);
                 return result;
             }
 
             await page.WaitForSelectorAsync("select[name='cveDivision']", new() { Timeout = 60_000 });
 
-            // Fill form
+            // Llenar el formulario
             await page.SelectOptionAsync("select[name='cveDivision']", "DC000"); await page.WaitForTimeoutAsync(1000);
             await page.SelectOptionAsync("select[name='cveZona']",     "00000"); await page.WaitForTimeoutAsync(800);
             await page.SelectOptionAsync("select[name='cveArea']",     "00000"); await page.WaitForTimeoutAsync(800);
@@ -175,18 +181,18 @@ namespace DashboardAPI.Services
 
             await page.ClickAsync("#procesa");
 
-            // Wait for results table instead of a fixed delay
+            // Esperar la tabla de resultados en lugar de una espera fija
             try
             {
                 await page.WaitForSelectorAsync("#TABLE_12", new() { Timeout = 30_000 });
             }
             catch
             {
-                _logger.LogWarning("TABLE_12 not found for {Desde}→{Hasta}", fechaDesde, fechaHasta);
+                _logger.LogWarning("No se encontró TABLE_12 para {Desde}→{Hasta}", fechaDesde, fechaHasta);
             }
             await page.WaitForTimeoutAsync(1500);
 
-            // Parse
+            // Leer el HTML
             var html = await page.ContentAsync();
             var doc  = new HtmlDocument();
             doc.LoadHtml(html);
@@ -207,7 +213,7 @@ namespace DashboardAPI.Services
             var rows = table.SelectNodes(".//tr");
             if (rows == null) return result;
 
-            // Use indexed access (avoids Enumerable overhead on HtmlNodeCollection)
+            // Acceso por índice (evita el costo de Enumerable sobre HtmlNodeCollection)
             for (int ri = 2; ri < rows.Count; ri++)
             {
                 var cells = rows[ri].SelectNodes("./td");
@@ -228,11 +234,11 @@ namespace DashboardAPI.Services
             return result;
         }
 
-        // ── Data Processing ────────────────────────────────────────────────────────
+        // ── Procesamiento de datos ───────────────────────────────────────────────────
 
         /// <summary>
-        /// Builds the compare dictionary keyed by inconformidad code.
-        /// O(n) per code thanks to the area lookup dictionary — was O(n²) before.
+        /// Construye el diccionario de comparación indexado por código de inconformidad.
+        /// O(n) por código gracias al diccionario de áreas
         /// </summary>
         private static Dictionary<string, List<Comparativo>> BuildCompare(
             List<Dictionary<string, string>> data2025,
@@ -241,7 +247,7 @@ namespace DashboardAPI.Services
             var result = new Dictionary<string, List<Comparativo>>();
             if (data2026.Count == 0) return result;
 
-            // O(n) lookup: normalize area key to prevent whitespace/case mismatches
+            // Búsqueda O(n): normalizamos la clave de área para evitar diferencias por espacios/mayúsculas
             var lookup2025 = data2025
                 .Where(r => r.ContainsKey("AREA"))
                 .GroupBy(r => NormalizeArea(r["AREA"]))
@@ -267,11 +273,11 @@ namespace DashboardAPI.Services
 
                     var variacion  = val2025 > 0
                         ? ((val2026 - val2025) / val2025) * 100
-                        : val2026 > 0 ? 100 : 0;
+                        : val2026 * 100;
 
                     comparativos.Add(new Comparativo
                     {
-                        AREA      = rawArea.Trim(), // keep original casing for display
+                        AREA      = rawArea.Trim(), // conservamos las mayúsculas originales para mostrar
                         Total2025 = val2025,
                         Total2026 = val2026,
                         Variacion = Math.Round(variacion, 2)
@@ -284,7 +290,7 @@ namespace DashboardAPI.Services
             return result;
         }
 
-        // ── DB Fallback ────────────────────────────────────────────────────────────
+        // ── Respaldo desde la BD ───────────────────────────────────────────────────
 
         private async Task<FullCompareResponse> GetFromDbAsync(int previousYear, int currentYear)
         {
@@ -305,7 +311,7 @@ namespace DashboardAPI.Services
 
             if (latestCurr == null)
             {
-                _logger.LogWarning("No DB data available for {Year}", currentYear);
+                _logger.LogWarning("No hay datos en la BD para {Year}", currentYear);
                 return new FullCompareResponse { RawData2026 = [], Compare = [] };
             }
 
@@ -323,18 +329,17 @@ namespace DashboardAPI.Services
             var data2025 = ToRawData(prevRecords);
 
             _logger.LogInformation(
-                "DB fallback: {C26} rows for {Y26} (date {D26}), {C25} rows for {Y25} (date {D25})",
+                "Respaldo BD: {C26} filas de {Y26} (fecha {D26}), {C25} filas de {Y25} (fecha {D25})",
                 data2026.Count, currentYear, latestCurr.Value.ToString("yyyy-MM-dd"),
                 data2025.Count, previousYear, latestPrev?.ToString("yyyy-MM-dd") ?? "none");
 
-            var result = new FullCompareResponse
+            // No se cachea el respaldo de BD: es un fallback temporal mientras el
+            // portal no responde; la próxima llamada reintentará el scrape en vivo.
+            return new FullCompareResponse
             {
                 RawData2026 = data2026,
                 Compare     = BuildCompare(data2025, data2026)
             };
-            _cache     = result;
-            _cacheTime = DateTime.UtcNow;
-            return result;
         }
 
         private static List<Dictionary<string, string>> ToRawData(List<Inconformidad> records)

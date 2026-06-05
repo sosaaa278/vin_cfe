@@ -8,19 +8,27 @@ namespace DashboardAPI.Data
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Inconformidad> Inconformidades { get; set; }
+        public DbSet<HechoReporte>  HechosReportes  { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Inconformidad>(entity =>
             {
-                // Composite index for the date-range + Codigo queries in Compare()
+                // Índice compuesto para las consultas por rango de fechas + Codigo en Compare()
                 entity.HasIndex(x => new { x.FechaConsulta, x.Codigo })
                       .HasDatabaseName("IX_Inconformidades_Fecha_Codigo");
 
-                // Composite index for duplicate detection in PersistRowsAsync()
+                // Índice compuesto para detectar duplicados en PersistRowsAsync()
                 entity.HasIndex(x => new { x.FechaConsulta, x.SEC, x.AREA, x.Codigo })
                       .IsUnique()
                       .HasDatabaseName("UX_Inconformidades_Key");
+            });
+
+            modelBuilder.Entity<HechoReporte>(entity =>
+            {
+                // Índice para reemplazar/consultar el snapshot de una fuente/periodo/zona
+                entity.HasIndex(x => new { x.Fuente, x.Anio, x.Mes, x.ZonaFiltro })
+                      .HasDatabaseName("IX_Hechos_Fuente_Periodo_Zona");
             });
         }
     }
