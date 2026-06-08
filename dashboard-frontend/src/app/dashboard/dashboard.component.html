@@ -1,16 +1,15 @@
 <div class="dashboard-wrapper">
 
+  <app-nav></app-nav>
+
+  <app-date-range-bar></app-date-range-bar>
+
   <!-- ==============================
        ENCABEZADO
   =============================== -->
-  <div class="dash-header d-flex justify-content-between align-items-start">
-    <div>
-      <h1>Dashboard de Inconformidades (IMU)</h1>
-      <p class="dash-subtitle">Comparativo anual 2025 vs 2026 — CFE</p>
-    </div>
-    <button class="btn btn-outline-secondary btn-sm mt-1" (click)="auth.logout()">
-      Cerrar sesión
-    </button>
+  <div class="dash-header">
+    <h1>Dashboard de Inconformidades (IMU)</h1>
+    <p class="dash-subtitle">Comparativo anual 2025 vs 2026 — CFE</p>
   </div>
 
   <!-- ==============================

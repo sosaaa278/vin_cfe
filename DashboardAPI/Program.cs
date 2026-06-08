@@ -1,12 +1,19 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using DashboardAPI.Services;
 using DashboardAPI.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
+// Carga los secretos desde el archivo .env (JWT y usuarios) antes de construir
+// el host, para que sobreescriban appsettings.json vía variables de entorno.
+DashboardAPI.DotEnv.Load();
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseWindowsService(); // Permite correr como Windows Service
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -41,6 +48,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<WebScraperService>();
+builder.Services.AddScoped<ReporteStore>();
 builder.Services.AddSingleton<FullCompareService>();
 
 // Configuración de opciones MetaReal
@@ -48,6 +56,19 @@ builder.Services.Configure<DashboardAPI.Models.MetaRealOptions>(builder.Configur
 builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<DashboardAPI.Models.MetaRealOptions>>().Value);
 
 // CORS
+// Rate limiting: máx 5 intentos de login por IP por minuto
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", opt =>
+    {
+        opt.PermitLimit          = 5;
+        opt.Window               = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit           = 0;
+    });
+    options.RejectionStatusCode = 429;
+});
+
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>() ?? ["http://localhost:4200"];
@@ -97,6 +118,18 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Cabeceras de seguridad (anti-XSS, anti-clickjacking, etc.)
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    ctx.Response.Headers["X-Frame-Options"]        = "DENY";
+    ctx.Response.Headers["X-XSS-Protection"]       = "1; mode=block";
+    ctx.Response.Headers["Referrer-Policy"]        = "strict-origin-when-cross-origin";
+    ctx.Response.Headers["Permissions-Policy"]     = "camera=(), microphone=(), geolocation=()";
+    ctx.Response.Headers.Remove("Server");
+    await next();
+});
+
 app.UseCors("AllowAngular");
 
 if (app.Environment.IsDevelopment())
@@ -105,10 +138,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Servir Angular como archivos estáticos (deploy Opción A: servidor único)
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapControllers();
+app.MapFallbackToFile("index.html"); // Para que el router de Angular funcione al hacer F5
 
 // Seed Database
 using (var scope = app.Services.CreateScope())
@@ -118,8 +158,5 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Execution
-var port = Environment.GetEnvironmentVariable("PORT");
-if (port != null)
-    app.Run($"http://+:{port}");
-else
-    app.Run();   
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5111";
+app.Run($"http://0.0.0.0:{port}");

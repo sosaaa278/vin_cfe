@@ -19,6 +19,22 @@ obj/
 # =========================
 
 playwright-data/
+playwright-data-*/
+
+# =========================
+# BUILD ESTÁTICO SERVIDO POR LA API
+# =========================
+
+DashboardAPI/wwwroot/
+
+# =========================
+# BINARIOS / HERRAMIENTAS DE TÚNEL (no versionar)
+# =========================
+
+*.exe
+*.zip
+ngrok.exe
+cloudflared.exe
 
 # =========================
 # DATABASES
@@ -26,6 +42,14 @@ playwright-data/
 
 *.db
 *.sqlite
+*.db-shm
+*.db-wal
+
+# =========================
+# VOLCADOS DE DEBUG DEL SCRAPER (se regeneran en cada scrapeo)
+# =========================
+
+debug*.html
 
 # =========================
 # LOGS

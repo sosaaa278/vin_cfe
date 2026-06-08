@@ -6,6 +6,9 @@ import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx-js-style';
 import { DashboardService } from '../services/dashboard.service';
 import { AuthService } from '../services/auth.service';
+import { DateRangeService } from '../services/date-range.service';
+import { NavComponent } from '../shared/nav.component';
+import { DateRangeBarComponent } from '../shared/date-range-bar.component';
 
 // ── Plugin: columna de fondo verde/roja por categoría ─────────────────────────
 const BG_COLUMNS_PLUGIN: any = {
@@ -134,7 +137,7 @@ const PIE_DATALABELS_PLUGIN: any = {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavComponent, DateRangeBarComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
@@ -169,10 +172,17 @@ export class DashboardComponent implements OnInit {
     private dashboardService: DashboardService,
     public auth: AuthService,
     private router: Router,
+    private dateRange: DateRangeService
   ) {}
 
   ngOnInit(): void {
-    this.loadCompare();
+    // Recarga el comparativo cada vez que cambia el rango de fechas global.
+    // BehaviorSubject emite el valor actual de inmediato, así que esto también
+    // dispara la carga inicial.
+    this.dateRange.range$.subscribe(() => {
+      this.loadCompare();
+      if (this.tableData.length > 0) this.loadData();
+    });
   }
 
   isTotal(area: any): boolean {
@@ -268,7 +278,8 @@ export class DashboardComponent implements OnInit {
 
   loadData(): void {
     this.status = 'LOADING';
-    this.dashboardService.getFullCompare().subscribe({
+    const { desde, hasta } = this.dateRange.current;
+    this.dashboardService.getFullCompare(desde, hasta).subscribe({
       next: (data) => {
         this.allCompareData = data.compare;
         if (data.rawData2026.length > 0) {
@@ -529,8 +540,10 @@ export class DashboardComponent implements OnInit {
   loadCompare(): void {
     this.currentCompareMode = 'all';
     this.selectedCode = '';
-    this.dashboardService.getCompareData().subscribe(data => {
-      this.renderCompareChart(data);
+    const { desde, hasta } = this.dateRange.current;
+    this.dashboardService.getCompareData(desde, hasta).subscribe({
+      next: data => this.renderCompareChart(data),
+      error: err => console.error('Error al cargar comparativo:', err)
     });
   }
 

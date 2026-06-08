@@ -1,0 +1,175 @@
+<div class="imu-wrapper">
+
+  <app-nav></app-nav>
+
+  <app-date-range-bar></app-date-range-bar>
+
+  <!-- ==============================
+       ENCABEZADO
+  =============================== -->
+  <div class="dash-header mb-3">
+    <h1>Inconformidades por cada mil usuarios</h1>
+    <p class="dash-subtitle">Reporte mensual (IMU) — División Norte, CFE</p>
+  </div>
+
+  <!-- ==============================
+       CONTROLES
+  =============================== -->
+  <div class="card shadow-sm p-3 mb-3">
+    <div class="row g-3 align-items-end">
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Zona</label>
+        <select class="form-select" [(ngModel)]="selectedZona" [disabled]="status === 'LOADING'">
+          <option *ngFor="let z of ZONAS" [value]="z.value">{{ z.label }}</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">Mes</label>
+        <select class="form-select" [(ngModel)]="selectedMes" [disabled]="status === 'LOADING'">
+          <option *ngFor="let m of MESES" [value]="m.value">{{ m.label }}</option>
+        </select>
+      </div>
+
+      <div class="col-md-5 d-flex gap-2">
+        <button class="btn btn-primary flex-fill btn-generate"
+                (click)="consultar()"
+                [disabled]="status === 'LOADING'">
+          <span *ngIf="status !== 'LOADING'">Consultar</span>
+          <span *ngIf="status === 'LOADING'">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            Cargando…
+          </span>
+        </button>
+
+        <button class="btn btn-outline-primary flex-fill"
+                (click)="compararConAnterior()"
+                [disabled]="status === 'LOADING' || rows.length === 0">
+          Comparar con {{ currentYear - 1 }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==============================
+       ESTADOS
+  =============================== -->
+  <div *ngIf="status === 'WAITING'" class="alert alert-secondary">
+    Selecciona una zona y un mes, y pulsa <strong>Consultar</strong>.
+  </div>
+
+  <div *ngIf="status === 'LOADING'" class="alert alert-info">
+    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+    Consultando el portal de CFE… (puede tardar unos segundos)
+  </div>
+
+  <div *ngIf="status === 'ERROR'" class="alert alert-danger">
+    {{ errorMsg }}
+  </div>
+
+  <div *ngIf="status === 'SUCCESS' && rows.length === 0" class="alert alert-warning">
+    El reporte no devolvió datos para {{ selectedZonaLabel }} en {{ selectedMesLabel }}.
+  </div>
+
+  <!-- ==============================
+       GRÁFICA POR ZONA
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && rows.length > 0" class="card shadow-sm p-3 mb-3">
+
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <label class="form-label fw-semibold mb-0 me-1">Tipo de gráfica:</label>
+      <select class="form-select form-select-sm w-auto"
+              [ngModel]="chartType"
+              (ngModelChange)="onChartTypeChange($event)">
+        <option value="bar">Barras verticales</option>
+        <option value="horizontalBar">Barras horizontales</option>
+        <option value="line">Línea</option>
+        <option value="pie">Pastel</option>
+      </select>
+    </div>
+
+    <!-- Pastel comparando: dos pasteles lado a lado -->
+    <div *ngIf="chartType === 'pie' && compareMode" class="row g-3">
+      <div class="col-md-6"><div class="chart-box-pie"><canvas id="imuChart"></canvas></div></div>
+      <div class="col-md-6"><div class="chart-box-pie"><canvas id="imuChart2"></canvas></div></div>
+    </div>
+
+    <!-- Gráfica única (barras, línea o un solo pastel) -->
+    <div *ngIf="!(chartType === 'pie' && compareMode)" class="chart-box">
+      <canvas id="imuChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TABLA 1: datos del año actual (la que se lee), sin color
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && rows.length > 0" class="card shadow-sm mb-3">
+    <div class="d-flex justify-content-between align-items-center p-2">
+      <h6 class="mb-0 fw-semibold">Datos {{ currentYear }} — {{ selectedZonaLabel }}, {{ selectedMesLabel }}</h6>
+      <button class="btn btn-success btn-sm" (click)="exportExcel()">Exportar Excel</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered table-hover mb-0 imu-table">
+        <thead>
+          <tr><th *ngFor="let col of columns" [title]="col">{{ col }}</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows" [class.fila-total]="isTotal(row)">
+            <td *ngFor="let col of columns">{{ row[col] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TABLA 2: comparativa 2025 vs 2026 con celdas en rojo/verde
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && compareMode && rows.length > 0" class="card shadow-sm mb-3">
+    <div class="d-flex justify-content-between align-items-center p-2">
+      <div class="small text-muted">
+        Comparación <strong>{{ currentYear }}</strong> vs <strong>{{ currentYear - 1 }}</strong> —
+        <span class="leyenda rojo">rojo</span> = subió,
+        <span class="leyenda verde">verde</span> = bajó.
+      </div>
+      <button class="btn btn-success btn-sm" (click)="exportCompareExcel()">Exportar Excel</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered table-hover mb-0 imu-table">
+        <thead>
+          <tr><th *ngFor="let col of columns" [title]="col">{{ col }}</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of rows" [class.fila-total]="isTotal(row)">
+            <td *ngFor="let col of columns" [ngStyle]="cellStyle(row, col)">{{ row[col] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TABLA 3: datos del año anterior (2025), sin color
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && compareMode && prevRows.length > 0" class="card shadow-sm mb-3">
+    <div class="d-flex justify-content-between align-items-center p-2">
+      <h6 class="mb-0 fw-semibold">Datos {{ currentYear - 1 }} — {{ selectedZonaLabel }}, {{ selectedMesLabel }}</h6>
+      <button class="btn btn-success btn-sm" (click)="exportExcel2025()">Exportar Excel</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered table-hover mb-0 imu-table">
+        <thead>
+          <tr><th *ngFor="let col of prevColumns" [title]="col">{{ col }}</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of prevRows" [class.fila-total]="isTotal(row)">
+            <td *ngFor="let col of prevColumns">{{ row[col] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
