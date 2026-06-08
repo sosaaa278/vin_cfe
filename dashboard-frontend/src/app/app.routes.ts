@@ -20,5 +20,12 @@ export const routes: Routes = [
       import('./causas/causas.component').then(m => m.CausasComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'inconformidades-meta',
+    loadComponent: () =>
+      import('./inconformidades-meta/inconformidades-meta.component').then(m => m.InconformidadesMetaComponent),
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: 'dashboard' }
 ];
+

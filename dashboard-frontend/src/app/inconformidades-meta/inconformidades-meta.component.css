@@ -1,0 +1,218 @@
+/* ==============================
+   LAYOUT GENERAL
+============================== */
+
+.dashboard-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #f4f6fa;
+  min-height: 100vh;
+}
+
+.dash-header {
+  margin-bottom: 24px;
+}
+
+.dash-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 4px;
+}
+
+.dash-subtitle {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.btn-generate {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 12px;
+  letter-spacing: 0.3px;
+}
+
+/* ==============================
+   KPI CARDS
+============================== */
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  border-left: 4px solid #cbd5e1;
+  transition: box-shadow 0.2s;
+}
+
+.kpi-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a202c;
+  line-height: 1.2;
+}
+
+.kpi-value-sm {
+  font-size: 1rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+/* Variantes de color */
+.kpi-neutral  { border-left-color: #94a3b8; }
+.kpi-success  { border-left-color: #22c55e; }
+.kpi-danger   { border-left-color: #ef4444; }
+.kpi-warning  { border-left-color: #f59e0b; }
+.kpi-info     { border-left-color: #3b82f6; }
+
+.kpi-success-soft { border-left-color: #86efac; background: #f0fdf4; }
+.kpi-danger-soft  { border-left-color: #fca5a5; background: #fef2f2; }
+
+/* ==============================
+   SECCIÓN ANALÍTICA
+============================== */
+
+.kpi-analytics-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-code {
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+/* Distribución de áreas */
+.area-dist {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.dist-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+}
+
+.badge-alza  { background: #fee2e2; color: #b91c1c; }
+.badge-baja  { background: #dcfce7; color: #15803d; }
+.badge-igual { background: #f1f5f9; color: #475569; }
+
+/* Ícono de tendencia */
+.trend-icon {
+  font-size: 0.75rem;
+  margin-right: 2px;
+}
+
+/* ==============================
+   CONTROLES DE GRÁFICA
+============================== */
+
+.chart-controls {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Leyenda semafórica manual */
+.legend-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #6b7280;
+  flex-wrap: wrap;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-red   { background: rgba(220, 53, 69, 0.78); }
+.dot-green { background: rgba(40, 167, 69, 0.78); }
+.dot-gray  { background: rgba(108, 117, 125, 0.78); }
+
+.pie-year-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==============================
+   CONTENEDOR DE GRÁFICA
+============================== */
+
+.chart-container {
+  height: 420px;
+  width: 100%;
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid rgba(229, 231, 235, 0.95);
+  background: #ffffff;
+  padding: 10px;
+}
+
+#myChart {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+.chart-container canvas {
+  max-height: none;
+}
+
+
+/* ==============================
+   TABLAS
+============================== */
+
+.table th {
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.table td {
+  font-size: 0.82rem;
+  vertical-align: middle;
+}

@@ -11,7 +11,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger con soporte de Bearer token para desarrollo
+// ✅ CORRECCIÓN: Registrar SOLO como Scoped.
+// Esto asegura que cada petición HTTP tenga su propia instancia de MetaRealService
+// y su propio navegador Playwright, evitando conflictos de concurrencia.
+builder.Services.AddScoped<MetaRealService>(); 
+
+// Swagger con soporte de Bearer token
 builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -38,6 +43,11 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<WebScraperService>();
 builder.Services.AddSingleton<FullCompareService>();
 
+// Configuración de opciones MetaReal
+builder.Services.Configure<DashboardAPI.Models.MetaRealOptions>(builder.Configuration.GetSection("MetaReal"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<DashboardAPI.Models.MetaRealOptions>>().Value);
+
+// CORS
 var allowedOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>() ?? ["http://localhost:4200"];
@@ -53,6 +63,7 @@ builder.Services.AddCors(options =>
         });
 });
 
+// Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (!string.IsNullOrEmpty(connectionString))
 {
@@ -93,20 +104,22 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
+// Seed Database
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 }
 
+// Execution
 var port = Environment.GetEnvironmentVariable("PORT");
 if (port != null)
     app.Run($"http://+:{port}");
 else
-    app.Run();
+    app.Run();   

@@ -168,7 +168,7 @@ export class DashboardComponent implements OnInit {
   constructor(
     private dashboardService: DashboardService,
     public auth: AuthService,
-    private router: Router
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -571,9 +571,15 @@ export class DashboardComponent implements OnInit {
   // EXPORTAR
   // =========================
 
+  goToInconformidadesMeta(): void {
+    this.router.navigate(['/inconformidades-meta']);
+  }
+
   verCausas(): void {
     this.router.navigate(['/causas']);
   }
+
+
 
   exportSubRowExcel(): void {
     const data: any[] = [];
@@ -657,4 +663,5 @@ export class DashboardComponent implements OnInit {
     link.download = `comparativo_${this.selectedCode || 'general'}.png`;
     link.click();
   }
+  
 }

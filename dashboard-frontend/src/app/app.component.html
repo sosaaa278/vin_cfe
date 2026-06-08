@@ -1,1 +1,17 @@
-  <app-dashboard></app-dashboard>
+<div class="chart-container">
+  <label>Tipo de Gráfica: 
+    <select (change)="onChartTypeChange($event)">
+      <option value="bar">Barras</option>
+      <option value="line">Línea</option>
+      <option value="pie">Pastel</option>
+    </select>
+  </label>
+
+  <canvas 
+    baseChart 
+    [datasets]="barChartData"
+    [labels]="barChartLabels"
+    [chartType]="barChartType"
+    [legend]="barChartLegend">
+  </canvas>
+</div>   

@@ -1,0 +1,19 @@
+<div>
+  <button (click)="cargarDatos()" [disabled]="loading">
+    {{ loading ? 'Cargando...' : 'Cargar Datos' }}
+  </button>
+
+  <div *ngIf="loading" class="spinner">
+    <!-- Puedes añadir un spinner aquí -->
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">
+    Error: {{ error }}
+  </div>
+
+  <!-- Aquí va tu gráfica y tabla cuando los datos lleguen -->
+  <div *ngIf="datos && !loading">
+    <!-- Gráfica -->
+    <!-- Tabla -->
+  </div>
+</div>   

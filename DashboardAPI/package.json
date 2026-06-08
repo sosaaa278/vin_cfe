@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "vite-plugin-node-polyfills": "^0.28.0"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  }
+}

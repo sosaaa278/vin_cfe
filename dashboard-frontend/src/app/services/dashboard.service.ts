@@ -29,6 +29,15 @@ export class DashboardService {
     }>(`${this.API}/fullcompare`);
   }
 
+  getInconformidadesMetaReal(desde?: string, hasta?: string) {
+    const p = new URLSearchParams();
+    if (desde) p.set('desde', desde);
+    if (hasta) p.set('hasta', hasta);
+    const qs = p.toString();
+    return this.http.get<any[]>(`${this.API}/inconformidades-meta-real${qs ? `?${qs}` : ''}`);
+  }
+
+
   getCausas(code: string = 'E02') {
     return this.http.get<any[]>(`${this.API}/causas?code=${encodeURIComponent(code)}`);
   }

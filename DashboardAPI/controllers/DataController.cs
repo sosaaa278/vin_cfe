@@ -15,17 +15,21 @@ namespace DashboardAPI.Controllers
         private readonly AppDbContext _context;
         private readonly WebScraperService _scraper;
         private readonly FullCompareService _fullCompare;
+        private readonly MetaRealService _metaReal;
         private readonly ILogger<DataController> _logger;
+
 
         public DataController(
             WebScraperService scraper,
             AppDbContext context,
             FullCompareService fullCompare,
+            MetaRealService metaReal,
             ILogger<DataController> logger)
         {
             _scraper = scraper;
             _context = context;
             _fullCompare = fullCompare;
+            _metaReal = metaReal;
             _logger = logger;
         }
 
@@ -493,5 +497,27 @@ namespace DashboardAPI.Controllers
                     $"Snapshot error: {ex.Message}");
             }
         }
+
+        // =========================
+        // INCONFORMIDADES META REAL
+        // =========================
+        [HttpGet("inconformidades-meta-real")]
+        public async Task<IActionResult> InconformidadesMetaReal([FromQuery] string? desde, [FromQuery] string? hasta)
+        {
+            try
+            {
+                _logger.LogInformation("Getting inconformidades meta-real data from {Desde} to {Hasta}", desde, hasta);
+                
+                var response = await _metaReal.ObtenerDatosAsync(desde, hasta);
+                
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in InconformidadesMetaReal");
+                return BadRequest($"Error InconformidadesMetaReal: {ex.Message}");
+            }
+        }   
     }
 }
+

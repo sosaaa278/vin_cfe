@@ -1,0 +1,116 @@
+<div class="dashboard-wrapper">
+
+  <!-- ==============================
+       ENCABEZADO
+  =============================== -->
+  <div class="dash-header d-flex justify-content-between align-items-start">
+    <div>
+      <h1>Dashboard de Inconformidades Meta</h1>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm mt-1" (click)="auth.logout()">
+      Cerrar sesión
+    </button>
+  </div>
+
+  <!-- ==============================
+       BOTONES PRINCIPALES
+  =============================== -->
+  <div class="row mb-4 g-2">
+    <div class="col-md-6">
+      <button class="btn btn-primary w-100 btn-generate" (click)="loadData()">
+        Generar Dashboard
+      </button>
+    </div>
+    <div class="col-md-6">
+      <button class="btn btn-outline-primary w-100 btn-generate" (click)="goBack()">
+        Volver
+      </button>
+    </div>
+  </div>
+  <!-- ==============================
+       TARJETAS DE ESTADO
+  =============================== -->
+  <div class="row mb-4 g-3">
+
+    <div class="col-md-4">
+      <div class="kpi-card">
+        <span class="kpi-label">Total Registros 2026</span>
+        <span class="kpi-value">{{ totalRecords }}</span>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="kpi-card" [ngClass]="{ 'kpi-success': tableDetected === 'YES', 'kpi-neutral': tableDetected === 'NO' }">
+        <span class="kpi-label">Tabla Detectada</span>
+        <span class="kpi-value">{{ tableDetected }}</span>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="kpi-card"
+        [ngClass]="{
+          'kpi-success': status === 'SUCCESS',
+          'kpi-warning': status === 'LOADING',
+          'kpi-danger':  status === 'ERROR',
+          'kpi-neutral': status === 'WAITING'
+        }">
+        <span class="kpi-label">Estado</span>
+        <span class="kpi-value">{{ status }}</span>
+      </div>
+    </div>
+
+  </div>
+  <!-- ==============================
+       CONTROLES DE GRÁFICA
+  =============================== -->
+  <div class="chart-controls card shadow-sm p-3 mb-3">
+
+    <div class="row g-3 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">Tipo de gráfica</label>
+        <select
+          id="chartTypeSelect"
+          class="form-select"
+          [(ngModel)]="chartType"
+          (ngModelChange)="pendingChartRender = true">
+          <option value="bar">Barras verticales</option>
+          <option value="line">Línea</option>
+          <option value="horizontalBar">Barras horizontales</option>
+          <option value="pie">Pastel</option>
+        </select>
+      </div>
+
+      <div class="col-md-3 d-flex gap-2">
+        <button class="btn btn-outline-secondary flex-fill" (click)="exportChart()">
+          Exportar gráfica
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==============================
+       GRÁFICA
+  =============================== -->
+  <div class="chart-container">
+    <canvas #myChart id="myChart"></canvas>
+  </div>
+
+  <!-- ==============================
+      TABLA DE DATOS CRUDOS
+  =============================== -->
+  <div class="table-responsive card shadow-sm p-3 mt-3">
+    <table class="table table-striped table-hover">
+      <thead class="table-dark">
+        <tr>
+          <th *ngFor="let header of rawTable[0] | keyvalue">{{ header.key }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of rawTable">
+          <td *ngFor="let cell of row | keyvalue">{{ cell.value }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>   
+</div>
