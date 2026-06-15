@@ -1,7 +1,7 @@
 .imu-wrapper {
-  padding: 1.25rem;
-  max-width: 1500px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
+  padding: 24px 20px;
 }
 
 .dash-header h1 {

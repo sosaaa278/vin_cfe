@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx-js-style';
 import { DashboardService } from '../services/dashboard.service';
 import { DateRangeService } from '../services/date-range.service';
 import { NavComponent } from '../shared/nav.component';
-import { DateRangeBarComponent } from '../shared/date-range-bar.component';
+import { saveWorkbook } from '../shared/excel-export';
 import { Subscription } from 'rxjs';
 
 // ── Plugin: columna de fondo verde/roja por categoría (rojo si 2026 > 2025) ──────
@@ -85,7 +85,7 @@ const PIE_COLORS = [
 @Component({
   selector: 'app-imu',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavComponent, DateRangeBarComponent],
+  imports: [CommonModule, FormsModule, NavComponent],
   templateUrl: './imu.component.html',
   styleUrls: ['./imu.component.css']
 })
@@ -400,6 +400,16 @@ export class ImuComponent {
 
   // ── Exportar ──────────────────────────────────────────────────────────────────
 
+  // Exporta la gráfica actual como imagen PNG.
+  exportChartImage(): void {
+    if (!this.chart) return;
+    const url = this.chart.toBase64Image('image/png', 1);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `imu_grafica_${this.selectedZona}_${this.selectedMes}_${this.currentYear}.png`;
+    link.click();
+  }
+
   // Tabla 1: datos del año actual, sin color.
   exportExcel(): void {
     this.exportPlain(this.rows, 'IMU', `imu_${this.selectedZona}_${this.selectedMes}_${this.currentYear}.xlsx`);
@@ -415,7 +425,7 @@ export class ImuComponent {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, sheet);
-    XLSX.writeFile(wb, fileName);
+    saveWorkbook(wb, fileName);
   }
 
   // Tabla 2: comparativa con las celdas pintadas de rojo/verde (igual que en pantalla).
@@ -454,6 +464,6 @@ export class ImuComponent {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Comparacion');
-    XLSX.writeFile(wb, `imu_comparacion_${this.selectedZona}_${this.selectedMes}.xlsx`);
+    saveWorkbook(wb, `imu_comparacion_${this.selectedZona}_${this.selectedMes}.xlsx`);
   }
 }

@@ -10,6 +10,8 @@ namespace DashboardAPI.Data
         public DbSet<Inconformidad> Inconformidades { get; set; }
         public DbSet<HechoReporte>  HechosReportes  { get; set; }
 
+        public DbSet<ScrapeCache> ScrapeCaches { get; set; }
+        
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Inconformidad>(entity =>
@@ -30,6 +32,9 @@ namespace DashboardAPI.Data
                 entity.HasIndex(x => new { x.Fuente, x.Anio, x.Mes, x.ZonaFiltro })
                       .HasDatabaseName("IX_Hechos_Fuente_Periodo_Zona");
             });
+
+            modelBuilder.Entity<ScrapeCache>()
+    .HasIndex(x => x.Clave).IsUnique();
         }
     }
 }

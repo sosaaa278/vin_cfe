@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using DashboardAPI.Services;
+using DashboardAPI.Data; //este es el appdbcontext
+using DashboardAPI.Models; //ScrapeCache
+using Microsoft.EntityFrameworkCore; //FirstOrDefaultAsync
+using System.Text.Json; //JsonSerializer
 using Microsoft.Extensions.Logging;
 
 namespace DashboardAPI.Controllers
@@ -11,11 +15,20 @@ namespace DashboardAPI.Controllers
         private readonly MetaRealService _service;
         private readonly ILogger<InconformidadesMetaController> _logger;
 
-        public InconformidadesMetaController(MetaRealService service, ILogger<InconformidadesMetaController> logger)
+        private readonly AppDbContext _db; //para llamar a la cache
+        public InconformidadesMetaController(
+        MetaRealService service,
+        ILogger<InconformidadesMetaController> logger,
+        AppDbContext db)                 // ← nuevo
         {
-            _service = service;
-            _logger = logger;
+        _service = service;
+        _logger = logger;
+        _db = db;                        // ← nuevo
         }
+
+        // Clave y tiempo de vida (TTL) de la caché de este endpoint.
+        private const string CacheKey = "meta-real";
+        private static readonly TimeSpan CacheTtl = TimeSpan.FromHours(6);
 
         [HttpGet("scrape")]
         public async Task<IActionResult> ScrapeMetaReal()
@@ -23,7 +36,16 @@ namespace DashboardAPI.Controllers
             try
             {
                 _logger.LogInformation("Solicitud de scraping recibida");
-                
+
+                // ── PASO 3a: ¿hay caché fresca? → devolverla sin scrapear ──
+                var cache = await _db.ScrapeCaches.FirstOrDefaultAsync(c => c.Clave == CacheKey);
+                if (cache != null && DateTime.UtcNow - cache.FechaGuardadoUtc < CacheTtl)
+                {
+                    _logger.LogInformation("Devolviendo Meta-Real desde caché ({Edad:n0} min)",
+                        (DateTime.UtcNow - cache.FechaGuardadoUtc).TotalMinutes);
+                    return Content(cache.Json, "application/json");
+                }
+
                 // 1. Llamar al servicio (Devuelve DashboardData)
                 var resultado = await _service.ObtenerDatosAsync();
 
@@ -73,7 +95,18 @@ namespace DashboardAPI.Controllers
                     rawTable = resultado.Data // Datos crudos para tabla HTML
                 };
 
-                return Ok(response);
+                // ── PASO 3b: guardar en caché y devolver ──
+                var json = JsonSerializer.Serialize(response);
+                if (cache == null)
+                {
+                    cache = new ScrapeCache { Clave = CacheKey };
+                    _db.ScrapeCaches.Add(cache);
+                }
+                cache.Json = json;
+                cache.FechaGuardadoUtc = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+
+                return Content(json, "application/json");
             }
             catch (Exception ex)
             {

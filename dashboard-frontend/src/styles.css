@@ -1,1 +1,36 @@
 /* You can add global styles to this file, and also import other style files */
+
+/* ==============================================================
+   VERDE DEL SISTEMA
+   Reemplaza el verde pastel de Bootstrap por un verde fuerte y
+   saturado, aplicado globalmente a botones y utilidades success.
+============================================================== */
+:root {
+  --app-green:        #16a34a; /* verde fuerte principal */
+  --app-green-dark:   #15803d; /* hover / activo */
+  --bs-success:       #16a34a;
+  --bs-success-rgb:   22, 163, 74;
+}
+
+.btn-success {
+  --bs-btn-bg: var(--app-green);
+  --bs-btn-border-color: var(--app-green);
+  --bs-btn-hover-bg: var(--app-green-dark);
+  --bs-btn-hover-border-color: var(--app-green-dark);
+  --bs-btn-active-bg: var(--app-green-dark);
+  --bs-btn-active-border-color: var(--app-green-dark);
+  --bs-btn-disabled-bg: var(--app-green);
+  --bs-btn-disabled-border-color: var(--app-green);
+}
+
+.btn-outline-success {
+  --bs-btn-color: var(--app-green);
+  --bs-btn-border-color: var(--app-green);
+  --bs-btn-hover-bg: var(--app-green);
+  --bs-btn-hover-border-color: var(--app-green);
+  --bs-btn-active-bg: var(--app-green);
+  --bs-btn-active-border-color: var(--app-green);
+}
+
+.text-success { color: var(--app-green) !important; }
+.bg-success   { background-color: var(--app-green) !important; }

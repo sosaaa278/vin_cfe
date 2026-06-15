@@ -29,7 +29,7 @@
 
       <div class="col-md-3 d-flex align-items-end">
         <button
-          class="btn btn-primary w-100 btn-generate"
+          class="btn btn-success w-100 btn-generate"
           (click)="iniciarScrapingAll()"
           [disabled]="status === 'LOADING'">
           <span *ngIf="status !== 'LOADING'">Consultar</span>
@@ -42,7 +42,7 @@
 
       <div class="col-md-4 d-flex align-items-end flex-column gap-1">
         <button
-          class="btn btn-outline-primary w-100"
+          class="btn btn-outline-success w-100"
           (click)="iniciarComparacion()"
           [disabled]="status === 'LOADING' || !isAllMode">
           <span *ngIf="status !== 'LOADING'">Comparar con {{ currentYear - 1 }}</span>
@@ -90,7 +90,7 @@
 
     <div class="col-md-4">
       <div class="kpi-card kpi-neutral">
-        <span class="kpi-label">Total Registros</span>
+        <span class="kpi-label">Total Causas</span>
         <span class="kpi-value">{{ totalRegistros | number }}</span>
       </div>
     </div>

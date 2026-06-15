@@ -154,7 +154,7 @@ app.MapFallbackToFile("index.html"); // Para que el router de Angular funcione a
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 // Execution

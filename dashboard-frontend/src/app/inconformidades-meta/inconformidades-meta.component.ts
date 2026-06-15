@@ -5,13 +5,15 @@ import { Router } from '@angular/router';
 import { Chart, ChartConfiguration } from 'chart.js/auto';
 import * as XLSX from 'xlsx-js-style';
 import { AuthService } from '../services/auth.service';
+import { NavComponent } from '../shared/nav.component';
+import { saveWorkbook } from '../shared/excel-export';
 import { InconformidadesMetaService } from '../services/inconformidades-meta.service';
 import { HttpClient } from '@angular/common/http'  
 
 @Component({
   selector: 'app-inconformidades-meta',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NavComponent],
   templateUrl: './inconformidades-meta.component.html',
   styleUrls: ['./inconformidades-meta.component.css']
 })
@@ -59,8 +61,29 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
   rawData: any[] = [];
   tableColumns: string[] = [];
   chartData: any = null;
-  chartInstance: Chart<'bar'> | null = null;
-  
+  chartInstance: Chart | null = null;
+
+  // ── Mapeo código de división → nombre visible (solo presentación) ──────────────
+  // Internamente se siguen usando los códigos (DC010, etc.) para datos/consultas.
+  private readonly DIVISION_NAMES: { [code: string]: string } = {
+    DC010: 'CHIHUAHUA',  DC020: 'CUAUHTEMOC', DC040: 'JUAREZ',
+    DC060: 'DELICIAS',   DC140: 'CASAS GRANDES', DC220: 'TORREON',
+    DC240: 'PARRAL',     DC260: 'DURANGO',    DC270: 'GOMEZ PALACIO',
+    TOTAL: 'TOTAL'
+  };
+
+  /** Devuelve el nombre de la división para mostrar; si no es un código conocido, regresa el texto original. */
+  divName(code: any): string {
+    const key = String(code ?? '').trim().toUpperCase();
+    return this.DIVISION_NAMES[key] ?? String(code ?? '');
+  }
+
+  // Colores de la gráfica (azul / rojo / verde + línea roja para % Diferencia)
+  private readonly COLOR_REAL2025 = 'rgb(46, 117, 182)';
+  private readonly COLOR_META2026 = 'rgb(192, 48, 56)';
+  private readonly COLOR_REAL2026 = 'rgb(112, 173, 71)';
+  private readonly COLOR_LINEA    = 'rgb(237, 28, 36)';
+
   rawTable: any[] = [];
   constructor(
     private metaRealService: InconformidadesMetaService,
@@ -123,8 +146,8 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
           this.tableDetected = 'SI';
           this.status = response.status ?? 'EXITO';
 
-          // Para la gráfica: usar directamente la data de Chart.js si ya viene armada
-          this.chartData = { labels: response.labels, datasets: response.datasets };
+          // Para la gráfica: armamos la combinada (3 barras + línea % Diferencia)
+          this.chartData = this.buildMetaChartData(response.labels, response.datasets);
           this.pendingChartRender = true;
 
           return;
@@ -282,7 +305,7 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
       .filter((dataset: any) => dataset !== null);
 
     this.chartData = {
-      labels: categoryLabels,
+      labels: categoryLabels.map(c => this.divName(c)),
       datasets
     };
 
@@ -314,57 +337,194 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
     ];
     return colors[index] ?? colors[colors.length - 1];
   }
+
+  /**
+   * Construye la gráfica combinada (barras + línea) a partir de lo que manda el
+   * backend (labels = códigos de división, datasets = filas REAL/META).
+   * Solo presentación: no cambia datos ni cálculos del backend.
+   *  - 3 barras: REAL 2025 (azul), META 2026 (rojo), REAL 2026 (verde)
+   *  - 1 línea: % Diferencia (índice 2026 vs 2025) en eje secundario
+   *  - etiquetas X con el nombre de la división (no el código)
+   *  - se excluye la columna TOTAL del gráfico (sí se ve en la tabla)
+   */
+  private buildMetaChartData(labels: string[], datasets: any[]): any {
+    const safeLabels = labels ?? [];
+    const valuesFor = (re: RegExp): number[] => {
+      const ds = (datasets ?? []).find(d => re.test(String(d?.label ?? '')));
+      return safeLabels.map((_, i) => Number(ds?.data?.[i]) || 0);
+    };
+
+    const real2025 = valuesFor(/REAL\s*2025/i);
+    const meta2026 = valuesFor(/META\s*2026/i);
+    const real2026 = valuesFor(/REAL\s*2026/i);
+
+    // Quitamos la columna TOTAL del gráfico (igual que el portal original)
+    const keep = safeLabels.map(l => String(l ?? '').trim().toUpperCase() !== 'TOTAL');
+    const flt  = (arr: number[]) => arr.filter((_, i) => keep[i]);
+
+    const real25 = flt(real2025);
+    const meta26 = flt(meta2026);
+    const real26 = flt(real2026);
+
+    // % Diferencia (índice 2026 vs 2025): (REAL2026 - REAL2025) / REAL2026 * 100
+    const diffPct = real26.map((r26, i) => {
+      const r25 = real25[i];
+      return r26 !== 0 ? Math.round(((r26 - r25) / r26) * 10000) / 100 : 0;
+    });
+
+    const nombres = safeLabels.filter((_, i) => keep[i]).map(c => this.divName(c));
+
+    return {
+      labels: nombres,
+      datasets: [
+        { type: 'bar', label: 'REAL 2025', data: real25,
+          backgroundColor: this.COLOR_REAL2025, borderColor: this.COLOR_REAL2025, borderWidth: 1, order: 2, yAxisID: 'y' },
+        { type: 'bar', label: 'META 2026', data: meta26,
+          backgroundColor: this.COLOR_META2026, borderColor: this.COLOR_META2026, borderWidth: 1, order: 2, yAxisID: 'y' },
+        { type: 'bar', label: 'REAL 2026', data: real26,
+          backgroundColor: this.COLOR_REAL2026, borderColor: this.COLOR_REAL2026, borderWidth: 1, order: 2, yAxisID: 'y' },
+        { type: 'line', label: '% Diferencia', data: diffPct, yAxisID: 'y1',
+          borderColor: this.COLOR_LINEA, backgroundColor: this.COLOR_LINEA, borderWidth: 2,
+          pointRadius: 4, pointHoverRadius: 6, pointBackgroundColor: this.COLOR_LINEA, pointBorderColor: '#fff',
+          tension: 0.4, fill: false, order: 1 }
+      ]
+    };
+  }
   
 
   // ── Chart rendering ───────────────────────────────────────────────────────
-  chartType: 'bar' | 'line' | 'horizontalBar' | 'pie' = 'bar';
+  // Solo dos orientaciones disponibles en el desplegable: vertical / horizontal.
+  chartType: 'bar' | 'horizontalBar' = 'bar';
 
 
 
-  // render chart con el diseño consistente y permitiendo cambiar tipo
+  // render chart con el diseño consistente y permitiendo cambiar orientación
 
   renderChart(): void {
     if (!this.chartRef?.nativeElement || !this.chartData) return;
 
-    // Asegurar que el canvas tenga casi todo el ancho disponible
-    // (el CSS del contenedor manda, aquí no tocamos layout agresivo)
+    const canvas = this.chartRef.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
+    // Destruir la instancia anterior
+    if (this.chartInstance) {
+      this.chartInstance.destroy();
+      this.chartInstance = null;
+    }
 
+    const horizontal = this.chartType === 'horizontalBar';
 
-  const canvas = this.chartRef?.nativeElement;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
+    // Clonamos los datasets y asignamos el eje de valor según la orientación.
+    // Vertical  -> el valor va en el eje Y (bars: 'y', línea %: 'y1')
+    // Horizontal-> el valor va en el eje X (bars: 'xVal', línea %: 'xPct')
+    const datasets = (this.chartData.datasets || []).map((ds: any) => {
+      const isLine = ds.type === 'line';
+      const copy = { ...ds };
+      delete copy.xAxisID;
+      delete copy.yAxisID;
+      if (horizontal) {
+        copy.xAxisID = isLine ? 'xPct' : 'xVal';
+      } else {
+        copy.yAxisID = isLine ? 'y1' : 'y';
+      }
+      return copy;
+    });
 
-  //  Destruir la instancia anterior
-  if (this.chartInstance) {
-    this.chartInstance.destroy();
+    const data = { labels: this.chartData.labels, datasets };
+
+    const valueAxis = {
+      type: 'linear',
+      beginAtZero: true,
+      title: { display: true, text: 'INCONFORMIDADES', color: '#2f5496', font: { weight: 'bold' } }
+    };
+    const pctAxis = {
+      type: 'linear',
+      title: { display: true, text: '% VARIACION', color: '#c00000', font: { weight: 'bold' } },
+      grid: { drawOnChartArea: false }
+    };
+    const catAxis = { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 }, grid: { display: false } };
+
+    const scales: any = horizontal
+      ? {
+          xVal: { ...valueAxis, position: 'bottom' },
+          xPct: { ...pctAxis, position: 'top' },
+          y:    { ...catAxis }
+        }
+      : {
+          y:  { ...valueAxis, position: 'left' },
+          y1: { ...pctAxis, position: 'right' },
+          x:  { ...catAxis }
+        };
+
+    // Gráfica combinada: barras (REAL/META) + línea (% Diferencia) en eje secundario.
+    const config: any = {
+      type: 'bar',
+      data,
+      options: {
+        indexAxis: horizontal ? 'y' : 'x',
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 14 } },
+          title: { display: true, text: 'INCONFORMIDADES', font: { size: 16, weight: 'bold' }, color: '#2f5496' },
+          tooltip: {
+            callbacks: {
+              title: (items: any[]) => items?.[0]?.label ?? '',
+              label: (item: any) => {
+                const v = horizontal ? (item.parsed?.x ?? 0) : (item.parsed?.y ?? 0);
+                if (item.dataset?.label === '% Diferencia') {
+                  return ` % Diferencia : ${Number(v).toFixed(2)}`;
+                }
+                return ` ${item.dataset?.label} : ${Math.round(Number(v)).toLocaleString('es-MX')}`;
+              }
+            }
+          }
+        },
+        scales
+      }
+    };
+
+    this.chartInstance = new Chart(ctx, config);
   }
 
-  //  Luego: Crear la nueva gráfica con la configuración en línea
-    const normalizedType: any = this.chartType === 'horizontalBar' ? 'bar' : this.chartType;
+  // ── Helpers para colorear la fila REAL 2026 vs META 2026 ─────────────────────
+  /** ¿La clave de columna corresponde a una división/total con valor numérico? */
+  private isValueColumn(key: any): boolean {
+    return this.desiredColumns.includes(String(key ?? '').trim().toUpperCase());
+  }
 
-    this.chartInstance = new Chart(ctx, {
-      type: normalizedType,
-      data: this.chartData,
-      options: {
+  /** Texto de la primera columna (etiqueta de fila, p. ej. "REAL 2026"). */
+  private rowLabel(row: any): string {
+    const keys = Object.keys(row || {});
+    return String(row?.[keys[0]] ?? '');
+  }
 
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { display: true, position: 'top' },
-        title: { display: true, text: 'Inconformidades Meta Real' }
-      },
-      scales: {
-        ...(normalizedType === 'bar'
-          ? { x: { beginAtZero: true }, y: { ticks: { autoSkip: false } } }
-          : {})
-      },
-      ...(normalizedType === 'bar' && this.chartType === 'horizontalBar'
-        ? { indexAxis: 'y' }
-        : {})
-    }
-  });
-}
+  /** Fila META 2026 dentro de la tabla cruda. */
+  private metaRow2026(): any {
+    return this.rawTable.find(r => /META\s*2026/i.test(this.rowLabel(r)));
+  }
+
+  /** ¿Es la fila REAL 2026? */
+  isReal2026Row(row: any): boolean {
+    return /REAL\s*2026/i.test(this.rowLabel(row));
+  }
+
+  /**
+   * Clase para cada celda de la tabla. Solo aplica a las celdas numéricas
+   * de la fila REAL 2026: rojo si supera META 2026, verde si es menor.
+   */
+  cellClass(row: any, key: any): string {
+    if (!this.isReal2026Row(row) || !this.isValueColumn(key)) return '';
+    const meta = this.metaRow2026();
+    if (!meta) return '';
+    const realVal = this.parseNumericValue(row[key]);
+    const metaVal = this.parseNumericValue(meta[key]);
+    if (realVal > metaVal) return 'cell-red';
+    if (realVal < metaVal) return 'cell-green';
+    return '';
+  }
 
   // ── Export chart as PNG ────────────────────────────────────────────────────
   exportChart(): void {
@@ -388,40 +548,54 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
 
   // ── Export data as Excel ───────────────────────────────────────────────────
   exportExcel(): void {
-    if (!this.rawData || this.rawData.length === 0) {
+    if (!this.rawTable || this.rawTable.length === 0) {
       alert('No hay datos para exportar');
       return;
     }
 
     try {
-      // Create workbook
-      const ws = XLSX.utils.json_to_sheet(this.rawData);
+      // Exportamos la misma tabla que se muestra en pantalla.
+      const ws = XLSX.utils.json_to_sheet(this.rawTable);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Datos Meta-Real');
+      XLSX.utils.book_append_sheet(wb, ws, 'Inconformidades Meta');
 
-      // Style the header
+      const cols = Object.keys(this.rawTable[0]);
+      const labelKey = cols[0];
+
+      // Encabezado azul con texto blanco.
       const headerStyle = {
         fill: { fgColor: { rgb: 'FF4472C4' } },
         font: { bold: true, color: { rgb: 'FFFFFFFF' } },
         alignment: { horizontal: 'center' }
       };
-
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const address = XLSX.utils.encode_col(C) + '1';
-        if (!ws[address]) continue;
-        ws[address].s = headerStyle;
+      for (let C = 0; C < cols.length; C++) {
+        const address = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (ws[address]) ws[address].s = headerStyle;
       }
 
-      // Auto-fit columns
-      ws['!cols'] = [];
-      for (let i = 0; i < this.tableColumns.length; i++) {
-        ws['!cols'].push({ wch: 15 });
+      // Colorea la fila REAL 2026 comparando contra META 2026 (rojo > / verde <).
+      const metaRow = this.metaRow2026();
+      const realIdx = this.rawTable.findIndex(r => this.isReal2026Row(r));
+      if (metaRow && realIdx >= 0) {
+        const redStyle = { fill: { fgColor: { rgb: 'FFFFC7CE' } }, font: { color: { rgb: 'FF9C0006' }, bold: true } };
+        const greenStyle = { fill: { fgColor: { rgb: 'FFC6EFCE' } }, font: { color: { rgb: 'FF006100' }, bold: true } };
+        for (let C = 0; C < cols.length; C++) {
+          const key = cols[C];
+          if (!this.isValueColumn(key)) continue;
+          const realVal = this.parseNumericValue(this.rawTable[realIdx][key]);
+          const metaVal = this.parseNumericValue(metaRow[key]);
+          const address = XLSX.utils.encode_cell({ r: realIdx + 1, c: C });
+          if (!ws[address]) continue;
+          if (realVal > metaVal) ws[address].s = redStyle;
+          else if (realVal < metaVal) ws[address].s = greenStyle;
+        }
       }
 
-      // Generate file
+      // Ancho de columnas.
+      ws['!cols'] = cols.map(() => ({ wch: 14 }));
+
       const fileName = `inconformidades-meta-${new Date().getTime()}.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      saveWorkbook(wb, fileName);
     } catch (error) {
       console.error('Error exporting Excel:', error);
       alert('Error al exportar a Excel');

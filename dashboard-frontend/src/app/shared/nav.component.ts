@@ -11,9 +11,10 @@ import { AuthService } from '../services/auth.service';
   template: `
     <nav class="app-tabs">
       <div class="tabs-links">
-        <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        <a routerLink="/dashboard" routerLinkActive="active">Inconformidades</a>
         <a routerLink="/causas" routerLinkActive="active">Causas</a>
         <a routerLink="/imu" routerLinkActive="active">Por cada mil usuarios</a>
+        <a routerLink="/inconformidades-meta" routerLinkActive="active">Inconformidades meta/real</a>
       </div>
       <button class="btn-logout" (click)="auth.logout()">Cerrar sesión</button>
     </nav>

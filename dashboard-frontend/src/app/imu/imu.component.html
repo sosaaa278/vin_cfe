@@ -2,8 +2,6 @@
 
   <app-nav></app-nav>
 
-  <app-date-range-bar></app-date-range-bar>
-
   <!-- ==============================
        ENCABEZADO
   =============================== -->
@@ -33,7 +31,7 @@
       </div>
 
       <div class="col-md-5 d-flex gap-2">
-        <button class="btn btn-primary flex-fill btn-generate"
+        <button class="btn btn-success flex-fill btn-generate"
                 (click)="consultar()"
                 [disabled]="status === 'LOADING'">
           <span *ngIf="status !== 'LOADING'">Consultar</span>
@@ -43,7 +41,7 @@
           </span>
         </button>
 
-        <button class="btn btn-outline-primary flex-fill"
+        <button class="btn btn-outline-success flex-fill"
                 (click)="compararConAnterior()"
                 [disabled]="status === 'LOADING' || rows.length === 0">
           Comparar con {{ currentYear - 1 }}
@@ -88,6 +86,10 @@
         <option value="line">Línea</option>
         <option value="pie">Pastel</option>
       </select>
+
+      <button class="btn btn-success btn-sm ms-auto" (click)="exportChartImage()">
+        Exportar gráfica
+      </button>
     </div>
 
     <!-- Pastel comparando: dos pasteles lado a lado -->

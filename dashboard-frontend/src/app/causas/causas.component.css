@@ -1,6 +1,6 @@
 .causas-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 24px 20px;
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: #f4f6fa;
@@ -65,7 +65,7 @@
 }
 
 .kpi-neutral  { border-left-color: #94a3b8; }
-.kpi-success  { border-left-color: #22c55e; }
+.kpi-success  { border-left-color: #16a34a; }
 .kpi-danger   { border-left-color: #ef4444; }
 .kpi-warning  { border-left-color: #f59e0b; }
 

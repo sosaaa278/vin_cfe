@@ -15,15 +15,10 @@
   <!-- ==============================
        BOTONES PRINCIPALES
   =============================== -->
-  <div class="row mb-4 g-2">
-    <div class="col-md-6">
-      <button class="btn btn-primary w-100 btn-generate" (click)="loadData()">
-        Generar Dashboard
-      </button>
-    </div>
-    <div class="col-md-6">
-      <button class="btn btn-outline-primary w-100 btn-generate" (click)="goToInconformidadesMeta()">
-        Inconformidades Meta
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <button class="btn btn-success w-100 btn-generate" (click)="loadData()">
+        Consultar
       </button>
     </div>
   </div>
@@ -35,7 +30,7 @@
 
     <div class="col-md-4">
       <div class="kpi-card">
-        <span class="kpi-label">Total Registros 2026</span>
+        <span class="kpi-label">Total Inconformidades 2026</span>
         <span class="kpi-value">{{ totalRecords }}</span>
       </div>
     </div>

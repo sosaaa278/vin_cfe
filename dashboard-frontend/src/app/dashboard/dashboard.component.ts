@@ -9,6 +9,7 @@ import { AuthService } from '../services/auth.service';
 import { DateRangeService } from '../services/date-range.service';
 import { NavComponent } from '../shared/nav.component';
 import { DateRangeBarComponent } from '../shared/date-range-bar.component';
+import { saveWorkbook } from '../shared/excel-export';
 
 // ── Plugin: columna de fondo verde/roja por categoría ─────────────────────────
 const BG_COLUMNS_PLUGIN: any = {
@@ -584,10 +585,6 @@ export class DashboardComponent implements OnInit {
   // EXPORTAR
   // =========================
 
-  goToInconformidadesMeta(): void {
-    this.router.navigate(['/inconformidades-meta']);
-  }
-
   verCausas(): void {
     this.router.navigate(['/causas']);
   }
@@ -595,32 +592,89 @@ export class DashboardComponent implements OnInit {
 
 
   exportSubRowExcel(): void {
-    const data: any[] = [];
+    const cols = ['AÑO', ...this.visibleColumns, 'TOTAL'];
+    const ws: any = {};
+
+    // Colores: rojo si subió (peor), verde si bajó (mejor), azul claro para la fila 2025.
+    const RED = 'FFFEE2E2', GREEN = 'FFD1FAE5', BLUE = 'FFD7E4FF';
+
+    const HEADER_S = {
+      fill: { patternType: 'solid', fgColor: { rgb: 'FF1E293B' } },
+      font: { bold: true, color: { rgb: 'FFFFFFFF' }, sz: 11 },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+    cols.forEach((h, ci) => {
+      ws[XLSX.utils.encode_cell({ r: 0, c: ci })] = { v: h, t: 's', s: HEADER_S };
+    });
+
+    const align = (col: string) => col === 'AÑO' ? 'center' : col === 'AREA' ? 'left' : 'right';
+    const writeCell = (r: number, ci: number, col: string, value: any, rgb: string | null, italic = false, bold = false) => {
+      const isNum = typeof value === 'number';
+      ws[XLSX.utils.encode_cell({ r, c: ci })] = {
+        v: value, t: isNum ? 'n' : 's',
+        s: {
+          fill: rgb ? { patternType: 'solid', fgColor: { rgb } } : undefined,
+          font: { sz: 10, italic, bold },
+          alignment: { horizontal: align(col), vertical: 'center' }
+        }
+      };
+    };
+
+    let r = 1;
     this.tableData.forEach(row => {
-      const entry2026: any = { AÑO: '2026' };
-      this.visibleColumns.forEach(col => entry2026[col] = row[col]);
-      data.push(entry2026);
-      if (!this.isTotal(row['AREA'])) {
-        const entry2025: any = { AÑO: '2025' };
-        this.visibleColumns.forEach(col => {
-          if (col === 'AREA') entry2025[col] = row[col];
-          else if (this.isCompareCode(col)) entry2025[col] = this.get2025Value(row['AREA'], col);
-          else entry2025[col] = '';
+      const isTot = this.isTotal(row['AREA']);
+
+      // ── Fila 2026 (con color rojo/verde por celda, igual que en pantalla) ──
+      cols.forEach((col, ci) => {
+        let value: any = '';
+        let rgb: string | null = null;
+
+        if (col === 'AÑO') {
+          value = '2026';
+        } else if (col === 'TOTAL') {
+          value = this.getZoneTotal2026(row);
+          if (!isTot) {
+            const t25 = this.getZoneTotal2025(row['AREA']);
+            rgb = value > t25 ? RED : value < t25 ? GREEN : null;
+          }
+        } else {
+          value = row[col] ?? '';
+          if (!isTot && this.isCompareCode(col)) {
+            const v26 = this.parseValue(row[col]);
+            const v25 = this.get2025Value(row['AREA'], col);
+            rgb = v26 > v25 ? RED : v26 < v25 ? GREEN : null;
+          }
+        }
+        writeCell(r, ci, col, value, rgb, false, isTot);
+      });
+      r++;
+
+      // ── Sub-fila 2025 (azul claro), solo si no es la fila TOTAL ──
+      if (!isTot) {
+        cols.forEach((col, ci) => {
+          let value: any = '';
+          if (col === 'AÑO') value = '2025';
+          else if (col === 'AREA') value = row['AREA'];
+          else if (col === 'TOTAL') value = this.getZoneTotal2025(row['AREA']);
+          else if (this.isCompareCode(col)) value = this.get2025Value(row['AREA'], col);
+          writeCell(r, ci, col, value, BLUE, true, false);
         });
-        data.push(entry2025);
+        r++;
       }
     });
-    const ws = XLSX.utils.json_to_sheet(data);
+
+    ws['!ref'] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: cols.length - 1, r: r - 1 } });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Comparativo_Inconformidades');
-    XLSX.writeFile(wb, 'comparativo_inconformidades.xlsx');
+    saveWorkbook(wb, 'comparativo_inconformidades.xlsx');
   }
 
   exportExcel(): void {
     const ws = XLSX.utils.json_to_sheet(this.tableData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Dashboard');
-    XLSX.writeFile(wb, 'dashboard.xlsx');
+    saveWorkbook(wb, 'dashboard.xlsx');
   }
 
   exportCompareExcel(): void {
@@ -666,7 +720,7 @@ export class DashboardComponent implements OnInit {
     ws['!cols'] = [{ wch: 32 }, { wch: 12 }, { wch: 12 }, { wch: 14 }];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Comparativo');
-    XLSX.writeFile(wb, 'comparativo_2025_2026.xlsx');
+    saveWorkbook(wb, 'comparativo_2025_2026.xlsx');
   }
 
   exportChart(): void {

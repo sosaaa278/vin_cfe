@@ -629,7 +629,7 @@ namespace DashboardAPI.Services
                     "  setField('cveArea',              '00000');" +
                     "  setField('entidadFederativa',    '0');" +
                     "  setField('cveMunicipio',         'T');" +
-                    "  setField('grupoSolicitud',       'RSS');" +
+                    "  setField('grupoSolicitud',       'T');" +   // 'T' = Todos grupo solicitudes (sin filtrar por RSS)
                     "  setField('tipoSolInicio',        'T');" +
                     "  setField('tipoSolTermino',       ts);" +
                     "  setField('cveCausaTerminacion',  'T');" +

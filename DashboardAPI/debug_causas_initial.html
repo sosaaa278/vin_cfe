@@ -20,6 +20,13 @@
   //*** Llena combo de zonas en un submit ***
    $(document).ready(function () {
    	
+  		cveDivision='DC000';
+  		cveZona='00000';
+  		$.post("lib/llenaCombos.asp", { combo: 'cveZona', cveDivision: cveDivision, cveZona : cveZona }, function(data){
+  		  $("#cveZona").html(data);
+              });
+
+   	
 
    });
 
@@ -171,7 +178,7 @@ $(document).ready(function(){
 </head>
 
 <body class="fondo">
-<div id="loader" style="display: none;"><p style="font-family: 'Lato', Arial, sans-serif;font-size: large;font-variant:small-caps;color:green;font-weight: bold;">Cargando datos...</p><br>
+<div id="loader" style="opacity: 0.795162;"><p style="font-family: 'Lato', Arial, sans-serif;font-size: large;font-variant:small-caps;color:green;font-weight: bold;">Cargando datos...</p><br>
 <p style="font-family: 'Lato', Arial, sans-serif;font-size: small;font-variant:small-caps;color:#943126;font-weight: bold;">&nbsp;</p></div>
 
 <form name="frmIESS" method="post" action="/iessInformesV2/causasTerminacion.asp">
@@ -217,7 +224,7 @@ minutes="0"+minutes;
 if (seconds<=9)
 seconds="0"+seconds;
 
-document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)</script>01/06/2026 10:59:34 a. m.</span>
+document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)</script>11/06/2026 8:27:52 a. m.</span>
                  	&nbsp;&nbsp;&nbsp;</div>
                  </td>
                </tr>
@@ -230,11 +237,11 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
 <table width="100%" border="0" cellspacing="0" id="TABLE_8">
   <tbody><tr>
     <td>
-         <select id="cveDivision" name="cveDivision" class="textfields" style="width:170px;">
+         <select id="cveDivision" name="cveDivision" class="textfields" style="width: 170px; background-color: rgb(209, 231, 252);">
             <option value="00000">Nacional</option>
      	    <option value="DA000">Baja California</option>
      	    <option value="DB000">Noroeste</option>
-     	    <option value="DC000">Norte</option>
+     	    <option value="DC000" selected="">Norte</option>
      	    <option value="DD000">Golfo Norte</option>
      	    <option value="DF000">Centro Occidente</option>
      	    <option value="DG000">Centro Sur</option>
@@ -251,9 +258,7 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
      	   </select>
 </td>
     <td>
-     <select id="cveZona" name="cveZona" class="textfields" style="width:170px;">
-          <option value="00000">Todas las zonas</option>
-     </select>
+     <select id="cveZona" name="cveZona" class="textfields" style="width:170px;"><option value="00000"> Todas las zonas </option><option value="DC010">Chihuahua</option><option value="DC020">Cuauhtemoc</option><option value="DC040">Juarez</option><option value="DC060">Delicias</option><option value="DC140">Casas Grandes</option><option value="DC220">Torreon</option><option value="DC240">Parral</option><option value="DC260">Durango</option><option value="DC270">Gomez Palacio</option></select>
 </td>
     <td>
      <select id="cveArea" name="cveArea" class="textfields" style="width:170px;">
@@ -1881,7 +1886,7 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
 				</select>
 </td>
     <td>
-		<select name="tipoSolTermino" id="tipoSolTermino" class="textfields" style="width:170px;">
+		<select name="tipoSolTermino" id="tipoSolTermino" class="textfields" style="width: 170px; background-color: rgb(209, 231, 252);">
 		<option value="T">Todos, tipo termino</option>
 		<option value="C01">C01&nbsp;Contratacion</option>
 		<option value="C02">C02&nbsp;Contratacion en BT tarifas PDBT, GDBT y APBT</option>
@@ -1916,7 +1921,7 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
 		<option value="E04">E04&nbsp;Falso contacto de distribucion</option>
 		<option value="E05">E05&nbsp;Improcedente distribucion</option>
 		<option value="E06">E06&nbsp;Servicio importante fuera</option>
-		<option value="E07">E07&nbsp;Reparacion mayor</option>
+		<option value="E07" selected="">E07&nbsp;Reparacion mayor</option>
 		<option value="EZZ">EZZ&nbsp;No identificada</option>
 		<option value="Q01">Q01&nbsp;No luz</option>
 		<option value="Q02">Q02&nbsp;Falso contacto</option>
@@ -2054,17 +2059,17 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
 <td colspan="3">
 
      Del:
-     <input type="date" name="fechaDesde" value="2026-05-01" style="font-family:'Lato', Arial, sans-serif;">
+     <input type="date" name="fechaDesde" value="2026-06-01" style="font-family:'Lato', Arial, sans-serif;">
 
 	 al:
-	 <input type="date" name="fechaHasta" value="2026-05-31" style="font-family:'Lato', Arial, sans-serif;">
+	 <input type="date" name="fechaHasta" value="2026-06-10" style="font-family:'Lato', Arial, sans-serif;">
 
 		   	Agrupar:
 			<select name="cvePivoteTerminacion" id="cvePivoteTerminacion" class="textfields" style="width:170px;">
 					 <option value="cveDivision">Division</option>
-					 <option value="cveZona">Zona</option>
+					 <option value="cveZona" selected="">Zona</option>
 					 <option value="cveArea">Agencia</option>
-					 <option value="cveGrupoSolicitud" selected="">Grupo solicitudes</option>
+					 <option value="cveGrupoSolicitud">Grupo solicitudes</option>
 					 <option value="tipoSolInicio">Tipo Inicio</option>
 					 <option value="tipoSolTermino">Tipo Termino</option>
 					 <option value="cveCausaTerminacion">Causa Termino</option>
@@ -2099,7 +2104,7 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
       <td><div align="center" class="tituloSubseccion">Análisis Integral de Atención de Solicitudes de Servicio</div></td>
    </tr>
    <tr>
-      <td class="SubtituloVerde"><div align="center">Del 1 al 31 de mayo del 2026</div></td>
+      <td class="SubtituloVerde"><div align="center">Del 1 al 10 de junio del 2026</div></td>
    </tr>
 </tbody></table>
 
@@ -2171,7 +2176,7 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
 <table align="center" width="95%" border="0" id="TABLE_11">
 		<tbody><tr>
 		<td width="10%"><a href="causasCancelacionGrupo.asp?cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000"><img border="0" src="imagenes/homeReport.png" alt="Pagina inicial del reporte" width="20" height="20"></a></td>
-		<td width="80%"><div align="center"><span class="tituloSubseccion"><div id="titulo">Del 1 al 31 de mayo del 2026</div></span> </div></td>
+		<td width="80%"><div align="center"><span class="tituloSubseccion"><div id="titulo">Del 1 al 10 de junio del 2026</div></span> </div></td>
 		<td width="10%">&nbsp;</td>
 		</tr>
 	</tbody></table>
@@ -2194,506 +2199,128 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
     
 				<tbody><tr class="celdaIess" height="20">
 								  <td align="center">1</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=COR&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">COR</a></strong></td>
-								  <td align="left">Cortes</td>
+								  <td align="left"><strong><a href="causasTerminacionDetalle.asp?cveDivision=DC000&amp;cveZona=DC040&amp;cveArea=00000&amp;fechaDesde=2026/06/01&amp;fechaHasta=2026/06/10&amp;grupoSolicitud=T&amp;tipoSolInicio=T&amp;tipoSolTermino=E07&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DC040</a></strong></td>
+								  <td align="left">Juarez</td>
 								  
-								  	<td align="right">900,901</td>
+								  	<td align="right">77</td>
 								  
-								  <td align="right">900,979</td>
+								  <td align="right">80</td>
 								  <td align="right">
-								  <table width="27%" border="0" align="right" id="TABLE_13">
+								  <table width="53%" border="0" align="right" id="TABLE_13">
 									<tbody><tr>
 									  <td bgcolor="#E2A007">&nbsp;</td>
 									</tr>
 								  </tbody></table>
 								  </td>
-								  <td align="right"><strong>27.05</strong></td>
+								  <td align="right"><strong>52.98</strong></td>
 								</tr>
 				
 				<tr class="celdaIess alternate" height="20">
 								  <td align="center">2</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=RSC&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">RSC</a></strong></td>
-								  <td align="left">Reconexion servicio cortado</td>
+								  <td align="left"><strong><a href="causasTerminacionDetalle.asp?cveDivision=DC000&amp;cveZona=DC010&amp;cveArea=00000&amp;fechaDesde=2026/06/01&amp;fechaHasta=2026/06/10&amp;grupoSolicitud=T&amp;tipoSolInicio=T&amp;tipoSolTermino=E07&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DC010</a></strong></td>
+								  <td align="left">Chihuahua</td>
 								  
-								  	<td align="right">798,714</td>
+								  	<td align="right">40</td>
 								  
-								  <td align="right">799,250</td>
+								  <td align="right">40</td>
 								  <td align="right">
-								  <table width="24%" border="0" align="right" id="TABLE_14">
+								  <table width="26%" border="0" align="right" id="TABLE_14">
 									<tbody><tr>
 									  <td bgcolor="#E2A007">&nbsp;</td>
 									</tr>
 								  </tbody></table>
 								  </td>
-								  <td align="right"><strong>23.99</strong></td>
+								  <td align="right"><strong>26.49</strong></td>
 								</tr>
 				
 				<tr class="celdaIess" height="20">
 								  <td align="center">3</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=REV&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">REV</a></strong></td>
-								  <td align="left">Revision de sistemas de medicion</td>
+								  <td align="left"><strong><a href="causasTerminacionDetalle.asp?cveDivision=DC000&amp;cveZona=DC260&amp;cveArea=00000&amp;fechaDesde=2026/06/01&amp;fechaHasta=2026/06/10&amp;grupoSolicitud=T&amp;tipoSolInicio=T&amp;tipoSolTermino=E07&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DC260</a></strong></td>
+								  <td align="left">Durango</td>
 								  
-								  	<td align="right">491,007</td>
+								  	<td align="right">11</td>
 								  
-								  <td align="right">491,751</td>
+								  <td align="right">17</td>
 								  <td align="right">
-								  <table width="15%" border="0" align="right" id="TABLE_15">
+								  <table width="11%" border="0" align="right" id="TABLE_15">
 									<tbody><tr>
 									  <td bgcolor="#E2A007">&nbsp;</td>
 									</tr>
 								  </tbody></table>
 								  </td>
-								  <td align="right"><strong>14.76</strong></td>
+								  <td align="right"><strong>11.26</strong></td>
 								</tr>
 				
 				<tr class="celdaIess alternate" height="20">
 								  <td align="center">4</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=MIB&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">MIB</a></strong></td>
-								  <td align="left">Mejora de instalacion BT MT</td>
+								  <td align="left"><strong><a href="causasTerminacionDetalle.asp?cveDivision=DC000&amp;cveZona=DC220&amp;cveArea=00000&amp;fechaDesde=2026/06/01&amp;fechaHasta=2026/06/10&amp;grupoSolicitud=T&amp;tipoSolInicio=T&amp;tipoSolTermino=E07&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DC220</a></strong></td>
+								  <td align="left">Torreon</td>
 								  
-								  	<td align="right">199,692</td>
+								  	<td align="right">7</td>
 								  
-								  <td align="right">466,861</td>
+								  <td align="right">7</td>
 								  <td align="right">
-								  <table width="14%" border="0" align="right" id="TABLE_16">
+								  <table width="5%" border="0" align="right" id="TABLE_16">
 									<tbody><tr>
 									  <td bgcolor="#E2A007">&nbsp;</td>
 									</tr>
 								  </tbody></table>
 								  </td>
-								  <td align="right"><strong>14.01</strong></td>
+								  <td align="right"><strong>4.64</strong></td>
 								</tr>
 				
 				<tr class="celdaIess" height="20">
 								  <td align="center">5</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=RBT&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">RBT</a></strong></td>
-								  <td align="left">Reestablecimiento Individual</td>
+								  <td align="left"><strong><a href="causasTerminacionDetalle.asp?cveDivision=DC000&amp;cveZona=DC270&amp;cveArea=00000&amp;fechaDesde=2026/06/01&amp;fechaHasta=2026/06/10&amp;grupoSolicitud=T&amp;tipoSolInicio=T&amp;tipoSolTermino=E07&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DC270</a></strong></td>
+								  <td align="left">Gomez Palacio</td>
 								  
-								  	<td align="right">215,645</td>
+								  	<td align="right">5</td>
 								  
-								  <td align="right">216,581</td>
+								  <td align="right">5</td>
 								  <td align="right">
-								  <table width="7%" border="0" align="right" id="TABLE_17">
+								  <table width="3%" border="0" align="right" id="TABLE_17">
 									<tbody><tr>
 									  <td bgcolor="#E2A007">&nbsp;</td>
 									</tr>
 								  </tbody></table>
 								  </td>
-								  <td align="right"><strong>6.50</strong></td>
+								  <td align="right"><strong>3.31</strong></td>
 								</tr>
 				
 				<tr class="celdaIess alternate" height="20">
 								  <td align="center">6</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=RCR&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">RCR</a></strong></td>
-								  <td align="left">Revision comercial</td>
+								  <td align="left"><strong><a href="causasTerminacionDetalle.asp?cveDivision=DC000&amp;cveZona=DC140&amp;cveArea=00000&amp;fechaDesde=2026/06/01&amp;fechaHasta=2026/06/10&amp;grupoSolicitud=T&amp;tipoSolInicio=T&amp;tipoSolTermino=E07&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DC140</a></strong></td>
+								  <td align="left">Casas Grandes</td>
 								  
-								  	<td align="right">148,426</td>
+								  	<td align="right">1</td>
 								  
-								  <td align="right">149,423</td>
+								  <td align="right">1</td>
 								  <td align="right">
-								  <table width="4%" border="0" align="right" id="TABLE_18">
+								  <table width="1%" border="0" align="right" id="TABLE_18">
 									<tbody><tr>
 									  <td bgcolor="#E2A007">&nbsp;</td>
 									</tr>
 								  </tbody></table>
 								  </td>
-								  <td align="right"><strong>4.49</strong></td>
+								  <td align="right"><strong>0.66</strong></td>
 								</tr>
 				
 				<tr class="celdaIess" height="20">
 								  <td align="center">7</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=FIN&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">FIN</a></strong></td>
-								  <td align="left">Finiquitos</td>
+								  <td align="left"><strong><a href="causasTerminacionDetalle.asp?cveDivision=DC000&amp;cveZona=DC060&amp;cveArea=00000&amp;fechaDesde=2026/06/01&amp;fechaHasta=2026/06/10&amp;grupoSolicitud=T&amp;tipoSolInicio=T&amp;tipoSolTermino=E07&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DC060</a></strong></td>
+								  <td align="left">Delicias</td>
 								  
-								  	<td align="right">109,665</td>
+								  	<td align="right">1</td>
 								  
-								  <td align="right">110,631</td>
+								  <td align="right">1</td>
 								  <td align="right">
-								  <table width="3%" border="0" align="right" id="TABLE_19">
+								  <table width="1%" border="0" align="right" id="TABLE_19">
 									<tbody><tr>
 									  <td bgcolor="#E2A007">&nbsp;</td>
 									</tr>
 								  </tbody></table>
 								  </td>
-								  <td align="right"><strong>3.32</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">8</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=RSS&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">RSS</a></strong></td>
-								  <td align="left">Reestablecimiento sector fuera</td>
-								  
-								  	<td align="right">53,986</td>
-								  
-								  <td align="right">55,218</td>
-								  <td align="right">
-								  <table width="2%" border="0" align="right" id="TABLE_20">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>1.66</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">9</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=QIM&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">QIM</a></strong></td>
-								  <td align="left">Restablecimiento BT improcedentes</td>
-								  
-								  	<td align="right">27,557</td>
-								  
-								  <td align="right">27,561</td>
-								  <td align="right">
-								  <table width="1%" border="0" align="right" id="TABLE_21">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.83</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">10</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=NDA&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">NDA</a></strong></td>
-								  <td align="left">Notificacion  de ajuste</td>
-								  
-								  	<td align="right">22,218</td>
-								  
-								  <td align="right">22,344</td>
-								  <td align="right">
-								  <table width="1%" border="0" align="right" id="TABLE_22">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.67</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">11</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=LIB&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">LIB</a></strong></td>
-								  <td align="left">Librazas</td>
-								  
-								  	<td align="right">21,028</td>
-								  
-								  <td align="right">21,251</td>
-								  <td align="right">
-								  <table width="1%" border="0" align="right" id="TABLE_23">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.64</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">12</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=ARM&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">ARM</a></strong></td>
-								  <td align="left">Reposición de medidor</td>
-								  
-								  	<td align="right">20,675</td>
-								  
-								  <td align="right">20,682</td>
-								  <td align="right">
-								  <table width="1%" border="0" align="right" id="TABLE_24">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.62</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">13</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=EIM&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">EIM</a></strong></td>
-								  <td align="left">Improcedente de Distribucion</td>
-								  
-								  	<td align="right">17,395</td>
-								  
-								  <td align="right">17,411</td>
-								  <td align="right">
-								  <table width="1%" border="0" align="right" id="TABLE_25">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.52</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">14</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=VMI&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">VMI</a></strong></td>
-								  <td align="left">Verificación de medidor para interconexión</td>
-								  
-								  	<td align="right">7,494</td>
-								  
-								  <td align="right">7,494</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_26">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.22</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">15</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=S00&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">S00</a></strong></td>
-								  <td align="left">Tipo S no identificados</td>
-								  
-								  	<td align="right">6,904</td>
-								  
-								  <td align="right">6,913</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_27">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.21</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">16</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=CBT&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">CBT</a></strong></td>
-								  <td align="left">Conexion de baja tension</td>
-								  
-								  	<td align="right">5,116</td>
-								  
-								  <td align="right">5,116</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_28">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.15</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">17</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=Q00&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">Q00</a></strong></td>
-								  <td align="left">Tipo Q no identificados</td>
-								  
-								  	<td align="right">3,621</td>
-								  
-								  <td align="right">3,626</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_29">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.11</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">18</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=DIA&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DIA</a></strong></td>
-								  <td align="left">Diagnosticos y asesorias</td>
-								  
-								  	<td align="right">2,921</td>
-								  
-								  <td align="right">2,924</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_30">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.09</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">19</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=SRM&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">SRM</a></strong></td>
-								  <td align="left">Revision medidor</td>
-								  
-								  	<td align="right">1,518</td>
-								  
-								  <td align="right">1,518</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_31">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.05</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">20</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=QIC&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">QIC</a></strong></td>
-								  <td align="left">Queja improcedente comercial</td>
-								  
-								  	<td align="right">1,310</td>
-								  
-								  <td align="right">1,336</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_32">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.04</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">21</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=MBB&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">MBB</a></strong></td>
-								  <td align="left">Instalación de medidor bidireccional BT</td>
-								  
-								  	<td align="right">766</td>
-								  
-								  <td align="right">777</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_33">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.02</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">22</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=IAC&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">IAC</a></strong></td>
-								  <td align="left">Inconformidad de alto consumo</td>
-								  
-								  	<td align="right">522</td>
-								  
-								  <td align="right">534</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_34">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.02</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">23</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=E00&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">E00</a></strong></td>
-								  <td align="left">Tipo E no identificados</td>
-								  
-								  	<td align="right">389</td>
-								  
-								  <td align="right">392</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_35">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.01</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">24</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=ICM&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">ICM</a></strong></td>
-								  <td align="left">Incremento de carga MT</td>
-								  
-								  	<td align="right">236</td>
-								  
-								  <td align="right">236</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_36">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.01</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">25</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=DQA&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">DQA</a></strong></td>
-								  <td align="left">Dictamen quema de aparatos</td>
-								  
-								  	<td align="right">213</td>
-								  
-								  <td align="right">228</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_37">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.01</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">26</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=T00&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">T00</a></strong></td>
-								  <td align="left">Tipo T no identificados</td>
-								  
-								  	<td align="right">31</td>
-								  
-								  <td align="right">155</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_38">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.00</strong></td>
-								</tr>
-				
-				<tr class="celdaIess" height="20">
-								  <td align="center">27</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=RSM&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">RSM</a></strong></td>
-								  <td align="left">Reestablecimiento alimentador MT</td>
-								  
-								  	<td align="right">131</td>
-								  
-								  <td align="right">136</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_39">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.00</strong></td>
-								</tr>
-				
-				<tr class="celdaIess alternate" height="20">
-								  <td align="center">28</td>
-								  <td align="left"><strong><a href="causasTerminacion.asp?cvePivoteTerminacion=cveDivision&amp;cveDivision=00000&amp;cveZona=00000&amp;cveArea=00000&amp;fechaDesde=2026/05/01&amp;fechaHasta=2026/05/31&amp;grupoSolicitud=N00&amp;tipoSolInicio=T&amp;tipoSolTermino=T&amp;cveCausaTerminacion=T&amp;entidadFederativa=0&amp;cveMunicipio=T">N00</a></strong></td>
-								  <td align="left">No identificados</td>
-								  
-								  	<td align="right">6</td>
-								  
-								  <td align="right">6</td>
-								  <td align="right">
-								  <table width="0%" border="0" align="right" id="TABLE_40">
-									<tbody><tr>
-									  <td bgcolor="#E2A007">&nbsp;</td>
-									</tr>
-								  </tbody></table>
-								  </td>
-								  <td align="right"><strong>0.00</strong></td>
+								  <td align="right"><strong>0.66</strong></td>
 								</tr>
 				
 </tbody>
@@ -2701,9 +2328,9 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
 	<tr class="footTabla" height="30">
 		<td align="right" colspan="3"> Total </td>
 		 
-			<td align="right"><strong>3,058,087</strong></td>
+			<td align="right"><strong>142</strong></td>
 		
-		<td align="right" class="cResueltasT"><strong>3,331,334</strong></td>
+		<td align="right" class="cResueltasT"><strong>151</strong></td>
 		<td align="right">&nbsp;</td>
 		<td align="right">&nbsp;</td>
 
@@ -2716,13 +2343,13 @@ document.write(daym+"/"+month+"/"+year+" "+hours+":"+minutes+":"+seconds+" "+dn)
 </td>
 </tr>
 </tbody></table>
-  <table width="100%" height="18" border="0" cellpadding="0" cellspacing="0" id="TABLE_41">
+  <table width="100%" height="18" border="0" cellpadding="0" cellspacing="0" id="TABLE_20">
       <tbody><tr>
 		<td height="80">&nbsp;</td>
       </tr>
       <tr>
 		<td style="height:30px;background-color:#585858;"><div align="center"><span style="color: #FFFFFF">CFE Distribución
-		<br>Accesos desde el 24/05/2021: 3548731
+		<br>Accesos desde el 24/05/2021: 3558214
 		<br>Usuario: </span></div></td>
       </tr>
     </tbody></table>

@@ -3,8 +3,8 @@
 ============================== */
 
 .dashboard-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 24px 20px;
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: #f4f6fa;
@@ -79,12 +79,12 @@
 
 /* Variantes de color */
 .kpi-neutral  { border-left-color: #94a3b8; }
-.kpi-success  { border-left-color: #22c55e; }
+.kpi-success  { border-left-color: #16a34a; }
 .kpi-danger   { border-left-color: #ef4444; }
 .kpi-warning  { border-left-color: #f59e0b; }
 .kpi-info     { border-left-color: #3b82f6; }
 
-.kpi-success-soft { border-left-color: #86efac; background: #f0fdf4; }
+.kpi-success-soft { border-left-color: #16a34a; background: #f0fdf4; }
 .kpi-danger-soft  { border-left-color: #fca5a5; background: #fef2f2; }
 
 /* ==============================
@@ -134,7 +134,7 @@
 }
 
 .badge-alza  { background: #fee2e2; color: #b91c1c; }
-.badge-baja  { background: #dcfce7; color: #15803d; }
+.badge-baja  { background: #16a34a; color: #ffffff; }
 .badge-igual { background: #f1f5f9; color: #475569; }
 
 /* Ícono de tendencia */
@@ -170,7 +170,7 @@
 }
 
 .dot-red   { background: rgba(220, 53, 69, 0.78); }
-.dot-green { background: rgba(40, 167, 69, 0.78); }
+.dot-green { background: #16a34a; }
 .dot-gray  { background: rgba(108, 117, 125, 0.78); }
 
 .pie-year-row {

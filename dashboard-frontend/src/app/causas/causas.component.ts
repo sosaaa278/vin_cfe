@@ -10,6 +10,7 @@ import { AuthService } from '../services/auth.service';
 import { DateRangeService } from '../services/date-range.service';
 import { NavComponent } from '../shared/nav.component';
 import { DateRangeBarComponent } from '../shared/date-range-bar.component';
+import { saveWorkbook } from '../shared/excel-export';
 import { Subscription } from 'rxjs';
 
 // Tope de espera para el scraping en vivo (7 códigos secuenciales en el portal CFE).
@@ -743,7 +744,7 @@ export class CausasComponent implements OnDestroy {
     ws['!ref']  = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: headers.length - 1, r: matrix.length } });
     ws['!cols'] = headers.map((_, i) => (i === 1 ? { wch: 40 } : { wch: 14 }));
     XLSX.utils.book_append_sheet(wb, ws, sheet);
-    XLSX.writeFile(wb, filename);
+    saveWorkbook(wb, filename);
   }
 
   /** Exporta la tabla de comparación del código activo (con color y fila TOTAL). */
@@ -798,6 +799,6 @@ export class CausasComponent implements OnDestroy {
     const ws = XLSX.utils.json_to_sheet(this.tableData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Causas');
-    XLSX.writeFile(wb, 'causas.xlsx');
+    saveWorkbook(wb, 'causas.xlsx');
   }
 }
