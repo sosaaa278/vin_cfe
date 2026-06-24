@@ -76,3 +76,6 @@ appsettings.Production.json
 
 .DS_Store
 Thumbs.db
+
+claude.md
+documentacion/
