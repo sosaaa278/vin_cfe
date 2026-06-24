@@ -13,6 +13,8 @@ namespace DashboardAPI.Controllers
     [Route("api/[controller]")]
     public class DataController : ControllerBase
     {
+        private const string InconformidadesUrl = "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
+        private static readonly string[] CausaCodes = ["E02", "E03", "E04", "E05", "E06", "E07", "Q07"];
         private readonly AppDbContext _context;
         private readonly WebScraperService _scraper;
         private readonly FullCompareService _fullCompare;
@@ -48,10 +50,8 @@ namespace DashboardAPI.Controllers
             {
                 var data =
                     await _scraper.GetTableData(
-                        "https://cssnal.cfe.mx/Inconformidades/solTermino.asp",
-
+                        InconformidadesUrl,
                         RangoFechas.Desde(DateTime.Now.Year),
-
                         RangoFechas.Hasta(DateTime.Now.Year)
                     );
 
@@ -127,9 +127,8 @@ namespace DashboardAPI.Controllers
                 // siempre tiene el año previo, no solo el actual.
                 if (latestPrev == null)
                 {
-                    const string urlPrev = "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
                     await _scraper.GetComparisonData(
-                        urlPrev,
+                        InconformidadesUrl,
                         desde != null ? RangoFechas.ConAnio(desde, previousYear) : RangoFechas.Desde(previousYear),
                         hasta != null ? RangoFechas.ConAnio(hasta, previousYear) : RangoFechas.Hasta(previousYear));
 
@@ -330,16 +329,13 @@ namespace DashboardAPI.Controllers
                 var hastaCurrent =
                     RangoFechas.Hasta(currentYear);
 
-                var url =
-                    "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
-
                 // =========================
                 // SCRAPING AÑO ANTERIOR
                 // =========================
 
                 var dataPrevious =
                     await _scraper.GetComparisonData(
-                        url,
+                        InconformidadesUrl,
                         desdePrevious,
                         hastaPrevious);
 
@@ -351,7 +347,7 @@ namespace DashboardAPI.Controllers
 
                 var dataCurrent =
                     await _scraper.GetComparisonData(
-                        url,
+                        InconformidadesUrl,
                         desdeCurrent,
                         hastaCurrent);
 
@@ -476,10 +472,9 @@ namespace DashboardAPI.Controllers
             var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(useYear);
             var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(useYear);
 
-            var codes  = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
             try
             {
-                var result = await _scraper.GetCausasDataAllAsync(desdeUse, hastaUse, codes, zona);
+                var result = await _scraper.GetCausasDataAllAsync(desdeUse, hastaUse, CausaCodes, zona);
                 await _store.SaveCausasAsync(result, useYear, zona);
                 return Ok(result);
             }
@@ -500,8 +495,6 @@ namespace DashboardAPI.Controllers
             var today    = DateTime.Now;
             var currYear = today.Year;
             var prevYear = currYear - 1;
-            var codes    = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
-
             var desdeCurr = RangoFechas.Desde(currYear);
             var hastaCurr = RangoFechas.Hasta(currYear);
             var desdePrev = RangoFechas.Desde(prevYear);
@@ -511,8 +504,8 @@ namespace DashboardAPI.Controllers
 
             try
             {
-                var current  = await _scraper.GetCausasDataAllAsync(desdeCurr, hastaCurr, codes, zona);
-                var previous = await _scraper.GetCausasDataAllAsync(desdePrev, hastaPrev, codes, zona);
+                var current  = await _scraper.GetCausasDataAllAsync(desdeCurr, hastaCurr, CausaCodes, zona);
+                var previous = await _scraper.GetCausasDataAllAsync(desdePrev, hastaPrev, CausaCodes, zona);
                 await _store.SaveCausasAsync(current,  currYear, zona);
                 await _store.SaveCausasAsync(previous, prevYear, zona);
                 return Ok(new { current, previous });
@@ -534,10 +527,8 @@ namespace DashboardAPI.Controllers
             var hastaCurr    = RangoFechas.Hasta(currYear);
             var desdePrev    = RangoFechas.Desde(prevYear);
             var hastaPrev    = RangoFechas.Hasta(prevYear);
-            var codes        = new[] { "E02", "E03", "E04", "E05", "E06", "E07", "Q07" };
-
             var result = new Dictionary<string, object>();
-            foreach (var code in codes)
+            foreach (var code in CausaCodes)
             {
                 try
                 {
@@ -587,10 +578,8 @@ namespace DashboardAPI.Controllers
             try
             {
                 await _scraper.GetTableData(
-                    "https://cssnal.cfe.mx/Inconformidades/solTermino.asp",
-
+                    InconformidadesUrl,
                     RangoFechas.Desde(DateTime.Now.Year),
-
                     RangoFechas.Hasta(DateTime.Now.Year)
                 );
 

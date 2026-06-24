@@ -83,7 +83,6 @@ namespace DashboardAPI.Services
                 new BrowserTypeLaunchPersistentContextOptions
                 {
                     Headless  = headless,
-                    Channel   = OperatingSystem.IsWindows() ? "msedge" : null,
                     UserAgent = UserAgent,
                     SlowMo    = slowMo,
                     Args      = ["--no-sandbox", "--disable-setuid-sandbox"]
@@ -296,9 +295,7 @@ namespace DashboardAPI.Services
 
                 // ── Leer el HTML ──────────────────────────────────────────────────
                 var html = await page.ContentAsync();
-                File.WriteAllText("debug.html", html);
-
-                var doc = new HtmlDocument();
+                var doc  = new HtmlDocument();
                 doc.LoadHtml(html);
 
                 var table = doc.DocumentNode.SelectSingleNode("//table[@id='TABLE_12']");
@@ -432,9 +429,7 @@ namespace DashboardAPI.Services
                 await page.WaitForTimeoutAsync(1500);
 
                 var html = await page.ContentAsync();
-                File.WriteAllText("debug_imu.html", html);
-
-                var doc = new HtmlDocument();
+                var doc  = new HtmlDocument();
                 doc.LoadHtml(html);
 
                 var table = doc.DocumentNode.SelectSingleNode("//table[@id='principal']");
@@ -581,9 +576,6 @@ namespace DashboardAPI.Services
                 if (!await NavigateWithRetryAsync(page, url))
                     throw new InvalidOperationException("Could not load causas page.");
 
-                // Volcamos el HTML inicial sin importar qué contenga la página
-                File.WriteAllText("debug_causas_initial.html", await page.ContentAsync());
-
                 // Esperamos el campo de fecha — si se agota el tiempo, probablemente expiró la sesión
                 try
                 {
@@ -686,12 +678,6 @@ namespace DashboardAPI.Services
                 await page.WaitForTimeoutAsync(1500);
 
                 var html = await page.ContentAsync();
-                File.WriteAllText("debug_causas.html", html);
-
-                _logger.LogInformation(
-                    "debug_causas.html size={Size} has500={Has500}",
-                    html.Length,
-                    html.Contains("internal server error"));
 
                 var doc = new HtmlDocument();
                 doc.LoadHtml(html);
@@ -751,7 +737,7 @@ namespace DashboardAPI.Services
             var hasta  = fechaHasta.Replace("/", "-");
             var result = new Dictionary<string, List<Dictionary<string, string>>>();
 
-            var (pw, ctx) = await CreateBrowserAsync(headless: true, slowMo: 300, dirName: CausasPlaywrightDir);
+            var (pw, ctx) = await CreateBrowserAsync(headless: false, slowMo: 300, dirName: CausasPlaywrightDir);
             try
             {
                 var page = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();

@@ -215,17 +215,6 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
     return 'Error al obtener datos desde el servidor.';
   }
 
-  private findValueColumns(headers: string[]): { metaKey: string | null; realKey: string | null } {
-    const upperHeaders = headers.map(h => h.toUpperCase());
-    const metaIndex = upperHeaders.findIndex(h => h.includes('META'));
-    const realIndex = upperHeaders.findIndex(h => h.includes('REAL'));
-
-    return {
-      metaKey: metaIndex >= 0 ? headers[metaIndex] : null,
-      realKey: realIndex >= 0 ? headers[realIndex] : null
-    };
-  }
-
   private parseNumericValue(value: any): number {
     if (value == null) return 0;
     if (typeof value === 'number') return value;
@@ -240,34 +229,6 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
-  // ── Process scraped data ───────────────────────────────────────────────────
-  private processScrapedData(data: any[]): void {
-    if (!data || data.length === 0) {
-      this.status = 'ERROR';
-      this.errorMessage = 'No se encontraron datos en la tabla';
-      return;
-    }
-
-    try {
-      this.rawData = data;
-      this.totalRecords = this.rawData.length;
-      this.tableDetected = 'SI';
-
-      // Get table columns from first row
-      if (this.rawData.length > 0) {
-        this.tableColumns = Object.keys(this.rawData[0]);
-      }
-
-      // Process data for chart
-      this.processChartData(this.rawData);
-
-      this.status = 'EXITO';
-    } catch (error: any) {
-      this.status = 'ERROR';
-      this.errorMessage = error?.message || 'Error al procesar los datos';
-      console.error('Error processing data:', error);
-    }
-  }
   // ── Process data for chart ─────────────────────────────────────────────────
   private processChartData(data: any[]): void {
     if (!data || data.length === 0) {

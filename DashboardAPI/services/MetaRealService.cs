@@ -1,17 +1,21 @@
+using DashboardAPI.Helpers;
+using DashboardAPI.Models;
 using Microsoft.Playwright;
 using System.Text.RegularExpressions;
 using System.Globalization;
-using Microsoft.Extensions.Logging; 
+using Microsoft.Extensions.Logging;
 
 namespace DashboardAPI.Services
 {
     public class MetaRealService
     {
         private readonly ILogger<MetaRealService> _logger;
+        private readonly MetaRealOptions _options;
 
-        public MetaRealService(ILogger<MetaRealService> logger)
+        public MetaRealService(ILogger<MetaRealService> logger, MetaRealOptions options)
         {
-            _logger = logger;
+            _logger  = logger;
+            _options = options;
         }
 
         public async Task<DashboardData> ObtenerDatosAsync(string? desde = null, string? hasta = null)
@@ -21,13 +25,13 @@ namespace DashboardAPI.Services
             using var playwright = await Playwright.CreateAsync();
             await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
             var page = await browser.NewPageAsync();
-            var fechaDesde = DateTime.Now.ToString("yyyy//");
+            var fechaDesde = RangoFechas.Desde(DateTime.Now.Year);
             var fechaHasta = DateTime.Now.ToString("yyyy/MM/dd");
 
             try
             {
                 // 1. Navegación
-                await page.GotoAsync("https://cssnal.cfe.mx/Inconformidades/gInconformidadesMetaReal.asp");
+                await page.GotoAsync(_options.Url);
                 await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                 // 2. Configuración de Filtros

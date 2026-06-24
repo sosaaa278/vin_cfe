@@ -1,4 +1,4 @@
-using System.Text;
+    using System.Text;
 using System.Threading.RateLimiting;
 using DashboardAPI.Services;
 using DashboardAPI.Data;
@@ -137,7 +137,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors(x => x.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
 app.UseRateLimiter();
 app.UseAuthentication();
