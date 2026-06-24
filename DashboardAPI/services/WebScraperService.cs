@@ -737,7 +737,7 @@ namespace DashboardAPI.Services
             var hasta  = fechaHasta.Replace("/", "-");
             var result = new Dictionary<string, List<Dictionary<string, string>>>();
 
-            var (pw, ctx) = await CreateBrowserAsync(headless: false, slowMo: 300, dirName: CausasPlaywrightDir);
+            var (pw, ctx) = await CreateBrowserAsync(headless: true, slowMo: 300, dirName: CausasPlaywrightDir);
             try
             {
                 var page = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();

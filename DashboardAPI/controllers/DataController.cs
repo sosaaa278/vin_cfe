@@ -604,7 +604,15 @@ namespace DashboardAPI.Controllers
                 _logger.LogInformation("Getting inconformidades meta-real data from {Desde} to {Hasta}", desde, hasta);
                 
                 var response = await _metaReal.ObtenerDatosAsync(desde, hasta);
-                
+
+                if (response.Status == "SUCCESS" && response.Data.Count > 0)
+                {
+                    var now  = DateTime.Now;
+                    var anio = hasta != null ? RangoFechas.Anio(hasta) : now.Year;
+                    var mes  = now.Month;
+                    await _store.SaveMetaRealAsync(response.Data, anio, mes);
+                }
+
                 return Ok(response);
             }
             catch (Exception ex)

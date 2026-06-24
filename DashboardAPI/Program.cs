@@ -5,8 +5,13 @@ using DashboardAPI.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+
+// Permite enviar DateTime con Kind=Unspecified a PostgreSQL (columnas timestamptz).
+// Sin esto, Npgsql 6+ rechaza cualquier DateTime que no sea explícitamente UTC.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 // Carga los secretos desde el archivo .env (JWT y usuarios) antes de construir
 // el host, para que sobreescriban appsettings.json vía variables de entorno.
@@ -89,12 +94,14 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (!string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(connectionString));
+        options.UseNpgsql(connectionString)
+               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 }
 else
 {
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseSqlite("Data Source=inconformidades.db"));
+        options.UseSqlite("Data Source=inconformidades.db")
+               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
 }
 
 // JWT Authentication
@@ -153,7 +160,57 @@ app.MapFallbackToFile("index.html"); // Para que el router de Angular funcione a
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Si la BD ya tenía tablas creadas manualmente (sin historial de migraciones),
+    // registrar cada migración cuya tabla ya exista para que EF no intente recrearlas.
+    RegisterExistingTablesAsMigrated(db);
+
     db.Database.Migrate();
+}
+
+static void RegisterExistingTablesAsMigrated(AppDbContext db)
+{
+    // Solo aplica a PostgreSQL; SQLite siempre parte de una BD vacía
+    if (db.Database.ProviderName != "Npgsql.EntityFrameworkCore.PostgreSQL") return;
+
+    // Tabla → migración que la crea
+    var migrationMap = new[]
+    {
+        ("Inconformidades",  "20260521180804_InitialCreate"),
+        ("ScrapeCaches",     "20260610151204_AddScrapeCache"),
+        ("HechosReportes",   "20260623185323_ActualizacionModelo"),
+    };
+
+    var conn = db.Database.GetDbConnection();
+    conn.Open();
+
+    using var cmdCreate = conn.CreateCommand();
+    cmdCreate.CommandText = @"
+        CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+            ""MigrationId""    character varying(150) NOT NULL,
+            ""ProductVersion"" character varying(32)  NOT NULL,
+            CONSTRAINT ""PK___EFMigrationsHistory"" PRIMARY KEY (""MigrationId"")
+        )";
+    cmdCreate.ExecuteNonQuery();
+
+    foreach (var (table, migrationId) in migrationMap)
+    {
+        using var cmdCheck = conn.CreateCommand();
+        cmdCheck.CommandText = $@"SELECT COUNT(*) FROM ""__EFMigrationsHistory"" WHERE ""MigrationId"" = '{migrationId}'";
+        var alreadyRecorded = Convert.ToInt64(cmdCheck.ExecuteScalar()) > 0;
+        if (alreadyRecorded) continue;
+
+        using var cmdTable = conn.CreateCommand();
+        cmdTable.CommandText = $@"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '{table}'";
+        var tableExists = Convert.ToInt64(cmdTable.ExecuteScalar()) > 0;
+
+        if (tableExists)
+        {
+            using var cmdInsert = conn.CreateCommand();
+            cmdInsert.CommandText = $@"INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"") VALUES ('{migrationId}', '9.0.0')";
+            cmdInsert.ExecuteNonQuery();
+        }
+    }
 }
 
 // Execution

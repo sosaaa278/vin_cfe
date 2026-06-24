@@ -135,6 +135,54 @@ namespace DashboardAPI.Services
             }
         }
 
+        // ── META REAL ─────────────────────────────────────────────────────────────────
+
+        public async Task SaveMetaRealAsync(List<Dictionary<string, string>> rows, int anio, int mes)
+        {
+            try
+            {
+                var previas = _db.HechosReportes.Where(h =>
+                    h.Fuente == "META_REAL" && h.Anio == anio && h.Mes == mes);
+                _db.HechosReportes.RemoveRange(previas);
+
+                int added = 0;
+                foreach (var row in rows)
+                {
+                    var concepto = row.GetValueOrDefault("Concepto", "");
+                    if (string.IsNullOrWhiteSpace(concepto)) continue;
+
+                    foreach (var (col, valorTx) in row)
+                    {
+                        if (col == "Concepto") continue;
+                        if (!TryParseValor(valorTx, out var v)) continue;
+
+                        _db.HechosReportes.Add(new HechoReporte
+                        {
+                            Fuente        = "META_REAL",
+                            FechaConsulta = DateTime.Now,
+                            Anio          = anio,
+                            Mes           = mes,
+                            ZonaFiltro    = "DC000",
+                            Cve           = col,       // DC010, DC020 … o "TOTAL"
+                            Area          = "",
+                            Categoria     = concepto,  // META, REAL, DIFERENCIA …
+                            Metrica       = "VALOR",
+                            Descripcion   = "",
+                            Valor         = v
+                        });
+                        added++;
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("ReporteStore: guardadas {Count} filas META_REAL ({Anio}-{Mes})", added, anio, mes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("ReporteStore.SaveMetaRealAsync falló: {Err}", ex.Message);
+            }
+        }
+
         // ── Helpers ────────────────────────────────────────────────────────────────────
 
         /// <summary>Busca el primer valor cuya clave contenga la palabra dada (sin importar mayúsculas).</summary>
