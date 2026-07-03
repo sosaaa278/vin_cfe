@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -133,7 +133,7 @@ const PIE_DATALABELS: any = {
   templateUrl: './causas.component.html',
   styleUrls: ['./causas.component.css']
 })
-export class CausasComponent implements OnDestroy {
+export class CausasComponent implements OnInit, OnDestroy {
   status: 'WAITING' | 'LOADING' | 'SUCCESS' | 'ERROR' = 'WAITING';
   tableData: any[] = [];
   columns: string[] = [];
@@ -174,23 +174,12 @@ export class CausasComponent implements OnDestroy {
     return Number(this.dateRange.current.hasta.slice(0, 4)) || new Date().getFullYear();
   }
 
-  readonly ZONAS = [
-    { value: '00000', label: 'Todas las zonas' },
-    { value: 'DC010', label: 'Chihuahua' },
-    { value: 'DC020', label: 'Cuauhtémoc' },
-    { value: 'DC040', label: 'Juárez' },
-    { value: 'DC060', label: 'Delicias' },
-    { value: 'DC140', label: 'Casas Grandes' },
-    { value: 'DC220', label: 'Torreón' },
-    { value: 'DC240', label: 'Parral' },
-    { value: 'DC260', label: 'Durango' },
-    { value: 'DC270', label: 'Gómez Palacio' },
-  ];
-
+  zonas: { value: string; label: string }[] = [];
+  zonasLoading = false;
   selectedZona = '00000';
 
   get selectedZonaLabel(): string {
-    return this.ZONAS.find(z => z.value === this.selectedZona)?.label ?? 'Todas las zonas';
+    return this.zonas.find(z => z.value === this.selectedZona)?.label ?? 'Todas las zonas';
   }
 
   chartType: 'bar' | 'line' | 'horizontalBar' | 'pie' = 'bar';
@@ -204,13 +193,22 @@ export class CausasComponent implements OnDestroy {
     private router: Router,
     private dateRange: DateRangeService
   ) {
-    // Causas no scrapea al entrar (es manual). Pero si el usuario ya consultó y
-    // luego cambia el rango global, recargamos con el nuevo rango. Ignoramos la
-    // primera emisión (el valor inicial del BehaviorSubject) para no auto-scrapear.
+    this.zonas = this.auth.getZonas();
     let first = true;
     this.rangeSub = this.dateRange.range$.subscribe(() => {
       if (first) { first = false; return; }
       if (this.isAllMode) this.iniciarScrapingAll();
+    });
+  }
+
+  ngOnInit(): void {
+    this.zonasLoading = true;
+    this.dashboardService.getZonas().subscribe({
+      next: zonas => {
+        if (zonas?.length > 1) this.zonas = zonas; // Solo actualiza si el backend tiene sub-zonas reales
+        this.zonasLoading = false;
+      },
+      error: () => { this.zonasLoading = false; }
     });
   }
 
@@ -393,6 +391,11 @@ export class CausasComponent implements OnDestroy {
           const first = this.CODES.find(c => (data[c.value] ?? []).length > 0);
           this.switchCode(first?.value ?? this.CODES[0].value);
           this.status = 'SUCCESS';
+          // El scraping acaba de poblar el caché de zonas en el backend; refrescamos el dropdown
+          this.dashboardService.getZonas().subscribe({
+            next: zonas => { if (zonas?.length > 1) this.zonas = zonas; },
+            error: () => {}
+          });
         },
         error: (err) => this.handleScrapeError(err, this.currentYear)
       });
@@ -665,8 +668,14 @@ export class CausasComponent implements OnDestroy {
   exportChart(): void {
     const canvas = document.getElementById('causasChart') as HTMLCanvasElement;
     if (!canvas) return;
-    const link   = document.createElement('a');
-    link.href     = canvas.toDataURL('image/png');
+    const off = document.createElement('canvas');
+    off.width = canvas.width; off.height = canvas.height;
+    const offCtx = off.getContext('2d')!;
+    offCtx.fillStyle = '#ffffff';
+    offCtx.fillRect(0, 0, off.width, off.height);
+    offCtx.drawImage(canvas, 0, 0);
+    const link = document.createElement('a');
+    link.href = off.toDataURL('image/png');
     link.download = 'pareto_causas.png';
     link.click();
   }

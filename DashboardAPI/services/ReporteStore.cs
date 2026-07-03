@@ -137,7 +137,7 @@ namespace DashboardAPI.Services
 
         // ── META REAL ─────────────────────────────────────────────────────────────────
 
-        public async Task SaveMetaRealAsync(List<Dictionary<string, string>> rows, int anio, int mes)
+        public async Task SaveMetaRealAsync(List<Dictionary<string, string>> rows, int anio, int mes, string cveDivision = "DC000")
         {
             try
             {
@@ -162,7 +162,7 @@ namespace DashboardAPI.Services
                             FechaConsulta = DateTime.Now,
                             Anio          = anio,
                             Mes           = mes,
-                            ZonaFiltro    = "DC000",
+                            ZonaFiltro    = cveDivision,
                             Cve           = col,       // DC010, DC020 … o "TOTAL"
                             Area          = "",
                             Categoria     = concepto,  // META, REAL, DIFERENCIA …

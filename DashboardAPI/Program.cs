@@ -1,7 +1,8 @@
     using System.Text;
 using System.Threading.RateLimiting;
-using DashboardAPI.Services;
 using DashboardAPI.Data;
+using DashboardAPI.Models;
+using DashboardAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddScoped<WebScraperService>();
 builder.Services.AddScoped<ReporteStore>();
 builder.Services.AddSingleton<FullCompareService>();
+builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
+builder.Services.AddSingleton<IJwtService, JwtService>();
 
 // Configuración de opciones MetaReal
 builder.Services.Configure<DashboardAPI.Models.MetaRealOptions>(builder.Configuration.GetSection("MetaReal"));
@@ -105,7 +108,11 @@ else
 }
 
 // JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"]!;
+var jwtSettings = builder.Configuration.GetSection("Jwt").Get<JwtSettings>()!;
+jwtSettings.Validate(); // truena al arranque si Key falta o mide < 32 chars
+
+builder.Services.AddSingleton(jwtSettings);
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -115,9 +122,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience         = true,
             ValidateLifetime         = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = builder.Configuration["Jwt:Issuer"],
-            ValidAudience            = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            ValidIssuer              = jwtSettings.Issuer,
+            ValidAudience            = jwtSettings.Audience,
+            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key)),
+            ClockSkew                = TimeSpan.FromSeconds(30),
         };
     });
 
@@ -161,11 +169,19 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    // Si la BD ya tenía tablas creadas manualmente (sin historial de migraciones),
-    // registrar cada migración cuya tabla ya exista para que EF no intente recrearlas.
     RegisterExistingTablesAsMigrated(db);
-
     db.Database.Migrate();
+
+    if (app.Environment.IsDevelopment())
+    {
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        await SeedData.SeedUsersAsync(db, hasher);
+    }
+
+    // Eliminar caché antigua sin división ("meta-real") para forzar re-scrape por división.
+    var oldMetaCache = db.ScrapeCaches.Where(c => c.Clave == "meta-real");
+    db.ScrapeCaches.RemoveRange(oldMetaCache);
+    await db.SaveChangesAsync();
 }
 
 static void RegisterExistingTablesAsMigrated(AppDbContext db)

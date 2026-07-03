@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx-js-style';
 import { DashboardService } from '../services/dashboard.service';
+import { AuthService } from '../services/auth.service';
 import { DateRangeService } from '../services/date-range.service';
 import { NavComponent } from '../shared/nav.component';
 import { saveWorkbook } from '../shared/excel-export';
@@ -89,7 +90,7 @@ const PIE_COLORS = [
   templateUrl: './imu.component.html',
   styleUrls: ['./imu.component.css']
 })
-export class ImuComponent {
+export class ImuComponent implements OnInit {
 
   status: 'WAITING' | 'LOADING' | 'SUCCESS' | 'ERROR' = 'WAITING';
   errorMsg = '';
@@ -108,18 +109,8 @@ export class ImuComponent {
     return Number(this.dateRange.current.hasta.slice(0, 4)) || new Date().getFullYear();
   }
 
-  readonly ZONAS = [
-    { value: '00000', label: 'Todas las zonas' },
-    { value: 'DC010', label: 'Chihuahua' },
-    { value: 'DC020', label: 'Cuauhtémoc' },
-    { value: 'DC040', label: 'Juárez' },
-    { value: 'DC060', label: 'Delicias' },
-    { value: 'DC140', label: 'Casas Grandes' },
-    { value: 'DC220', label: 'Torreón' },
-    { value: 'DC240', label: 'Parral' },
-    { value: 'DC260', label: 'Durango' },
-    { value: 'DC270', label: 'Gómez Palacio' },
-  ];
+  zonas: { value: string; label: string }[] = [];
+  zonasLoading = false;
 
   readonly MESES = [
     { value: '01', label: 'Enero' },      { value: '02', label: 'Febrero' },
@@ -137,8 +128,10 @@ export class ImuComponent {
 
   constructor(
     private dashboardService: DashboardService,
+    private auth: AuthService,
     private dateRange: DateRangeService
   ) {
+    this.zonas = this.auth.getZonas();
     // El mes inicial = mes de la fecha "hasta" del rango global.
     this.selectedMes = this.dateRange.current.hasta.slice(5, 7);
 
@@ -152,12 +145,23 @@ export class ImuComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.zonasLoading = true;
+    this.dashboardService.getZonas().subscribe({
+      next: zonas => {
+        if (zonas?.length > 1) this.zonas = zonas; // Solo actualiza si el backend tiene sub-zonas reales
+        this.zonasLoading = false;
+      },
+      error: () => { this.zonasLoading = false; }
+    });
+  }
+
   ngOnDestroy(): void {
     this.rangeSub?.unsubscribe();
   }
 
   get selectedZonaLabel(): string {
-    return this.ZONAS.find(z => z.value === this.selectedZona)?.label ?? 'Todas las zonas';
+    return this.zonas.find(z => z.value === this.selectedZona)?.label ?? 'Todas las zonas';
   }
   get selectedMesLabel(): string {
     return this.MESES.find(m => m.value === this.selectedMes)?.label ?? '';
@@ -400,12 +404,19 @@ export class ImuComponent {
 
   // ── Exportar ──────────────────────────────────────────────────────────────────
 
-  // Exporta la gráfica actual como imagen PNG.
+  // Exporta la gráfica actual como imagen PNG con fondo blanco.
   exportChartImage(): void {
     if (!this.chart) return;
-    const url = this.chart.toBase64Image('image/png', 1);
+    const canvas = this.chart.canvas;
+    if (!canvas) return;
+    const off = document.createElement('canvas');
+    off.width = canvas.width; off.height = canvas.height;
+    const offCtx = off.getContext('2d')!;
+    offCtx.fillStyle = '#ffffff';
+    offCtx.fillRect(0, 0, off.width, off.height);
+    offCtx.drawImage(canvas, 0, 0);
     const link = document.createElement('a');
-    link.href = url;
+    link.href = off.toDataURL('image/png');
     link.download = `imu_grafica_${this.selectedZona}_${this.selectedMes}_${this.currentYear}.png`;
     link.click();
   }

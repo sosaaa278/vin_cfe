@@ -38,7 +38,7 @@ namespace DashboardAPI.Services
 
         /// <param name="desde">Inicio del rango "yyyy-MM-dd"/"yyyy/MM/dd". Si es null, usa 1-ene del año actual.</param>
         /// <param name="hasta">Fin del rango. Si es null, usa el corte fijo de RangoFechas (4-may).</param>
-        public async Task<FullCompareResponse> GetFullCompareAsync(string? desde = null, string? hasta = null)
+        public async Task<FullCompareResponse> GetFullCompareAsync(string? desde = null, string? hasta = null, string cveDivision = "DC000")
         {
             // Año actual = año de "hasta" (o el de hoy si no se pasó rango)
             var currentYear  = hasta != null ? RangoFechas.Anio(hasta) : DateTime.Now.Year;
@@ -50,9 +50,9 @@ namespace DashboardAPI.Services
             var prevDesde = desde != null ? RangoFechas.ConAnio(desde, previousYear) : RangoFechas.Desde(previousYear);
             var prevHasta = hasta != null ? RangoFechas.ConAnio(hasta, previousYear) : RangoFechas.Hasta(previousYear);
 
-            var cacheKey = $"{currDesde}|{currHasta}";
+            var cacheKey = $"{currDesde}|{currHasta}|{cveDivision}";
 
-            // Camino rápido: caché válida para este rango (no hace falta bloquear)
+            // Camino rápido: caché válida para este rango y división (no hace falta bloquear)
             if (_cache.TryGetValue(cacheKey, out var hit) && DateTime.UtcNow - hit.time < CacheTtl)
                 return hit.resp;
 
@@ -70,20 +70,27 @@ namespace DashboardAPI.Services
                 var (pw, ctx) = await CreateBrowserAsync();
                 try
                 {
-                    var data2025 = await ScrapeYearAsync(ctx, url, prevDesde, prevHasta);
+                    var data2025 = await ScrapeYearAsync(ctx, url, prevDesde, prevHasta, cveDivision);
 
                     _logger.LogInformation("Scraped {Count} rows for {Year}", data2025.Count, previousYear);
                     await Task.Delay(2000);
 
-                    var data2026 = await ScrapeYearAsync(ctx, url, currDesde, currHasta);
+                    var data2026 = await ScrapeYearAsync(ctx, url, currDesde, currHasta, cveDivision);
 
                     _logger.LogInformation("Scraped {Count} rows for {Year}", data2026.Count, currentYear);
 
-                    // Si el scraping no devolvió datos, recurrimos a la BD
+                    // Si ambos años devolvieron 0, recurrir completamente a BD
                     if (data2026.Count == 0 && data2025.Count == 0)
                     {
                         _logger.LogWarning("El scraping devolvió 0 filas en ambos años — recurriendo a la BD");
                         return await GetFromDbAsync(previousYear, currentYear);
+                    }
+
+                    // Si solo 2025 falló pero 2026 tiene datos, intentar BD para el año anterior
+                    if (data2025.Count == 0 && data2026.Count > 0)
+                    {
+                        _logger.LogWarning("Scraping 2025 devolvió 0 filas — buscando año anterior en BD");
+                        data2025 = await GetYearFromDbAsync(previousYear, currentYear);
                     }
 
                     var resp = new FullCompareResponse
@@ -136,7 +143,7 @@ namespace DashboardAPI.Services
         // ── Scraping ───────────────────────────────────────────────────────────────
 
         private async Task<List<Dictionary<string, string>>> ScrapeYearAsync(
-            IBrowserContext ctx, string url, string fechaDesde, string fechaHasta)
+            IBrowserContext ctx, string url, string fechaDesde, string fechaHasta, string cveDivision = "DC000")
         {
             var result = new List<Dictionary<string, string>>();
             var page   = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();
@@ -170,7 +177,7 @@ namespace DashboardAPI.Services
             await page.WaitForSelectorAsync("select[name='cveDivision']", new() { Timeout = 60_000 });
 
             // Llenar el formulario
-            await page.SelectOptionAsync("select[name='cveDivision']", "DC000"); await page.WaitForTimeoutAsync(1000);
+            await page.SelectOptionAsync("select[name='cveDivision']", cveDivision); await page.WaitForTimeoutAsync(1000);
             await page.SelectOptionAsync("select[name='cveZona']",     "00000"); await page.WaitForTimeoutAsync(800);
             await page.SelectOptionAsync("select[name='cveArea']",     "00000"); await page.WaitForTimeoutAsync(800);
             await page.SelectOptionAsync("select[name='cveProceso']",  "D");     await page.WaitForTimeoutAsync(800);
@@ -291,6 +298,29 @@ namespace DashboardAPI.Services
         }
 
         // ── Respaldo desde la BD ───────────────────────────────────────────────────
+
+        /// <summary>Devuelve los registros más recientes del año anterior desde la BD (sin comparar).</summary>
+        private async Task<List<Dictionary<string, string>>> GetYearFromDbAsync(int previousYear, int currentYear)
+        {
+            using var scope  = _scopeFactory.CreateScope();
+            var context      = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var startPrev    = new DateTime(previousYear, 1, 1);
+            var startCurr    = new DateTime(currentYear,  1, 1);
+
+            var latestPrev = await context.Inconformidades
+                .Where(x => x.FechaConsulta >= startPrev && x.FechaConsulta < startCurr)
+                .MaxAsync(x => (DateTime?)x.FechaConsulta);
+
+            if (!latestPrev.HasValue) return [];
+
+            var records = await context.Inconformidades
+                .Where(x => x.FechaConsulta == latestPrev.Value)
+                .ToListAsync();
+
+            _logger.LogInformation("Año anterior desde BD: {C} filas (fecha {D:yyyy-MM-dd})",
+                records.Count, latestPrev.Value);
+            return ToRawData(records);
+        }
 
         private async Task<FullCompareResponse> GetFromDbAsync(int previousYear, int currentYear)
         {

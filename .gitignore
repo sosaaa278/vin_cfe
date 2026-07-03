@@ -50,6 +50,13 @@ cloudflared.exe
 # =========================
 
 debug*.html
+response*.json
+
+# =========================
+# SEED DE DESARROLLO (contiene contraseña de dev hardcodeada)
+# =========================
+
+DashboardAPI/Data/SeedData.cs
 
 # =========================
 # LOGS

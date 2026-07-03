@@ -1,3 +1,3 @@
 namespace DashboardAPI.Models;
 
-public record LoginRequest(string Username, string Password);
+public record LoginRequest(string Rpe, string Password);

@@ -725,8 +725,15 @@ export class DashboardComponent implements OnInit {
 
   exportChart(): void {
     const canvas = document.getElementById('compareChart') as HTMLCanvasElement;
-    const link   = document.createElement('a');
-    link.href     = canvas.toDataURL('image/png');
+    if (!canvas) return;
+    const off = document.createElement('canvas');
+    off.width = canvas.width; off.height = canvas.height;
+    const offCtx = off.getContext('2d')!;
+    offCtx.fillStyle = '#ffffff';
+    offCtx.fillRect(0, 0, off.width, off.height);
+    offCtx.drawImage(canvas, 0, 0);
+    const link = document.createElement('a');
+    link.href = off.toDataURL('image/png');
     link.download = `comparativo_${this.selectedCode || 'general'}.png`;
     link.click();
   }

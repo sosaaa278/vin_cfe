@@ -12,7 +12,7 @@ import { AuthService } from '../services/auth.service';
   styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
-  username = '';
+  rpe      = '';
   password = '';
   error    = '';
   loading  = false;
@@ -20,13 +20,13 @@ export class LoginComponent {
   constructor(private auth: AuthService, private router: Router) {}
 
   login(): void {
-    if (!this.username || !this.password) {
+    if (!this.rpe || !this.password) {
       this.error = 'Completa todos los campos';
       return;
     }
     this.loading = true;
     this.error   = '';
-    this.auth.login(this.username, this.password).subscribe({
+    this.auth.login(this.rpe, this.password).subscribe({
       next: () => this.router.navigate(['/dashboard']),
       error: () => {
         this.error   = 'Usuario o contraseña incorrectos';

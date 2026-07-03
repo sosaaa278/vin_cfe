@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DashboardAPI.Services;
 using DashboardAPI.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -39,6 +40,11 @@ namespace DashboardAPI.Controllers
             _logger = logger;
         }
 
+        // Lee el DivisionCode del claim "division" del JWT (ej. "DC000").
+        // Si el token no lo incluye, usa "DC000" (NORTE) como fallback seguro.
+        private string GetUserDivision() =>
+            User.FindFirstValue("division") ?? "DC000";
+
         // =========================
         // SCRAPING PRINCIPAL
         // =========================
@@ -52,7 +58,8 @@ namespace DashboardAPI.Controllers
                     await _scraper.GetTableData(
                         InconformidadesUrl,
                         RangoFechas.Desde(DateTime.Now.Year),
-                        RangoFechas.Hasta(DateTime.Now.Year)
+                        RangoFechas.Hasta(DateTime.Now.Year),
+                        GetUserDivision()
                     );
 
                 return Ok(data);
@@ -61,6 +68,29 @@ namespace DashboardAPI.Controllers
             {
                 return BadRequest(
                     $"Error scraping data: {ex.Message}");
+            }
+        }
+
+        // =========================
+        // ZONAS POR DIVISIÓN
+        // =========================
+
+        [HttpGet("zonas")]
+        public async Task<IActionResult> GetZonas()
+        {
+            try
+            {
+                var zonas = await _scraper.GetZonasForDivisionAsync(GetUserDivision());
+                return Ok(zonas);
+            }
+            catch (CfePortalUnreachableException)
+            {
+                return Ok(new[] { new { value = "00000", label = "Todas las zonas" } });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("GetZonas: {Err}", ex.Message);
+                return Ok(new[] { new { value = "00000", label = "Todas las zonas" } });
             }
         }
 
@@ -80,7 +110,7 @@ namespace DashboardAPI.Controllers
                 var useMes  = mes  ?? hoy.Month.ToString("D2");
                 var useYear = year ?? hoy.Year;
 
-                var data = await _scraper.GetImuReportAsync(zona, useMes, useYear);
+                var data = await _scraper.GetImuReportAsync(zona, useMes, useYear, GetUserDivision());
 
                 // Guardado tidy para Power BI (no rompe la respuesta si falla)
                 if (data.Count > 0)
@@ -436,7 +466,7 @@ namespace DashboardAPI.Controllers
             try
             {
                 var data =
-                    await _fullCompare.GetFullCompareAsync(desde, hasta);
+                    await _fullCompare.GetFullCompareAsync(desde, hasta, GetUserDivision());
 
                 return Ok(data);
             }
@@ -474,7 +504,7 @@ namespace DashboardAPI.Controllers
 
             try
             {
-                var result = await _scraper.GetCausasDataAllAsync(desdeUse, hastaUse, CausaCodes, zona);
+                var result = await _scraper.GetCausasDataAllAsync(desdeUse, hastaUse, CausaCodes, zona, GetUserDivision());
                 await _store.SaveCausasAsync(result, useYear, zona);
                 return Ok(result);
             }
@@ -504,8 +534,9 @@ namespace DashboardAPI.Controllers
 
             try
             {
-                var current  = await _scraper.GetCausasDataAllAsync(desdeCurr, hastaCurr, CausaCodes, zona);
-                var previous = await _scraper.GetCausasDataAllAsync(desdePrev, hastaPrev, CausaCodes, zona);
+                var div      = GetUserDivision();
+                var current  = await _scraper.GetCausasDataAllAsync(desdeCurr, hastaCurr, CausaCodes, zona, div);
+                var previous = await _scraper.GetCausasDataAllAsync(desdePrev, hastaPrev, CausaCodes, zona, div);
                 await _store.SaveCausasAsync(current,  currYear, zona);
                 await _store.SaveCausasAsync(previous, prevYear, zona);
                 return Ok(new { current, previous });
@@ -602,25 +633,57 @@ namespace DashboardAPI.Controllers
             try
             {
                 _logger.LogInformation("Getting inconformidades meta-real data from {Desde} to {Hasta}", desde, hasta);
-                
-                var response = await _metaReal.ObtenerDatosAsync(desde, hasta);
+
+                var response = await _metaReal.ObtenerDatosAsync(desde, hasta, GetUserDivision());
 
                 if (response.Status == "SUCCESS" && response.Data.Count > 0)
                 {
                     var now  = DateTime.Now;
                     var anio = hasta != null ? RangoFechas.Anio(hasta) : now.Year;
                     var mes  = now.Month;
-                    await _store.SaveMetaRealAsync(response.Data, anio, mes);
+                    await _store.SaveMetaRealAsync(response.Data, anio, mes, GetUserDivision());
                 }
 
-                return Ok(response);
+                if (response.Status != "SUCCESS" || response.Data.Count == 0)
+                    return Ok(response);
+
+                // Transforma a {labels, datasets, rawTable} para que el frontend use
+                // buildMetaChartData (soporta cualquier división, no solo Norte).
+                var firstRow  = response.Data[0];
+                var labelKey  = firstRow.Keys.FirstOrDefault() ?? "Concepto";
+                var zoneCodes = firstRow.Keys.Skip(1).ToList();   // DC010/DA010/… + TOTAL
+
+                static double ParseVal(string? v)
+                {
+                    var s = (v ?? "")
+                        .Replace(".", "").Replace(",", ".") // "1.234,56" → "1234.56"
+                        .Replace(" ", "").Trim();
+                    return double.TryParse(s,
+                        System.Globalization.NumberStyles.Any,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out var d) ? d : 0;
+                }
+
+                var datasets = response.Data.Select(row => new
+                {
+                    label = row.GetValueOrDefault(labelKey, ""),
+                    data  = zoneCodes.Select(z => ParseVal(row.GetValueOrDefault(z))).ToArray()
+                }).ToList();
+
+                return Ok(new {
+                    totalRecords = response.TotalRecords,
+                    status       = response.Status,
+                    rawTable     = response.Data,
+                    labels       = zoneCodes,
+                    datasets
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in InconformidadesMetaReal");
                 return BadRequest($"Error InconformidadesMetaReal: {ex.Message}");
             }
-        }   
+        }
     }
 }
 

@@ -2,21 +2,34 @@
   <div class="login-card">
 
     <div class="login-header">
-      <div class="login-logo">IMU</div>
-      <h1>Dashboard de Inconformidades</h1>
+      <div class="login-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 100 100" fill="white">
+          <circle cx="50" cy="26" r="12"/>
+          <ellipse cx="50" cy="63" rx="15" ry="21"/>
+          <line x1="35" y1="50" x2="6" y2="36" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="35" y1="59" x2="3" y2="58" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="35" y1="68" x2="7" y2="79" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="38" y1="76" x2="16" y2="91" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="65" y1="50" x2="94" y2="36" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="65" y1="59" x2="97" y2="58" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="65" y1="68" x2="93" y2="79" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <line x1="62" y1="76" x2="84" y2="91" stroke="white" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h1>VIN</h1>
       <p>CFE — Ingresa tus credenciales</p>
     </div>
 
     <form (ngSubmit)="login()">
       <div class="mb-3">
-        <label class="form-label fw-semibold">Usuario</label>
+        <label class="form-label fw-semibold">RPE</label>
         <input
           type="text"
           class="form-control"
-          [(ngModel)]="username"
-          name="username"
+          [(ngModel)]="rpe"
+          name="rpe"
           autocomplete="username"
-          placeholder="Nombre de usuario"
+          placeholder="RPE"
           required>
       </div>
 

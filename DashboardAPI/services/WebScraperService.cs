@@ -255,9 +255,11 @@ namespace DashboardAPI.Services
         /// guarda las filas nuevas en la BD y devuelve los datos crudos.
         /// </summary>
         public async Task<List<Dictionary<string, string>>> GetTableData(
-            string url, string fechaDesde, string fechaHasta)
+            string url, string fechaDesde, string fechaHasta, string cveDivision = "DC000")
         {
             _logger.LogInformation("GetTableData {Desde} → {Hasta}", fechaDesde, fechaHasta);
+            var sem = PlaywrightDirLock.For(PlaywrightDir);
+            await sem.WaitAsync(TimeSpan.FromSeconds(120));
             var (pw, ctx) = await CreateBrowserAsync();
 
             try
@@ -271,7 +273,7 @@ namespace DashboardAPI.Services
                 await page.WaitForSelectorAsync(Sel.Division, new() { Timeout = 60_000 });
 
                 // ── Llenar el formulario ──────────────────────────────────────────
-                await page.SelectOptionAsync(Sel.Division,  "DC000"); await page.WaitForTimeoutAsync(1000);
+                await page.SelectOptionAsync(Sel.Division,  cveDivision); await page.WaitForTimeoutAsync(1000);
                 await page.SelectOptionAsync(Sel.Zona,      "00000"); await page.WaitForTimeoutAsync(800);
                 await page.SelectOptionAsync(Sel.Area,      "00000"); await page.WaitForTimeoutAsync(800);
                 await page.SelectOptionAsync(Sel.Proceso,   "D");     await page.WaitForTimeoutAsync(800);
@@ -345,8 +347,9 @@ namespace DashboardAPI.Services
             }
             finally
             {
-                await ctx.CloseAsync();
-                pw.Dispose();
+                try { await ctx.CloseAsync(); } catch { }
+                try { pw.Dispose(); } catch { }
+                sem.Release();
             }
         }
 
@@ -372,7 +375,7 @@ namespace DashboardAPI.Services
         /// <param name="mes">Mes a dos dígitos (01–12).</param>
         /// <param name="anio">Año (ej. 2026).</param>
         public async Task<List<Dictionary<string, string>>> GetImuReportAsync(
-            string cveZona = "00000", string? mes = null, int? anio = null)
+            string cveZona = "00000", string? mes = null, int? anio = null, string cveDivision = "DC000")
         {
             var hoy     = DateTime.Now;
             var useMes  = mes  ?? hoy.Month.ToString("D2");
@@ -401,7 +404,7 @@ namespace DashboardAPI.Services
                     "    var el = document.querySelector(\"select[name='\" + name + \"'], input[name='\" + name + \"']\");" +
                     "    if (el) el.value = val;" +
                     "  };" +
-                    "  set('cveDivision', 'DC000');" +  // NORTE
+                    "  set('cveDivision', '" + cveDivision + "');" +
                     "  var z = document.querySelector(\"select[name='cveZona']\");" +
                     "  if (z) {" +
                     "    var existe = Array.prototype.some.call(z.options, function(o){ return o.value === zona; });" +
@@ -557,7 +560,7 @@ namespace DashboardAPI.Services
         // ══════════════════════════════════════════════════════════════════════════════
 
         private async Task<List<Dictionary<string, string>>> ScrapeCausaCodeAsync(
-            IPage page, string desde, string hasta, string tipoSolTermino, string cveZona = "00000")
+            IPage page, string desde, string hasta, string tipoSolTermino, string cveZona = "00000", string cveDivision = "DC000")
         {
             const string url = "https://cssnal.cfe.mx/iessInformesV2/causasTerminacion.asp";
             _logger.LogInformation("GetCausasData {Desde} -> {Hasta} code={Code}", desde.Replace("-", "/"), hasta.Replace("-", "/"), tipoSolTermino);
@@ -605,6 +608,9 @@ namespace DashboardAPI.Services
                 }
                 await page.WaitForTimeoutAsync(600);
 
+                // Captura las zonas del select cveZona (ya repoblado por AJAX) para cachearlas.
+                await TryCacheZonasAsync(page, cveDivision);
+
                 // Llenamos los campos del formulario y devolvemos un objeto de diagnóstico para confirmar los valores
                 var formState = await page.EvaluateAsync<Dictionary<string, string>>(
                     "([d, h, ts, z]) => {" +
@@ -616,7 +622,7 @@ namespace DashboardAPI.Services
                     "  var fh = document.querySelector(\"input[name='fechaHasta']\");" +
                     "  if (fd) fd.value = d;" +
                     "  if (fh) fh.value = h;" +
-                    "  setField('cveDivision',          'DC000');" +
+                    "  setField('cveDivision',          '" + cveDivision + "');" +
                     "  setField('cveZona',              z);" +
                     "  setField('cveArea',              '00000');" +
                     "  setField('entidadFederativa',    '0');" +
@@ -730,8 +736,59 @@ namespace DashboardAPI.Services
             }
         }
 
+        // ══════════════════════════════════════════════════════════════════════════════
+        // ZONAS POR DIVISIÓN  (caché en memoria; se llena como efecto secundario del scraping)
+        // ══════════════════════════════════════════════════════════════════════════════
+
+        // Caché estático: última lista de zonas conocida por división (se sobreescribe en cada Consultar)
+        private static readonly Dictionary<string, List<Dictionary<string, string>>> _zonasCache = new();
+
+        // Flag de instancia: garantiza que el refresh solo ocurra UNA VEZ por petición HTTP
+        // (WebScraperService es Scoped → instancia nueva por request → flag siempre parte en false)
+        private bool _zonasRefreshedThisRequest = false;
+
+        /// <summary>
+        /// Dispara el AJAX de zonas para <paramref name="cveDivision"/> usando SelectOptionAsync
+        /// (que sí lanza el evento change) y actualiza el caché. Se ejecuta exactamente una vez
+        /// por petición HTTP (flag de instancia), garantizando que siempre refleje el portal actual.
+        /// </summary>
+        private async Task TryCacheZonasAsync(IPage page, string cveDivision)
+        {
+            if (_zonasRefreshedThisRequest) return; // Ya refrescamos en este Consultar
+            _zonasRefreshedThisRequest = true;
+            try
+            {
+                // SelectOptionAsync lanza el evento "change" → dispara el AJAX llenaCombos.asp
+                // que REEMPLAZA las opciones de cveZona con las zonas de la división seleccionada.
+                await page.SelectOptionAsync(Sel.Division, cveDivision);
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 5_000 }); }
+                catch { }
+
+                var json = await page.EvaluateAsync<string>(
+                    "() => JSON.stringify(" +
+                    "  Array.from(document.querySelectorAll(\"select[name='cveZona'] option\"))" +
+                    "  .map(o => ({ value: o.value.trim(), label: o.text.trim() }))" +
+                    ")");
+                if (string.IsNullOrWhiteSpace(json)) return;
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, string>>>(json);
+                if (list?.Count > 1)   // Al menos "Todas las zonas" + 1 sub-zona
+                    _zonasCache[cveDivision] = list;  // Siempre sobreescribe (sin datos viejos)
+            }
+            catch { /* no romper el scraping principal */ }
+        }
+
+        /// <summary>
+        /// Devuelve las zonas cacheadas para la división (pobladas por el scraping de causas).
+        /// Si aún no se ha hecho ningún scraping, devuelve solo "Todas las zonas".
+        /// </summary>
+        public Task<List<Dictionary<string, string>>> GetZonasForDivisionAsync(string cveDivision)
+        {
+            _zonasCache.TryGetValue(cveDivision, out var hit);
+            return Task.FromResult(hit ?? [new() { ["value"] = "00000", ["label"] = "Todas las zonas" }]);
+        }
+
         public async Task<Dictionary<string, List<Dictionary<string, string>>>> GetCausasDataAllAsync(
-            string fechaDesde, string fechaHasta, IEnumerable<string> codes, string cveZona = "00000")
+            string fechaDesde, string fechaHasta, IEnumerable<string> codes, string cveZona = "00000", string cveDivision = "DC000")
         {
             var desde  = fechaDesde.Replace("/", "-");
             var hasta  = fechaHasta.Replace("/", "-");
@@ -745,7 +802,7 @@ namespace DashboardAPI.Services
                 {
                     try
                     {
-                        result[code] = await ScrapeCausaCodeAsync(page, desde, hasta, code, cveZona);
+                        result[code] = await ScrapeCausaCodeAsync(page, desde, hasta, code, cveZona, cveDivision);
                     }
                     catch (CfePortalUnreachableException)
                     {

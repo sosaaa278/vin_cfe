@@ -9,8 +9,8 @@ namespace DashboardAPI.Data
 
         public DbSet<Inconformidad> Inconformidades { get; set; }
         public DbSet<HechoReporte>  HechosReportes  { get; set; }
-
-        public DbSet<ScrapeCache> ScrapeCaches { get; set; }
+        public DbSet<ScrapeCache>   ScrapeCaches    { get; set; }
+        public DbSet<User>          Users           { get; set; }
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -34,7 +34,14 @@ namespace DashboardAPI.Data
             });
 
             modelBuilder.Entity<ScrapeCache>()
-    .HasIndex(x => x.Clave).IsUnique();
+                .HasIndex(x => x.Clave).IsUnique();
+
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasIndex(x => x.Rpe)
+                      .IsUnique()
+                      .HasDatabaseName("UX_Users_Rpe");
+            });
         }
     }
 }

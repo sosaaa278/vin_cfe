@@ -18,24 +18,59 @@ namespace DashboardAPI.Services
             _options = options;
         }
 
-        public async Task<DashboardData> ObtenerDatosAsync(string? desde = null, string? hasta = null)
+        // Reuses the main scraper's authenticated Chromium profile so the CFE portal
+        // respects the submitted cveDivision value (fresh sessions default to Norte).
+        private const string MetaRealPlaywrightDir = "playwright-data-scraper";
+        private const string UserAgent =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+            "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+        public async Task<DashboardData> ObtenerDatosAsync(string? desde = null, string? hasta = null, string cveDivision = "DC000")
         {
-            _logger.LogInformation("Iniciando scraping Meta Real (Playwright)...");
+            _logger.LogInformation("Iniciando scraping Meta Real (Playwright) división={Div}...", cveDivision);
+
+            var sem = PlaywrightDirLock.For(MetaRealPlaywrightDir);
+            await sem.WaitAsync(TimeSpan.FromSeconds(120));
 
             using var playwright = await Playwright.CreateAsync();
-            await using var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-            var page = await browser.NewPageAsync();
+            var dataDir = Path.Combine(Directory.GetCurrentDirectory(), MetaRealPlaywrightDir);
+            var browser = await playwright.Chromium.LaunchPersistentContextAsync(dataDir,
+                new BrowserTypeLaunchPersistentContextOptions
+                {
+                    Headless  = true,
+                    UserAgent = UserAgent,
+                    SlowMo    = 200,
+                    Args      = ["--no-sandbox", "--disable-setuid-sandbox"]
+                });
+
+            var page = browser.Pages.Count > 0 ? browser.Pages[0] : await browser.NewPageAsync();
             var fechaDesde = RangoFechas.Desde(DateTime.Now.Year);
             var fechaHasta = DateTime.Now.ToString("yyyy/MM/dd");
 
             try
             {
-                // 1. Navegación
-                await page.GotoAsync(_options.Url);
-                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+                // 1. Primer navegamos al portal principal (solTermino.asp) y seleccionamos la
+                //    división para que el servidor actualice Session("cveDivision") vía AJAX.
+                //    gInconformidadesMetaReal.asp lee la división de la sesión del servidor
+                //    (no del campo de formulario), por eso hay que "primear" la sesión aquí.
+                const string sessionPrimerUrl = "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
+                _logger.LogInformation("Iniciando sesión de división en portal principal ({Url})...", sessionPrimerUrl);
+                await page.GotoAsync(sessionPrimerUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = 60_000 });
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 6_000 }); } catch { }
 
-                // 2. Configuración de Filtros
-                await page.SelectOptionAsync("select[name='cveDivision']", "DC000");
+                await page.SelectOptionAsync("select[name='cveDivision']", cveDivision);
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 6_000 }); } catch { }
+                _logger.LogInformation("Sesión de división actualizada a {Div}", cveDivision);
+
+                // 2. Ahora navegamos a Meta-Real: la sesión ya apunta a la división correcta.
+                await page.GotoAsync(_options.Url, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = 60_000 });
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 5_000 }); } catch { }
+
+                // 3. Configuración de Filtros en Meta-Real (refuerzo belt-and-suspenders)
+                await page.SelectOptionAsync("select[name='cveDivision']", cveDivision);
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 6_000 }); }
+                catch { /* timeout aceptable */ }
+
                 await page.SelectOptionAsync("select[name='cveProceso']", "D");
                 await page.FillAsync("input#fechaDesde", desde ?? fechaDesde);
                 await page.FillAsync("input#fechaHasta", hasta ?? fechaHasta);
@@ -83,7 +118,13 @@ namespace DashboardAPI.Services
                     Data = new List<Dictionary<string, string>>()
                 };
             }
-        }   
+            finally
+            {
+                try { await browser.CloseAsync(); } catch { }
+                try { playwright.Dispose(); } catch { }
+                sem.Release();
+            }
+        }
 
         private async Task<List<FilaTablaMeta>> ExtraerTablaAsync(IPage page)
         {

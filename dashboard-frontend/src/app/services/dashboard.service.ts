@@ -75,4 +75,8 @@ export class DashboardService {
       previous: { [code: string]: any[] };
     }>(`${this.API}/causas/bothyears${q}`);
   }
+
+  getZonas() {
+    return this.http.get<{ value: string; label: string }[]>(`${this.API}/zonas`);
+  }
 }

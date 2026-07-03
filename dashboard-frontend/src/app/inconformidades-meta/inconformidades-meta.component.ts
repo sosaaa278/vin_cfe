@@ -8,7 +8,79 @@ import { AuthService } from '../services/auth.service';
 import { NavComponent } from '../shared/nav.component';
 import { saveWorkbook } from '../shared/excel-export';
 import { InconformidadesMetaService } from '../services/inconformidades-meta.service';
-import { HttpClient } from '@angular/common/http'  
+import { DashboardService } from '../services/dashboard.service';
+import { HttpClient } from '@angular/common/http'
+
+// Plugin: valores numéricos encima de cada barra (responsive según ancho de barra)
+const META_DATALABELS_PLUGIN: any = {
+  id: 'metaDatalabels',
+  afterDatasetsDraw(chart: any) {
+    const { ctx } = chart;
+    const isHoriz = chart.options?.indexAxis === 'y';
+    chart.data.datasets.forEach((dataset: any, i: number) => {
+      if (dataset.type === 'line') return;
+      const meta = chart.getDatasetMeta(i);
+      if (meta.hidden) return;
+      meta.data.forEach((bar: any, j: number) => {
+        const value = dataset.data[j];
+        if (!value) return;
+        const v = Number(value);
+        const label = v.toLocaleString('es-MX', { maximumFractionDigits: 2 });
+        const barSize = isHoriz ? Math.abs(bar.height ?? 12) : Math.abs(bar.width ?? 12);
+        const fontSize = Math.max(7, Math.min(11, Math.floor(barSize * 0.55)));
+        ctx.save();
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.fillStyle = '#222';
+        ctx.textAlign = 'center';
+        if (isHoriz) {
+          ctx.textBaseline = 'middle';
+          const labelW = ctx.measureText(label).width;
+          ctx.fillText(label, bar.x + labelW / 2 + 3, bar.y);
+        } else {
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(label, bar.x, bar.y - 2);
+        }
+        ctx.restore();
+      });
+    });
+  }
+};
+
+// Plugin: fondo de columna rojo/verde por zona (igual que en Causas/IMU)
+const META_BG_COLUMNS_PLUGIN: any = {
+  id: 'metaBgColumns',
+  beforeDatasetsDraw(chart: any) {
+    if (chart.config.type !== 'bar') return;
+    const { ctx, chartArea } = chart;
+    if (!chartArea) return;
+    const colors: string[] = chart.options?.plugins?.metaBgColumns?.colors ?? [];
+    if (!colors.length) return;
+    const isHoriz = chart.options.indexAxis === 'y';
+    // Solo consideramos datasets de tipo barra (excluye la línea % Diferencia)
+    const metas = (chart.data.datasets as any[])
+      .map((ds: any, di: number) => ({ ds, meta: chart.getDatasetMeta(di) }))
+      .filter(({ ds, meta }: any) => ds.type === 'bar' && !meta.hidden)
+      .map(({ meta }: any) => meta);
+    (chart.data.labels as any[]).forEach((_: any, idx: number) => {
+      const color = colors[idx];
+      if (!color) return;
+      const elements: any[] = metas.map((m: any) => m.data[idx]).filter(Boolean);
+      if (!elements.length) return;
+      ctx.save();
+      ctx.fillStyle = color;
+      if (isHoriz) {
+        const top    = Math.min(...elements.map((e: any) => e.y - e.height / 2));
+        const bottom = Math.max(...elements.map((e: any) => e.y + e.height / 2));
+        ctx.fillRect(chartArea.left, top, chartArea.right - chartArea.left, bottom - top);
+      } else {
+        const left  = Math.min(...elements.map((e: any) => e.x - e.width  / 2));
+        const right = Math.max(...elements.map((e: any) => e.x + e.width  / 2));
+        ctx.fillRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top);
+      }
+      ctx.restore();
+    });
+  }
+};
 
 @Component({
   selector: 'app-inconformidades-meta',
@@ -75,7 +147,7 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
   /** Devuelve el nombre de la división para mostrar; si no es un código conocido, regresa el texto original. */
   divName(code: any): string {
     const key = String(code ?? '').trim().toUpperCase();
-    return this.DIVISION_NAMES[key] ?? String(code ?? '');
+    return this.zoneNames[key] ?? this.DIVISION_NAMES[key] ?? String(code ?? '');
   }
 
   // Colores de la gráfica (azul / rojo / verde + línea roja para % Diferencia)
@@ -85,8 +157,13 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
   private readonly COLOR_LINEA    = 'rgb(237, 28, 36)';
 
   rawTable: any[] = [];
+
+  // Mapa código zona → nombre legible, poblado dinámicamente desde /api/data/zonas
+  private zoneNames: { [code: string]: string } = {};
+
   constructor(
     private metaRealService: InconformidadesMetaService,
+    private dashboardService: DashboardService,
     public auth: AuthService,
     private router: Router,
     private http: HttpClient,
@@ -94,7 +171,15 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // No manual popup required: data is fetched automatically from the backend.
+    this.dashboardService.getZonas().subscribe({
+      next: (zonas) => {
+        this.zoneNames = {};
+        for (const z of (zonas ?? [])) {
+          if (z.value) this.zoneNames[z.value.trim().toUpperCase()] = z.label?.trim() ?? z.value;
+        }
+      },
+      error: () => {}
+    });
   }
 
   private desiredColumns = ['DC010', 'DC020', 'DC040', 'DC060', 'DC140', 'DC220', 'DC240', 'DC260', 'DC270', 'TOTAL'];
@@ -315,28 +400,41 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
       return safeLabels.map((_, i) => Number(ds?.data?.[i]) || 0);
     };
 
-    const real2025 = valuesFor(/REAL\s*2025/i);
-    const meta2026 = valuesFor(/META\s*2026/i);
-    const real2026 = valuesFor(/REAL\s*2026/i);
-
-    // Quitamos la columna TOTAL del gráfico (igual que el portal original)
+    // Quitamos la columna TOTAL del gráfico
     const keep = safeLabels.map(l => String(l ?? '').trim().toUpperCase() !== 'TOTAL');
     const flt  = (arr: number[]) => arr.filter((_, i) => keep[i]);
 
-    const real25 = flt(real2025);
-    const meta26 = flt(meta2026);
-    const real26 = flt(real2026);
+    const r25raw = flt(valuesFor(/REAL\s*2025/i));
+    const m26raw = flt(valuesFor(/META\s*2026/i));
+    const r26raw = flt(valuesFor(/REAL\s*2026/i));
+    const nombresRaw = safeLabels.filter((_, i) => keep[i]).map(c => this.divName(c));
 
-    // % Diferencia (índice 2026 vs 2025): (REAL2026 - REAL2025) / REAL2026 * 100
-    const diffPct = real26.map((r26, i) => {
-      const r25 = real25[i];
-      return r26 !== 0 ? Math.round(((r26 - r25) / r26) * 10000) / 100 : 0;
-    });
+    // % Diferencia antes de ordenar
+    const diffRaw = r26raw.map((r26, i) =>
+      r26 !== 0 ? Math.round(((r26 - r25raw[i]) / r26) * 10000) / 100 : 0
+    );
 
-    const nombres = safeLabels.filter((_, i) => keep[i]).map(c => this.divName(c));
+    // Ordenar índices por REAL 2026 de mayor a menor (izq → der)
+    const idx = r26raw
+      .map((v, i) => ({ v, i }))
+      .sort((a, b) => b.v - a.v)
+      .map(x => x.i);
+
+    const reorder = (arr: number[]) => idx.map(i => arr[i]);
+    const real25  = reorder(r25raw);
+    const meta26  = reorder(m26raw);
+    const real26  = reorder(r26raw);
+    const diffPct = reorder(diffRaw);
+    const nombres = idx.map(i => nombresRaw[i]);
+
+    // Fondo de columna: rojo si REAL 2026 > META 2026, verde si no superó la meta
+    const bgColors = real26.map((r26, i) =>
+      r26 > meta26[i] ? 'rgba(220, 53, 69, 0.12)' : 'rgba(40, 167, 69, 0.12)'
+    );
 
     return {
       labels: nombres,
+      bgColors,
       datasets: [
         { type: 'bar', label: 'REAL 2025', data: real25,
           backgroundColor: this.COLOR_REAL2025, borderColor: this.COLOR_REAL2025, borderWidth: 1, order: 2, yAxisID: 'y' },
@@ -418,16 +516,20 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
           x:  { ...catAxis }
         };
 
+    const bgColors: string[] = this.chartData.bgColors ?? [];
+
     // Gráfica combinada: barras (REAL/META) + línea (% Diferencia) en eje secundario.
     const config: any = {
       type: 'bar',
       data,
+      plugins: [META_BG_COLUMNS_PLUGIN, META_DATALABELS_PLUGIN],
       options: {
         indexAxis: horizontal ? 'y' : 'x',
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
         plugins: {
+          metaBgColumns: { colors: bgColors },
           legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 14 } },
           title: { display: true, text: 'INCONFORMIDADES', font: { size: 16, weight: 'bold' }, color: '#2f5496' },
           tooltip: {
@@ -438,7 +540,7 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
                 if (item.dataset?.label === '% Diferencia') {
                   return ` % Diferencia : ${Number(v).toFixed(2)}`;
                 }
-                return ` ${item.dataset?.label} : ${Math.round(Number(v)).toLocaleString('es-MX')}`;
+                return ` ${item.dataset?.label} : ${Number(v).toLocaleString('es-MX', { maximumFractionDigits: 2 })}`;
               }
             }
           }
@@ -453,7 +555,9 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
   // ── Helpers para colorear la fila REAL 2026 vs META 2026 ─────────────────────
   /** ¿La clave de columna corresponde a una división/total con valor numérico? */
   private isValueColumn(key: any): boolean {
-    return this.desiredColumns.includes(String(key ?? '').trim().toUpperCase());
+    const k = String(key ?? '').trim().toUpperCase();
+    // Hardcoded Norte + patrón genérico D<letra><3 dígitos> (DC010, DA020, etc.) + TOTAL
+    return this.desiredColumns.includes(k) || /^D[A-Z]\d{3}$/.test(k) || k === 'TOTAL';
   }
 
   /** Texto de la primera columna (etiqueta de fila, p. ej. "REAL 2026"). */
@@ -493,19 +597,23 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
       alert('No hay gráfica para exportar');
       return;
     }
-
     try {
-        // TypeScript ya sabe que this.chartInstance no es null aquí
-        const image = this.chartInstance.toBase64Image();
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = `inconformidades-meta-${new Date().getTime()}.png`;
-        link.click();
-      } catch (error) {
-        console.error('Error exporting chart:', error);
-        alert('Error al exportar la gráfica');
-      }
+      const canvas = this.chartInstance.canvas;
+      const off = document.createElement('canvas');
+      off.width = canvas.width; off.height = canvas.height;
+      const offCtx = off.getContext('2d')!;
+      offCtx.fillStyle = '#ffffff';
+      offCtx.fillRect(0, 0, off.width, off.height);
+      offCtx.drawImage(canvas, 0, 0);
+      const link = document.createElement('a');
+      link.href = off.toDataURL('image/png');
+      link.download = `inconformidades-meta-${new Date().getTime()}.png`;
+      link.click();
+    } catch (error) {
+      console.error('Error exporting chart:', error);
+      alert('Error al exportar la gráfica');
     }
+  }
 
   // ── Export data as Excel ───────────────────────────────────────────────────
   exportExcel(): void {

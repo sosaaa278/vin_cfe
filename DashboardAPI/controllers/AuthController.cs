@@ -1,10 +1,9 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
+using DashboardAPI.Data;
 using DashboardAPI.Models;
+using DashboardAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 
 namespace DashboardAPI.Controllers;
 
@@ -12,44 +11,35 @@ namespace DashboardAPI.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IConfiguration _config;
+    private readonly AppDbContext  _db;
+    private readonly IPasswordHasher _hasher;
+    private readonly IJwtService   _jwt;
 
-    public AuthController(IConfiguration config)
+    public AuthController(AppDbContext db, IPasswordHasher hasher, IJwtService jwt)
     {
-        _config = config;
+        _db     = db;
+        _hasher = hasher;
+        _jwt    = jwt;
     }
 
     [EnableRateLimiting("login")]
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var users = _config.GetSection("Users").Get<List<UserConfig>>();
-        var user = users?.FirstOrDefault(u =>
-            u.Username == request.Username &&
-            u.Password == request.Password);
+        var rpe = request.Rpe.ToUpperInvariant().Replace(" ", "");
 
-        if (user == null)
+        var user = await _db.Users
+            .FirstOrDefaultAsync(u => u.Rpe == rpe && u.Status == "active");
+
+        // Tiempo constante: siempre verificamos hash aunque el usuario no exista,
+        // para no revelar si el RPE existe mediante diferencia de tiempos.
+        var hashToVerify = user?.PasswordHash ?? BCrypt.Net.BCrypt.GenerateSalt();
+        var valid = user is not null && _hasher.Verify(request.Password, hashToVerify);
+
+        if (!valid)
             return Unauthorized(new { message = "Credenciales incorrectas" });
 
-        var key   = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiry = int.Parse(_config["Jwt:ExpiryHours"] ?? "8");
-
-        var token = new JwtSecurityToken(
-            issuer:            _config["Jwt:Issuer"],
-            audience:          _config["Jwt:Audience"],
-            claims: [
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, "User")
-            ],
-            expires:           DateTime.UtcNow.AddHours(expiry),
-            signingCredentials: creds
-        );
-
-        return Ok(new
-        {
-            token  = new JwtSecurityTokenHandler().WriteToken(token),
-            expiry = token.ValidTo
-        });
+        var (token, expiry) = _jwt.GenerateToken(user!);
+        return Ok(new { token, expiry });
     }
 }
