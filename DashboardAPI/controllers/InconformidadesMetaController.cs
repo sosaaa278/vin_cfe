@@ -47,12 +47,11 @@ namespace DashboardAPI.Controllers
                 return NotFound(new { message = "No se encontraron datos en la tabla." });
 
             // ── 3. Transformar a {labels, datasets, rawTable} ──
-            // Mismo ParseVal que DataController para manejar formato español "1.234,56"
+            // MetaRealService emite InvariantCulture "N2": "5,060.00" (coma=miles, punto=decimal).
+            // Quitamos las comas y parseamos con InvariantCulture.
             static double ParseVal(string? v)
             {
-                var s = (v ?? "")
-                    .Replace(".", "").Replace(",", ".")
-                    .Replace(" ", "").Trim();
+                var s = (v ?? "").Replace(",", "").Replace(" ", "").Trim();
                 return double.TryParse(s,
                     System.Globalization.NumberStyles.Any,
                     System.Globalization.CultureInfo.InvariantCulture,

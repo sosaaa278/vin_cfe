@@ -157,12 +157,16 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Servir Angular como archivos estáticos (deploy Opción A: servidor único)
+// Servir Angular como archivos estáticos (deploy Opción A: servidor único).
+// Si el frontend se despliega aparte (Opción B), wwwroot/index.html no existe y se omite.
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
 app.MapControllers();
-app.MapFallbackToFile("index.html"); // Para que el router de Angular funcione al hacer F5
+if (File.Exists(Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "index.html")))
+{
+    app.MapFallbackToFile("index.html"); // Para que el router de Angular funcione al hacer F5
+}
 
 // Seed Database
 using (var scope = app.Services.CreateScope())
@@ -178,8 +182,8 @@ using (var scope = app.Services.CreateScope())
         await SeedData.SeedUsersAsync(db, hasher);
     }
 
-    // Eliminar caché antigua sin división ("meta-real") para forzar re-scrape por división.
-    var oldMetaCache = db.ScrapeCaches.Where(c => c.Clave == "meta-real");
+    // Eliminar toda caché de meta-real (clave exacta + por división) para forzar re-scrape limpio.
+    var oldMetaCache = db.ScrapeCaches.Where(c => c.Clave == "meta-real" || c.Clave.StartsWith("meta-real-"));
     db.ScrapeCaches.RemoveRange(oldMetaCache);
     await db.SaveChangesAsync();
 }

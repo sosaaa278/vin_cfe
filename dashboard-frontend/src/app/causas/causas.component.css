@@ -113,3 +113,27 @@
   font-size: 0.82rem;
   vertical-align: middle;
 }
+
+/* Spinner inline del selector de zona */
+.spinner-sm-zona {
+  width: .8rem;
+  height: .8rem;
+}
+
+/* Texto de espera debajo de los botones de comparación */
+.loading-hint {
+  font-size: 0.72rem;
+}
+
+/* Cuadros de leyenda de comparación */
+.legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.swatch-danger  { background: rgba(220, 53, 69, 0.09);  border: 2.5px solid rgb(220, 53, 69); }
+.swatch-success { background: rgba(40, 167, 69, 0.09);  border: 2.5px solid rgb(40, 167, 69); }
+.swatch-neutral { background: rgba(108, 117, 125, 0.05); border: 1px solid rgb(107, 114, 128); }

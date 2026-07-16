@@ -130,11 +130,12 @@ namespace DashboardAPI.Services
             var ctx = await pw.Chromium.LaunchPersistentContextAsync(dataDir,
                 new BrowserTypeLaunchPersistentContextOptions
                 {
-                    Headless  = true,
-                    Channel   = OperatingSystem.IsWindows() ? "msedge" : null,
-                    UserAgent = UserAgent,
-                    SlowMo    = 300,
-                    Args      = ["--no-sandbox", "--disable-setuid-sandbox"]
+                    Headless          = true,
+                    Channel           = OperatingSystem.IsWindows() ? "msedge" : null,
+                    UserAgent         = UserAgent,
+                    SlowMo            = 300,
+                    IgnoreHTTPSErrors = true,
+                    Args              = ["--no-sandbox", "--disable-setuid-sandbox"]
                 });
 
             return (pw, ctx);

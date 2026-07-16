@@ -80,3 +80,8 @@
 }
 .leyenda.rojo  { background: rgba(220, 53, 69, .28); }
 .leyenda.verde { background: rgba(40, 167, 69, .28); }
+
+.spinner-sm-zona {
+  width: .8rem;
+  height: .8rem;
+}

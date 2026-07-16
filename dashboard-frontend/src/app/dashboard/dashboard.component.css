@@ -206,3 +206,39 @@
   font-size: 0.82rem;
   vertical-align: middle;
 }
+
+/* Etiqueta "Año:" en el selector de pastel */
+.pie-year-label {
+  font-size: 0.85rem;
+}
+
+/* Encabezado de columna TOTAL en la tabla comparativa */
+.th-total {
+  border: 2px solid #fff;
+  background-color: #1e3a5f;
+  text-align: center;
+}
+
+/* Celda de valor centrado */
+.td-center {
+  text-align: center;
+}
+
+/* Sub-fila del año anterior (2025) */
+.tr-subrow {
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+/* Texto "↳ 2025" dentro de la sub-fila */
+.em-year-label {
+  color: #444;
+  font-weight: 600;
+}
+
+/* Celda del total en la sub-fila 2025 */
+.td-subrow-total {
+  font-weight: 600;
+  border: 2px solid #6c757d !important;
+  text-align: center;
+}

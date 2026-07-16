@@ -177,7 +177,7 @@
 
     <!-- Selector de año para pastel -->
     <div *ngIf="chartType === 'pie'" class="pie-year-row mt-3">
-      <span class="fw-semibold me-2" style="font-size:0.85rem;">Año:</span>
+      <span class="fw-semibold me-2 pie-year-label">Año:</span>
       <div class="btn-group btn-group-sm">
         <button class="btn"
           [class.btn-primary]="pieYear === '2026'"
@@ -250,7 +250,7 @@
         <thead class="table-dark">
           <tr>
             <th *ngFor="let col of visibleColumns">{{ col }}</th>
-            <th style="border: 2px solid #fff; background-color: #1e3a5f; text-align:center;">TOTAL</th>
+            <th class="th-total">TOTAL</th>
           </tr>
         </thead>
         <tbody>
@@ -263,25 +263,23 @@
                 {{ row[col] }}
               </td>
               <td [ngStyle]="!isTotal(row['AREA']) ? getTotalZoneCellStyle2026(row) : { 'font-weight': 'bold', 'border': '2px solid #343a40' }"
-                  style="text-align:center;">
+                  class="td-center">
                 {{ getZoneTotal2026(row) | number }}
               </td>
             </tr>
 
             <!-- Sub-fila 2025 (remarcada como año comparativo) -->
-            <tr *ngIf="!isTotal(row['AREA'])"
-                style="font-size:0.8rem; font-style:italic;">
+            <tr *ngIf="!isTotal(row['AREA'])" class="tr-subrow">
               <td *ngFor="let col of visibleColumns; let isFirst = first"
                   [ngStyle]="get2025SubRowCellStyle(isFirst)">
                 <ng-container *ngIf="col === 'AREA'">
-                  <em style="color:#444; font-weight:600;">↳ 2025</em>
+                  <em class="em-year-label">↳ 2025</em>
                 </ng-container>
                 <ng-container *ngIf="col !== 'AREA' && isCompareCode(col)">
                   {{ get2025Value(row['AREA'], col) | number }}
                 </ng-container>
               </td>
-              <td [ngStyle]="get2025SubRowCellStyle(false)"
-                  style="font-weight:600; border: 2px solid #6c757d !important; text-align:center;">
+              <td [ngStyle]="get2025SubRowCellStyle(false)" class="td-subrow-total">
                 {{ getZoneTotal2025(row['AREA']) | number }}
               </td>
             </tr>

@@ -36,7 +36,5 @@ namespace DashboardAPI.Helpers
         /// <summary>Año de una fecha "yyyy/MM/dd" o "yyyy-MM-dd".</summary>
         public static int Anio(string fecha) => int.Parse(Normaliza(fecha).Split('/')[0]);
 
-        /// <summary>Mes (1-12) de una fecha "yyyy/MM/dd" o "yyyy-MM-dd".</summary>
-        public static int Mes(string fecha) => int.Parse(Normaliza(fecha).Split('/')[1]);
     }
 }

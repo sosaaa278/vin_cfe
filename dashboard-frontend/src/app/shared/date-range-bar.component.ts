@@ -42,69 +42,7 @@ import { DateRangeService } from '../services/date-range.service';
       </div>
     </section>
   `,
-  styles: [`
-    .range-bar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 1rem;
-      background: #eafaf1;
-      border: 1px solid #b7e4c7;
-      border-left: 6px solid #006341;
-      border-radius: 8px;
-      padding: .75rem 1rem;
-      margin-bottom: 1.25rem;
-    }
-    .range-bar__head { display: flex; align-items: center; gap: .5rem; }
-    .range-bar__icon { font-size: 1.25rem; }
-    .range-bar__title {
-      font-weight: 700;
-      color: #064e3b;
-      font-size: 1rem;
-    }
-    .range-bar__fields {
-      display: flex;
-      align-items: flex-end;
-      gap: .6rem;
-      flex-wrap: wrap;
-    }
-    .range-bar__fields label {
-      display: flex;
-      flex-direction: column;
-      font-size: .8rem;
-      font-weight: 600;
-      color: #1f4d3a;
-      line-height: 1.2;
-    }
-    .range-bar__fields input[type="date"] {
-      margin-top: 3px;
-      border: 1px solid #9ccab0;
-      border-radius: 6px;
-      padding: .35rem .5rem;
-      font-size: .9rem;
-    }
-    .range-bar__apply {
-      background: #006341;
-      color: #fff;
-      border: none;
-      padding: .5rem 1.2rem;
-      border-radius: 6px;
-      font-size: .9rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .range-bar__apply:disabled { opacity: .5; cursor: not-allowed; }
-    .range-bar__apply:not(:disabled):hover { background: #00875a; }
-    .range-bar__current {
-      margin-left: auto;
-      font-size: .85rem;
-      color: #1f4d3a;
-      background: #fff;
-      border: 1px dashed #9ccab0;
-      border-radius: 6px;
-      padding: .35rem .7rem;
-    }
-  `]
+  styleUrls: ['./date-range-bar.component.css']
 })
 export class DateRangeBarComponent implements OnDestroy {
   desde = '';

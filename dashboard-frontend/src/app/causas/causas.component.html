@@ -20,7 +20,7 @@
       <div class="col-md-4">
         <label class="form-label fw-semibold">
           Zona
-          <span *ngIf="zonasLoading" class="spinner-border spinner-border-sm ms-1" role="status" style="width:.8rem;height:.8rem;"></span>
+          <span *ngIf="zonasLoading" class="spinner-border spinner-border-sm ms-1 spinner-sm-zona" role="status"></span>
         </label>
         <select
           class="form-select"
@@ -47,15 +47,25 @@
       <div class="col-md-4 d-flex align-items-end flex-column gap-1">
         <button
           class="btn btn-outline-success w-100"
-          (click)="iniciarComparacion()"
+          (click)="iniciarComparacionAnio(1)"
           [disabled]="status === 'LOADING' || !isAllMode">
-          <span *ngIf="status !== 'LOADING'">Comparar con {{ currentYear - 1 }}</span>
-          <span *ngIf="status === 'LOADING'">
+          <span *ngIf="!(status === 'LOADING' && loadingOffset === 1)">Comparar con {{ currentYear - 1 }}</span>
+          <span *ngIf="status === 'LOADING' && loadingOffset === 1">
             <span class="spinner-border spinner-border-sm me-1" role="status"></span>
             Cargando {{ currentYear - 1 }}…
           </span>
         </button>
-        <small *ngIf="status === 'LOADING' && isAllMode" class="text-muted text-center w-100" style="font-size:0.72rem;">
+        <button
+          class="btn btn-outline-secondary w-100"
+          (click)="iniciarComparacionAnio(2)"
+          [disabled]="status === 'LOADING' || !isAllMode">
+          <span *ngIf="!(status === 'LOADING' && loadingOffset === 2)">Comparar con {{ currentYear - 2 }}</span>
+          <span *ngIf="status === 'LOADING' && loadingOffset === 2">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            Cargando {{ currentYear - 2 }}…
+          </span>
+        </button>
+        <small *ngIf="status === 'LOADING' && loadingOffset > 0" class="loading-hint text-muted text-center w-100">
           Esto puede tomar ~1 minuto
         </small>
       </div>
@@ -136,7 +146,7 @@
     <div class="waiting-icon">📋</div>
     <h4 class="mt-3 mb-2">Listo para consultar</h4>
     <p class="text-muted mb-0">
-      Presiona <strong>Consultar 2025 vs 2026</strong> para cargar el comparativo de causas de terminación.
+      Presiona <strong>Consultar</strong> para cargar las causas de terminación del año actual.
     </p>
   </div>
 
@@ -173,13 +183,17 @@
           <label class="form-label fw-semibold">Año del pastel</label>
           <div class="btn-group w-100">
             <button class="btn"
-              [class.btn-primary]="pieYear === '2026'"
-              [class.btn-outline-secondary]="pieYear !== '2026'"
-              (click)="onPieYearChange('2026')">2026</button>
+              [class.btn-primary]="pieYear === currentYear"
+              [class.btn-outline-secondary]="pieYear !== currentYear"
+              (click)="onPieYearChange(currentYear)">{{ currentYear }}</button>
             <button class="btn"
-              [class.btn-primary]="pieYear === '2025'"
-              [class.btn-outline-secondary]="pieYear !== '2025'"
-              (click)="onPieYearChange('2025')">2025</button>
+              [class.btn-primary]="pieYear === compareYear"
+              [class.btn-outline-secondary]="pieYear !== compareYear"
+              (click)="onPieYearChange(compareYear)">{{ compareYear }}</button>
+            <button *ngIf="is3YearMode" class="btn"
+              [class.btn-warning]="pieYear === compare2Year"
+              [class.btn-outline-secondary]="pieYear !== compare2Year"
+              (click)="onPieYearChange(compare2Year)">{{ compare2Year }}</button>
           </div>
         </div>
       </div>
@@ -216,11 +230,11 @@
        LEYENDA MODO COMPARACIÓN
   =============================== -->
   <div *ngIf="isCompareMode && paretoRows.length > 0 && chartType !== 'pie'" class="d-flex align-items-center gap-3 mb-3 px-1 flex-wrap">
-    <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:rgba(220,53,69,0.09);border:2.5px solid rgb(220,53,69)"></span>
-    <span class="small text-muted">2026 mayor que 2025 (peor)</span>
-    <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:rgba(40,167,69,0.09);border:2.5px solid rgb(40,167,69)" class="ms-2"></span>
-    <span class="small text-muted">2026 menor que 2025 (mejor)</span>
-    <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:rgba(108,117,125,0.05);border:1px solid rgb(107,114,128)" class="ms-2"></span>
+    <span class="legend-swatch swatch-danger"></span>
+    <span class="small text-muted">{{ currentYear }} mayor que {{ compareYear }} (peor)</span>
+    <span class="legend-swatch swatch-success ms-2"></span>
+    <span class="small text-muted">{{ currentYear }} menor que {{ compareYear }} (mejor)</span>
+    <span class="legend-swatch swatch-neutral ms-2"></span>
     <span class="small text-muted">Sin cambio</span>
     <span class="ms-3 small text-muted fst-italic">(fondo y borde de columna)</span>
   </div>
@@ -268,7 +282,12 @@
   <div *ngIf="isCompareMode && status === 'SUCCESS'" class="card shadow-sm p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
-        <h3 class="mb-0">Resumen comparativo {{ currentYear - 1 }} vs {{ currentYear }} — Todos los tipos</h3>
+        <h3 class="mb-0">
+          Resumen comparativo —
+          <span *ngIf="is3YearMode">{{ compare2Year }} / {{ compareYear }} / {{ currentYear }}</span>
+          <span *ngIf="!is3YearMode">{{ compareYear }} vs {{ currentYear }}</span>
+          — Todos los tipos
+        </h3>
         <small class="text-muted">Total de inconformidades por tipo de causa</small>
       </div>
       <button class="btn btn-success btn-sm" (click)="exportResumenExcel()" [disabled]="codeSummary.length === 0">
@@ -281,8 +300,9 @@
           <tr>
             <th>Código</th>
             <th>Descripción</th>
-            <th class="text-end">2025</th>
-            <th class="text-end">2026</th>
+            <th *ngIf="is3YearMode" class="text-end">{{ compare2Year }}</th>
+            <th class="text-end">{{ compareYear }}</th>
+            <th class="text-end">{{ currentYear }}</th>
             <th class="text-end">Variación %</th>
           </tr>
         </thead>
@@ -293,6 +313,7 @@
                 (click)="switchCode(row.code)">{{ row.code }}</button>
             </td>
             <td class="small">{{ row.label }}</td>
+            <td *ngIf="is3YearMode" class="text-end text-muted">{{ row.anterior2 | number }}</td>
             <td class="text-end">{{ row.anterior | number }}</td>
             <td class="text-end fw-semibold"
                 [ngStyle]="{
@@ -316,6 +337,7 @@
           <tr class="fw-bold table-secondary">
             <td>TOTAL</td>
             <td></td>
+            <td *ngIf="is3YearMode" class="text-end">{{ codeSummaryTotals.anterior2 | number }}</td>
             <td class="text-end">{{ codeSummaryTotals.anterior | number }}</td>
             <td class="text-end">{{ codeSummaryTotals.actual | number }}</td>
             <td class="text-end">{{ codeSummaryTotals.variacion > 0 ? '+' : '' }}{{ codeSummaryTotals.variacion | number:'1.1-1' }}%</td>
@@ -326,12 +348,17 @@
   </div>
 
   <!-- ==============================
-       TABLA COMPARATIVA 2025 vs 2026
+       TABLA COMPARATIVA AÑO ANTERIOR VS AÑO ACTUAL
   =============================== -->
   <div *ngIf="isCompareMode && status === 'SUCCESS'" class="card shadow-sm p-4 mb-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <div>
-        <h3 class="mb-0">Comparación {{ currentYear - 1 }} vs {{ currentYear }} — <span class="badge-code">{{ activeCode }}</span></h3>
+        <h3 class="mb-0">
+          Comparación
+          <span *ngIf="is3YearMode">{{ compare2Year }} / {{ compareYear }} / {{ currentYear }}</span>
+          <span *ngIf="!is3YearMode">{{ compareYear }} vs {{ currentYear }}</span>
+          — <span class="badge-code">{{ activeCode }}</span>
+        </h3>
       </div>
       <button class="btn btn-success btn-sm" (click)="exportCompareExcel()" [disabled]="compareRows.length === 0">
         Exportar Excel
@@ -350,7 +377,7 @@
     </div>
 
     <div *ngIf="compareRows.length === 0" class="alert alert-warning mb-0">
-      Sin datos para <strong>{{ activeCode }}</strong> en ninguno de los dos años.
+      Sin datos para <strong>{{ activeCode }}</strong> en ninguno de los años consultados.
     </div>
 
     <div *ngIf="compareRows.length > 0" class="table-responsive">
@@ -359,8 +386,9 @@
           <tr>
             <th>Clave</th>
             <th>Descripcion</th>
-            <th class="text-end">2025</th>
-            <th class="text-end">2026</th>
+            <th *ngIf="is3YearMode" class="text-end">{{ compare2Year }}</th>
+            <th class="text-end">{{ compareYear }}</th>
+            <th class="text-end">{{ currentYear }}</th>
             <th class="text-end">Variación %</th>
           </tr>
         </thead>
@@ -368,6 +396,7 @@
           <tr *ngFor="let row of compareRows">
             <td><strong>{{ row.Clave }}</strong></td>
             <td>{{ row.Descripcion }}</td>
+            <td *ngIf="is3YearMode" class="text-end text-muted">{{ row.Anterior2 | number }}</td>
             <td class="text-end">{{ row.Anterior | number }}</td>
             <td class="text-end fw-semibold"
                 [ngStyle]="{
@@ -391,6 +420,7 @@
           <tr class="fw-bold table-secondary">
             <td>TOTAL</td>
             <td></td>
+            <td *ngIf="is3YearMode" class="text-end">{{ compareTotals.anterior2 | number }}</td>
             <td class="text-end">{{ compareTotals.anterior | number }}</td>
             <td class="text-end">{{ compareTotals.actual | number }}</td>
             <td class="text-end">{{ compareTotals.variacion > 0 ? '+' : '' }}{{ compareTotals.variacion | number:'1.1-1' }}%</td>
@@ -414,7 +444,7 @@
       <!-- Solo en el año anterior -->
       <div class="col-md-6">
         <h6 class="fw-semibold mb-2">
-          Solo en {{ currentYear - 1 }}
+          Solo en {{ compareYear }}
           <span class="badge bg-secondary ms-1">{{ soloAnterior.length }}</span>
         </h6>
         <div *ngIf="soloAnterior.length === 0" class="text-muted small fst-italic">Ninguna.</div>
@@ -423,7 +453,7 @@
             <tr>
               <th>Clave</th>
               <th>Descripción</th>
-              <th class="text-end">{{ currentYear - 1 }}</th>
+              <th class="text-end">{{ compareYear }}</th>
             </tr>
           </thead>
           <tbody>

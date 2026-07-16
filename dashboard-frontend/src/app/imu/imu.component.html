@@ -19,7 +19,7 @@
       <div class="col-md-4">
         <label class="form-label fw-semibold">
           Zona
-          <span *ngIf="zonasLoading" class="spinner-border spinner-border-sm ms-1" role="status" style="width:.8rem;height:.8rem;"></span>
+          <span *ngIf="zonasLoading" class="spinner-border spinner-border-sm ms-1 spinner-sm-zona" role="status"></span>
         </label>
         <select class="form-select" [(ngModel)]="selectedZona" [disabled]="status === 'LOADING' || zonasLoading">
           <option *ngIf="zonasLoading" value="00000">Cargando zonas…</option>

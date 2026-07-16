@@ -37,10 +37,11 @@ namespace DashboardAPI.Services
             var browser = await playwright.Chromium.LaunchPersistentContextAsync(dataDir,
                 new BrowserTypeLaunchPersistentContextOptions
                 {
-                    Headless  = true,
-                    UserAgent = UserAgent,
-                    SlowMo    = 200,
-                    Args      = ["--no-sandbox", "--disable-setuid-sandbox"]
+                    Headless          = true,
+                    UserAgent         = UserAgent,
+                    SlowMo            = 200,
+                    IgnoreHTTPSErrors = true,
+                    Args              = ["--no-sandbox", "--disable-setuid-sandbox"]
                 });
 
             var page = browser.Pages.Count > 0 ? browser.Pages[0] : await browser.NewPageAsync();
@@ -100,10 +101,10 @@ namespace DashboardAPI.Services
                         // Agregar cada división (DC010, DC020, etc.)
                         foreach (var kvp in f.Valores)
                         {
-                            dict[kvp.Key] = kvp.Value.ToString("N2"); // Formato con decimales
+                            dict[kvp.Key] = kvp.Value.ToString("N2", CultureInfo.InvariantCulture);
                         }
-                        
-                        dict["TOTAL"] = f.Total.ToString("N2");
+
+                        dict["TOTAL"] = f.Total.ToString("N2", CultureInfo.InvariantCulture);
                         return dict;
                     }).ToList()
                 };

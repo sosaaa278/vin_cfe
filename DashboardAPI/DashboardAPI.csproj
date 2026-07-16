@@ -24,4 +24,12 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
+  <!-- Perfiles de Chromium generados en tiempo de ejecución (sesión/cookies del scraping local);
+       no deben publicarse ni empaquetarse, se regeneran solos en cada entorno. -->
+  <ItemGroup>
+    <Content Remove="playwright-data/**" />
+    <Content Remove="playwright-data-*/**" />
+    <Content Remove="publish-linux/**" />
+  </ItemGroup>
+
 </Project>

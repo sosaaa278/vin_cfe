@@ -141,9 +141,12 @@ export class CausasComponent implements OnInit, OnDestroy {
 
   selectedCode  = 'E02';
   activeCode    = 'E02';
-  allCausasData:  { [code: string]: any[] } = {};  // datos año actual (2026)
-  prevCausasData: { [code: string]: any[] } = {};  // datos año anterior (2025)
-  compareMode = false;
+  allCausasData:   { [code: string]: any[] } = {};  // datos año actual
+  prevCausasData:  { [code: string]: any[] } = {};  // datos año comparado (offset 1)
+  prev2CausasData: { [code: string]: any[] } = {};  // datos 2 años atrás (modo 3 años)
+  compareYear  = 0;   // 0 = sin comparación; >0 = año que se está comparando (offset 1)
+  compare2Year = 0;   // 0 = modo 2 años; >0 = año adicional (offset 2)
+  loadingOffset = 0;  // 1, 2, o 3: qué botón está cargando
 
   readonly CODES = [
     { value: 'E02', label: 'E02 — Ramal fuera' },
@@ -162,8 +165,8 @@ export class CausasComponent implements OnInit, OnDestroy {
   paretoPct   = 0;
 
   // Tablas comparativas PRECALCULADAS (evita recálculos en cada ciclo de Angular = congelamiento)
-  compareRows: { Clave: string; Descripcion: string; Anterior: number; Actual: number; Variacion: number }[] = [];
-  codeSummary: { code: string; label: string; anterior: number; actual: number; variacion: number }[] = [];
+  compareRows: { Clave: string; Descripcion: string; Anterior2: number; Anterior: number; Actual: number; Variacion: number }[] = [];
+  codeSummary: { code: string; label: string; anterior2: number; anterior: number; actual: number; variacion: number }[] = [];
 
   // Causas exclusivas de cada año (clave presente en un año pero no en el otro)
   soloAnterior: { Clave: string; Descripcion: string; valor: number }[] = [];
@@ -183,7 +186,7 @@ export class CausasComponent implements OnInit, OnDestroy {
   }
 
   chartType: 'bar' | 'line' | 'horizontalBar' | 'pie' = 'bar';
-  pieYear: '2025' | '2026' = '2026';
+  pieYear = 0;  // año activo en el pastel; se inicializa al cargar la comparación
 
   private rangeSub?: Subscription;
 
@@ -232,6 +235,27 @@ export class CausasComponent implements OnInit, OnDestroy {
     return Number(String(val ?? '0').replace(/[,\s%]/g, '').trim()) || 0;
   }
 
+  /**
+   * El portal de CFE devuelve la descripción como "CATEGORIA :: DETALLE" (ej.
+   * "INCENDIO O EXPLOSION :: PAJAROS/ANIMALES"). Nos quedamos solo con el DETALLE
+   * (lo que va después de "::"). Se aplica una vez, al recibir los datos, para que
+   * tabla, gráfica, comparativos y Excel usen siempre la versión corta.
+   */
+  private stripDescPrefix(data: { [code: string]: any[] }): { [code: string]: any[] } {
+    const result: { [code: string]: any[] } = {};
+    for (const code of Object.keys(data)) {
+      result[code] = (data[code] ?? []).map((row: any) => {
+        const descCol = Object.keys(row).find(c => c.toUpperCase().includes('DESCRI'));
+        if (!descCol) return row;
+        const val = String(row[descCol] ?? '');
+        const idx = val.indexOf('::');
+        if (idx === -1) return row;
+        return { ...row, [descCol]: val.slice(idx + 2).trim() };
+      });
+    }
+    return result;
+  }
+
   // Muestra todas las columnas del scraper en su orden natural, excepto Grafica.
   get orderedColumns(): string[] {
     return this.columns.filter(c => !c.toUpperCase().includes('GRAF'));
@@ -242,7 +266,11 @@ export class CausasComponent implements OnInit, OnDestroy {
   }
 
   get isCompareMode(): boolean {
-    return this.compareMode && Object.keys(this.prevCausasData).length > 0;
+    return this.compareYear > 0 && Object.keys(this.prevCausasData).length > 0;
+  }
+
+  get is3YearMode(): boolean {
+    return this.isCompareMode && this.compare2Year > 0 && Object.keys(this.prev2CausasData).length > 0;
   }
 
   codeRows(code: string): any[] {
@@ -252,21 +280,24 @@ export class CausasComponent implements OnInit, OnDestroy {
   // ── Comparación año anterior ───────────────────────────────────────────────
 
 
-  getCompareRows(code: string): { Clave: string; Descripcion: string; Anterior: number; Actual: number; Variacion: number }[] {
-    const curr: any[] = this.allCausasData[code]  ?? [];
-    const prev: any[] = this.prevCausasData[code] ?? [];
-    if (!curr.length && !prev.length) return [];
+  getCompareRows(code: string): { Clave: string; Descripcion: string; Anterior2: number; Anterior: number; Actual: number; Variacion: number }[] {
+    const curr:  any[] = this.allCausasData[code]   ?? [];
+    const prev:  any[] = this.prevCausasData[code]  ?? [];
+    const prev2: any[] = this.is3YearMode ? (this.prev2CausasData[code] ?? []) : [];
+    if (!curr.length && !prev.length && !prev2.length) return [];
 
-    const both     = [...curr, ...prev];
-    const countCol = this.detectCountCol(both);
-    const claveCol = this.detectCol(both, 'CLAVE');
-    const descCol  = this.detectCol(both, 'DESCRI');
+    const all      = [...curr, ...prev, ...prev2];
+    const countCol = this.detectCountCol(all);
+    const claveCol = this.detectCol(all, 'CLAVE');
+    const descCol  = this.detectCol(all, 'DESCRI');
 
-    const currMap  = new Map<string, any>(curr.map((r: any) => [String(r[claveCol] ?? ''), r]));
-    const prevMap  = new Map<string, any>(prev.map((r: any) => [String(r[claveCol] ?? ''), r]));
+    const currMap  = new Map<string, any>(curr.map((r: any)  => [String(r[claveCol] ?? ''), r]));
+    const prevMap  = new Map<string, any>(prev.map((r: any)  => [String(r[claveCol] ?? ''), r]));
+    const prev2Map = new Map<string, any>(prev2.map((r: any) => [String(r[claveCol] ?? ''), r]));
     const allClaves = new Set<string>([
-      ...curr.map((r: any) => String(r[claveCol] ?? '')),
-      ...prev.map((r: any) => String(r[claveCol] ?? ''))
+      ...curr.map((r: any)  => String(r[claveCol] ?? '')),
+      ...prev.map((r: any)  => String(r[claveCol] ?? '')),
+      ...prev2.map((r: any) => String(r[claveCol] ?? ''))
     ]);
 
     return Array.from(allClaves)
@@ -274,14 +305,17 @@ export class CausasComponent implements OnInit, OnDestroy {
       .map(clave => {
         const c        = currMap.get(clave);
         const p        = prevMap.get(clave);
+        const p2       = prev2Map.get(clave);
         const currVal  = this.parseNum(c?.[countCol]);
         const prevVal  = this.parseNum(p?.[countCol]);
+        const prev2Val = this.parseNum(p2?.[countCol]);
         const variacion = prevVal > 0
           ? Math.round(((currVal - prevVal) / prevVal) * 10000) / 100
-          : (currVal > 0 ? currVal * 100 : 0);   // 2025=0 y 2026>0 → +N*100% (ej. 6 → +600%, subió = rojo)
+          : (currVal > 0 ? currVal * 100 : 0);
         return {
           Clave:       clave,
-          Descripcion: String(c?.[descCol] || p?.[descCol] || ''),
+          Descripcion: String(c?.[descCol] || p?.[descCol] || p2?.[descCol] || ''),
+          Anterior2:   prev2Val,
           Anterior:    prevVal,
           Actual:      currVal,
           Variacion:   variacion
@@ -290,18 +324,41 @@ export class CausasComponent implements OnInit, OnDestroy {
       .sort((a, b) => b.Actual - a.Actual);
   }
 
-  getCodeSummary(): { code: string; label: string; anterior: number; actual: number; variacion: number }[] {
+  getCodeSummary(): { code: string; label: string; anterior2: number; anterior: number; actual: number; variacion: number }[] {
+    return this.summarizeByCode(
+      this.allCausasData,
+      this.prevCausasData,
+      this.is3YearMode ? this.prev2CausasData : {}
+    );
+  }
+
+  /** Igual que getCodeSummary() pero parametrizado (evita duplicar la lógica de agregación). */
+  private summarizeByCode(
+    curr: { [code: string]: any[] }, prev: { [code: string]: any[] }, prev2: { [code: string]: any[] }
+  ): { code: string; label: string; anterior2: number; anterior: number; actual: number; variacion: number }[] {
     return this.CODES.map(c => {
-      const curr     = (this.allCausasData[c.value]  ?? []).filter((r: any) => !this.isRowTotal(r));
-      const prev     = (this.prevCausasData[c.value] ?? []).filter((r: any) => !this.isRowTotal(r));
-      const countCol = this.detectCountCol([...curr, ...prev]);
-      const totalCurr = curr.reduce((s: number, r: any) => s + this.parseNum(r[countCol]), 0);
-      const totalPrev = prev.reduce((s: number, r: any) => s + this.parseNum(r[countCol]), 0);
+      const currRows  = (curr[c.value]  ?? []).filter((r: any) => !this.isRowTotal(r));
+      const prevRows  = (prev[c.value]  ?? []).filter((r: any) => !this.isRowTotal(r));
+      const prev2Rows = (prev2[c.value] ?? []).filter((r: any) => !this.isRowTotal(r));
+      const countCol   = this.detectCountCol([...currRows, ...prevRows, ...prev2Rows]);
+      const totalCurr  = currRows.reduce((s: number,  r: any) => s + this.parseNum(r[countCol]), 0);
+      const totalPrev  = prevRows.reduce((s: number,  r: any) => s + this.parseNum(r[countCol]), 0);
+      const totalPrev2 = prev2Rows.reduce((s: number, r: any) => s + this.parseNum(r[countCol]), 0);
       const variacion = totalPrev > 0
         ? Math.round(((totalCurr - totalPrev) / totalPrev) * 10000) / 100
-        : (totalCurr > 0 ? totalCurr * 100 : 0);   // 2025=0 y 2026>0 → +N*100% (ej. 6 → +600%, subió = rojo)
-      return { code: c.value, label: c.label, anterior: totalPrev, actual: totalCurr, variacion };
+        : (totalCurr > 0 ? totalCurr * 100 : 0);
+      return { code: c.value, label: c.label, anterior2: totalPrev2, anterior: totalPrev, actual: totalCurr, variacion };
     });
+  }
+
+  private summarizeTotals(rows: { anterior2: number; anterior: number; actual: number; variacion: number }[]) {
+    const anterior2 = rows.reduce((s, r) => s + r.anterior2, 0);
+    const anterior  = rows.reduce((s, r) => s + r.anterior, 0);
+    const actual    = rows.reduce((s, r) => s + r.actual, 0);
+    const variacion = anterior > 0
+      ? Math.round(((actual - anterior) / anterior) * 10000) / 100
+      : (actual > 0 ? actual * 100 : 0);
+    return { anterior2, anterior, actual, variacion };
   }
 
   private detectCountCol(rows: any[]): string {
@@ -375,11 +432,15 @@ export class CausasComponent implements OnInit, OnDestroy {
     this.tableData      = [];
     this.columns        = [];
     this.paretoRows     = [];
-    this.allCausasData  = {};
-    this.prevCausasData = {};
-    this.compareMode    = false;
-    this.codeSummary    = [];
-    this.compareRows    = [];
+    this.allCausasData   = {};
+    this.prevCausasData  = {};
+    this.prev2CausasData = {};
+    this.compareYear     = 0;
+    this.compare2Year    = 0;
+    this.loadingOffset   = 0;
+    this.pieYear         = 0;
+    this.codeSummary     = [];
+    this.compareRows     = [];
     if (this.paretoChart) { this.paretoChart.destroy(); this.paretoChart = null; }
 
     const { desde, hasta } = this.dateRange.current;
@@ -387,7 +448,7 @@ export class CausasComponent implements OnInit, OnDestroy {
       .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
       .subscribe({
         next: (data) => {
-          this.allCausasData = data ?? {};
+          this.allCausasData = this.stripDescPrefix(data ?? {});
           const first = this.CODES.find(c => (data[c.value] ?? []).length > 0);
           this.switchCode(first?.value ?? this.CODES[0].value);
           this.status = 'SUCCESS';
@@ -401,38 +462,53 @@ export class CausasComponent implements OnInit, OnDestroy {
       });
   }
 
-  // ── Comparar con año anterior (2025) — solo carga 2025 ───────────────────
+  // ── Comparar con un año anterior (escalable: usa offset dinámico) ─────────
+  // yearOffset=1 → currentYear-1 (ej. 2025); yearOffset=2 → currentYear-2 (ej. 2024)
+  // El año actual viene de la fecha "hasta" del selector → el año siguiente funciona solo.
 
-  iniciarComparacion(): void {
+  iniciarComparacionAnio(yearOffset: number): void {
     if (!this.isAllMode) {
       this.status       = 'ERROR';
       this.errorMessage = 'Primero presiona "Consultar" para cargar los datos del año actual.';
       return;
     }
 
-    this.status       = 'LOADING';
-    this.errorMessage = '';
-    const prevYear    = this.currentYear - 1;
+    this.status        = 'LOADING';
+    this.errorMessage  = '';
+    this.loadingOffset = yearOffset;
+    const targetYear   = this.currentYear - yearOffset;
 
-    // Mismo rango pero un año atrás (ej. 2026-01-01..2026-05-04 → 2025-01-01..2025-05-04)
     const { desde, hasta } = this.dateRange.current;
-    const shiftYear = (d: string) => `${Number(d.slice(0, 4)) - 1}${d.slice(4)}`;
-    const desdePrev = shiftYear(desde);
-    const hastaPrev = shiftYear(hasta);
+    const shiftYear = (d: string) => `${Number(d.slice(0, 4)) - yearOffset}${d.slice(4)}`;
 
-    this.dashboardService.getCausasAll(undefined, this.selectedZona, desdePrev, hastaPrev)
+    // offset=1 → siempre slot primario.
+    // offset=2 → slot secundario si el primario ya tiene datos; si no, usa el primario.
+    const useSlot2 = yearOffset === 2 && this.compareYear > 0;
+
+    this.dashboardService.getCausasAll(undefined, this.selectedZona, shiftYear(desde), shiftYear(hasta))
       .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
       .subscribe({
         next: (data) => {
-          this.prevCausasData = data ?? {};
-          this.compareMode    = true;
-          this.status         = 'SUCCESS';
-          // Refresca la vista del código activo con el modo comparación activado
+          if (useSlot2) {
+            this.prev2CausasData = this.stripDescPrefix(data ?? {});
+            this.compare2Year    = targetYear;
+          } else {
+            this.prevCausasData = this.stripDescPrefix(data ?? {});
+            this.compareYear    = targetYear;
+          }
+          this.pieYear       = this.currentYear;
+          this.loadingOffset = 0;
+          this.status        = 'SUCCESS';
           this.switchCode(this.activeCode);
         },
         error: (err) => {
-          this.compareMode = false;
-          this.handleScrapeError(err, prevYear);
+          if (useSlot2) {
+            this.compare2Year = 0;
+          } else {
+            this.compareYear  = 0;
+          }
+          this.loadingOffset = 0;
+          this.handleScrapeError(err, targetYear);
         }
       });
   }
@@ -496,7 +572,7 @@ export class CausasComponent implements OnInit, OnDestroy {
     if (this.paretoRows.length > 0) setTimeout(() => this.buildParetoChart(), 50);
   }
 
-  onPieYearChange(year: '2025' | '2026'): void {
+  onPieYearChange(year: number): void {
     this.pieYear = year;
     if (this.paretoRows.length > 0) setTimeout(() => this.buildParetoChart(), 50);
   }
@@ -519,8 +595,9 @@ export class CausasComponent implements OnInit, OnDestroy {
       return [k, shortDesc];
     });
 
-    // Modo comparación: obtener valores 2025 y colores de fondo
-    let values2025: number[] = [];
+    // Modo comparación: valores del año anterior y (en modo 3 años) de 2 años atrás
+    let valuesPrev:  number[] = [];
+    let valuesPrev2: number[] = [];
     let bgColors: string[] = [];
     if (this.isCompareMode) {
       const prev: any[] = this.prevCausasData[this.activeCode] ?? [];
@@ -530,11 +607,23 @@ export class CausasComponent implements OnInit, OnDestroy {
       const prevMap = new Map<string, number>(
         prev.map((r: any) => [String(r[prevClaveCol] ?? '').trim(), this.parseNum(r[prevCountCol])])
       );
-      values2025 = keys.map(k => prevMap.get(k) ?? 0);
-      bgColors = values.map((v26, i) => {
-        const v25 = values2025[i];
-        if (v26 > v25) return 'rgba(220,53,69,0.09)';
-        if (v26 < v25) return 'rgba(40,167,69,0.09)';
+      valuesPrev = keys.map(k => prevMap.get(k) ?? 0);
+
+      if (this.is3YearMode) {
+        const prev2: any[] = this.prev2CausasData[this.activeCode] ?? [];
+        const allRows2 = [...this.tableData, ...prev2];
+        const prev2ClaveCol = this.detectCol(allRows2, 'CLAVE');
+        const prev2CountCol = this.detectCountCol(allRows2);
+        const prev2Map = new Map<string, number>(
+          prev2.map((r: any) => [String(r[prev2ClaveCol] ?? '').trim(), this.parseNum(r[prev2CountCol])])
+        );
+        valuesPrev2 = keys.map(k => prev2Map.get(k) ?? 0);
+      }
+
+      bgColors = values.map((vCurr, i) => {
+        const vPrev = valuesPrev[i];
+        if (vCurr > vPrev) return 'rgba(220,53,69,0.09)';
+        if (vCurr < vPrev) return 'rgba(40,167,69,0.09)';
         return 'rgba(108,117,125,0.05)';
       });
     }
@@ -550,8 +639,10 @@ export class CausasComponent implements OnInit, OnDestroy {
 
     // ── PASTEL ────────────────────────────────────────────────────────────────
     if (this.chartType === 'pie') {
-      const activePieYear = this.isCompareMode ? this.pieYear : '2026';
-      const pieValues  = (activePieYear === '2025' && this.isCompareMode) ? values2025 : values;
+      const activePieYear = this.isCompareMode ? this.pieYear : this.currentYear;
+      const pieValues  = (this.is3YearMode && activePieYear === this.compare2Year) ? valuesPrev2
+                       : (this.isCompareMode && activePieYear === this.compareYear) ? valuesPrev
+                       : values;
       const pieLabels  = keys.map((k, i) => descs[i] ? `${k} — ${descs[i]}` : k);
       const colors     = keys.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
       const totalPie   = pieValues.reduce((a, b) => a + b, 0);
@@ -595,22 +686,22 @@ export class CausasComponent implements OnInit, OnDestroy {
     const isLine       = this.chartType === 'line';
     const resolvedType = isHorizontal ? 'bar' : this.chartType;
 
-    // Per-bar border color: red if 2026 > 2025, green if 2026 < 2025
+    // Per-bar border color: red if actual > prev, green if actual < prev
     const barBorderColor: any = (!isLine && this.isCompareMode)
-      ? values.map((v26, i) => {
-          const v25 = values2025[i] ?? 0;
-          if (v26 > v25) return 'rgb(220, 53, 69)';
-          if (v26 < v25) return 'rgb(40, 167, 69)';
+      ? values.map((vCurr, i) => {
+          const vPrev = valuesPrev[i] ?? 0;
+          if (vCurr > vPrev) return 'rgb(220, 53, 69)';
+          if (vCurr < vPrev) return 'rgb(40, 167, 69)';
           return 'rgb(107, 114, 128)';
         })
       : 'rgb(37, 99, 235)';
 
     const barBorderWidth: any = (!isLine && this.isCompareMode)
-      ? values.map((v26, i) => (v26 !== (values2025[i] ?? 0) ? 2.5 : 1))
+      ? values.map((vCurr, i) => (vCurr !== (valuesPrev[i] ?? 0) ? 2.5 : 1))
       : (isLine ? 2.5 : 1);
 
     const datasets: any[] = [{
-      label: '2026',
+      label: String(this.currentYear),
       data: values,
       backgroundColor: isLine ? 'rgba(59, 130, 246, 0.10)' : 'rgba(59, 130, 246, 0.78)',
       borderColor: barBorderColor,
@@ -624,12 +715,21 @@ export class CausasComponent implements OnInit, OnDestroy {
 
     if (this.isCompareMode && !isLine) {
       datasets.push({
-        label: '2025',
-        data: values2025,
+        label: String(this.compareYear),
+        data: valuesPrev,
         backgroundColor: 'rgba(156, 163, 175, 0.65)',
         borderColor: 'rgb(107, 114, 128)',
         borderWidth: 1,
       });
+      if (this.is3YearMode) {
+        datasets.push({
+          label: String(this.compare2Year),
+          data: valuesPrev2,
+          backgroundColor: 'rgba(251, 146, 60, 0.65)',
+          borderColor: 'rgb(234, 88, 12)',
+          borderWidth: 1,
+        });
+      }
     }
 
     const config: any = {
@@ -701,22 +801,18 @@ export class CausasComponent implements OnInit, OnDestroy {
     return '';
   }
 
-  get compareTotals(): { anterior: number; actual: number; variacion: number } {
-    const anterior = this.compareRows.reduce((s, r) => s + r.Anterior, 0);
-    const actual   = this.compareRows.reduce((s, r) => s + r.Actual, 0);
+  get compareTotals(): { anterior2: number; anterior: number; actual: number; variacion: number } {
+    const anterior2 = this.compareRows.reduce((s, r) => s + r.Anterior2, 0);
+    const anterior  = this.compareRows.reduce((s, r) => s + r.Anterior, 0);
+    const actual    = this.compareRows.reduce((s, r) => s + r.Actual, 0);
     const variacion = anterior > 0
       ? Math.round(((actual - anterior) / anterior) * 10000) / 100
       : (actual > 0 ? actual * 100 : 0);
-    return { anterior, actual, variacion };
+    return { anterior2, anterior, actual, variacion };
   }
 
-  get codeSummaryTotals(): { anterior: number; actual: number; variacion: number } {
-    const anterior = this.codeSummary.reduce((s, r) => s + r.anterior, 0);
-    const actual   = this.codeSummary.reduce((s, r) => s + r.actual, 0);
-    const variacion = anterior > 0
-      ? Math.round(((actual - anterior) / anterior) * 10000) / 100
-      : (actual > 0 ? actual * 100 : 0);
-    return { anterior, actual, variacion };
+  get codeSummaryTotals(): { anterior2: number; anterior: number; actual: number; variacion: number } {
+    return this.summarizeTotals(this.codeSummary);
   }
 
   // ── Exportar a Excel con color ──────────────────────────────────────────────
@@ -760,48 +856,92 @@ export class CausasComponent implements OnInit, OnDestroy {
   exportCompareExcel(): void {
     if (!this.compareRows.length) return;
     const red = 'FFFEE2E2', green = 'FFD1FAE5';
-    const y0 = String(this.currentYear - 1), y1 = String(this.currentYear);
-    const matrix: any[][] = this.compareRows.map(r => ([
-      { v: r.Clave,           t: 's', align: 'left' },
-      { v: r.Descripcion,     t: 's', align: 'left' },
-      { v: r.Anterior,        t: 'n' },
-      { v: r.Actual,          t: 'n', rgb: r.Actual > r.Anterior ? red : r.Actual < r.Anterior ? green : null },
-      { v: `${r.Variacion}%`, t: 's', rgb: r.Variacion > 0 ? red : r.Variacion < 0 ? green : null },
-    ]));
-    const t = this.compareTotals;
-    matrix.push([
-      { v: 'TOTAL', t: 's', bold: true, align: 'left' },
-      { v: '', t: 's', bold: true },
-      { v: t.anterior, t: 'n', bold: true },
-      { v: t.actual,   t: 'n', bold: true },
-      { v: `${t.variacion}%`, t: 's', bold: true },
-    ]);
-    this.exportColored(`comparacion_causas_${this.activeCode}.xlsx`, `Comparacion ${this.activeCode}`,
-      ['Clave', 'Descripción', y0, y1, 'Variación %'], matrix);
+    const y2 = String(this.compare2Year), y0 = String(this.compareYear), y1 = String(this.currentYear);
+    const t  = this.compareTotals;
+
+    if (this.is3YearMode) {
+      const matrix: any[][] = this.compareRows.map(r => ([
+        { v: r.Clave,           t: 's', align: 'left' },
+        { v: r.Descripcion,     t: 's', align: 'left' },
+        { v: r.Anterior2,       t: 'n' },
+        { v: r.Anterior,        t: 'n' },
+        { v: r.Actual,          t: 'n', rgb: r.Actual > r.Anterior ? red : r.Actual < r.Anterior ? green : null },
+        { v: `${r.Variacion}%`, t: 's', rgb: r.Variacion > 0 ? red : r.Variacion < 0 ? green : null },
+      ]));
+      matrix.push([
+        { v: 'TOTAL', t: 's', bold: true, align: 'left' },
+        { v: '', t: 's', bold: true },
+        { v: t.anterior2, t: 'n', bold: true },
+        { v: t.anterior,  t: 'n', bold: true },
+        { v: t.actual,    t: 'n', bold: true },
+        { v: `${t.variacion}%`, t: 's', bold: true },
+      ]);
+      this.exportColored(`comparacion_causas_${this.activeCode}.xlsx`, `Comparacion ${this.activeCode}`,
+        ['Clave', 'Descripción', y2, y0, y1, 'Variación %'], matrix);
+    } else {
+      const matrix: any[][] = this.compareRows.map(r => ([
+        { v: r.Clave,           t: 's', align: 'left' },
+        { v: r.Descripcion,     t: 's', align: 'left' },
+        { v: r.Anterior,        t: 'n' },
+        { v: r.Actual,          t: 'n', rgb: r.Actual > r.Anterior ? red : r.Actual < r.Anterior ? green : null },
+        { v: `${r.Variacion}%`, t: 's', rgb: r.Variacion > 0 ? red : r.Variacion < 0 ? green : null },
+      ]));
+      matrix.push([
+        { v: 'TOTAL', t: 's', bold: true, align: 'left' },
+        { v: '', t: 's', bold: true },
+        { v: t.anterior, t: 'n', bold: true },
+        { v: t.actual,   t: 'n', bold: true },
+        { v: `${t.variacion}%`, t: 's', bold: true },
+      ]);
+      this.exportColored(`comparacion_causas_${this.activeCode}.xlsx`, `Comparacion ${this.activeCode}`,
+        ['Clave', 'Descripción', y0, y1, 'Variación %'], matrix);
+    }
   }
 
   /** Exporta el resumen comparativo de todos los códigos (con color y fila TOTAL). */
   exportResumenExcel(): void {
     if (!this.codeSummary.length) return;
     const red = 'FFFEE2E2', green = 'FFD1FAE5';
-    const y0 = String(this.currentYear - 1), y1 = String(this.currentYear);
-    const matrix: any[][] = this.codeSummary.map(r => ([
-      { v: r.code,            t: 's', align: 'left' },
-      { v: r.label,           t: 's', align: 'left' },
-      { v: r.anterior,        t: 'n' },
-      { v: r.actual,          t: 'n', rgb: r.actual > r.anterior ? red : r.actual < r.anterior ? green : null },
-      { v: `${r.variacion}%`, t: 's', rgb: r.variacion > 0 ? red : r.variacion < 0 ? green : null },
-    ]));
-    const t = this.codeSummaryTotals;
-    matrix.push([
-      { v: 'TOTAL', t: 's', bold: true, align: 'left' },
-      { v: '', t: 's', bold: true },
-      { v: t.anterior, t: 'n', bold: true },
-      { v: t.actual,   t: 'n', bold: true },
-      { v: `${t.variacion}%`, t: 's', bold: true },
-    ]);
-    this.exportColored('resumen_causas.xlsx', 'Resumen',
-      ['Código', 'Descripción', y0, y1, 'Variación %'], matrix);
+    const y2 = String(this.compare2Year), y0 = String(this.compareYear), y1 = String(this.currentYear);
+    const t  = this.codeSummaryTotals;
+
+    if (this.is3YearMode) {
+      const matrix: any[][] = this.codeSummary.map(r => ([
+        { v: r.code,            t: 's', align: 'left' },
+        { v: r.label,           t: 's', align: 'left' },
+        { v: r.anterior2,       t: 'n' },
+        { v: r.anterior,        t: 'n' },
+        { v: r.actual,          t: 'n', rgb: r.actual > r.anterior ? red : r.actual < r.anterior ? green : null },
+        { v: `${r.variacion}%`, t: 's', rgb: r.variacion > 0 ? red : r.variacion < 0 ? green : null },
+      ]));
+      matrix.push([
+        { v: 'TOTAL', t: 's', bold: true, align: 'left' },
+        { v: '', t: 's', bold: true },
+        { v: t.anterior2, t: 'n', bold: true },
+        { v: t.anterior,  t: 'n', bold: true },
+        { v: t.actual,    t: 'n', bold: true },
+        { v: `${t.variacion}%`, t: 's', bold: true },
+      ]);
+      this.exportColored('resumen_causas.xlsx', 'Resumen',
+        ['Código', 'Descripción', y2, y0, y1, 'Variación %'], matrix);
+    } else {
+      const matrix: any[][] = this.codeSummary.map(r => ([
+        { v: r.code,            t: 's', align: 'left' },
+        { v: r.label,           t: 's', align: 'left' },
+        { v: r.anterior,        t: 'n' },
+        { v: r.actual,          t: 'n', rgb: r.actual > r.anterior ? red : r.actual < r.anterior ? green : null },
+        { v: `${r.variacion}%`, t: 's', rgb: r.variacion > 0 ? red : r.variacion < 0 ? green : null },
+      ]));
+      matrix.push([
+        { v: 'TOTAL', t: 's', bold: true, align: 'left' },
+        { v: '', t: 's', bold: true },
+        { v: t.anterior, t: 'n', bold: true },
+        { v: t.actual,   t: 'n', bold: true },
+        { v: `${t.variacion}%`, t: 's', bold: true },
+      ]);
+      this.exportColored('resumen_causas.xlsx', 'Resumen',
+        ['Código', 'Descripción', y0, y1, 'Variación %'], matrix);
+    }
   }
 
   exportExcel(): void {

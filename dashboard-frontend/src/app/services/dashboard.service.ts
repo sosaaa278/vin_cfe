@@ -10,10 +10,6 @@ export class DashboardService {
 
   constructor(private http: HttpClient) {}
 
-  getData(url: string) {
-    return this.http.get<any[]>(`${this.API}?url=${encodeURIComponent(url)}`);
-  }
-
   getCompareByCode(code: string) {
     return this.http.get<any[]>(`${this.API}/compare/${code}`);
   }
@@ -37,19 +33,6 @@ export class DashboardService {
     return p.length ? '?' + p.join('&') : '';
   }
 
-  getInconformidadesMetaReal(desde?: string, hasta?: string) {
-    const p = new URLSearchParams();
-    if (desde) p.set('desde', desde);
-    if (hasta) p.set('hasta', hasta);
-    const qs = p.toString();
-    return this.http.get<any[]>(`${this.API}/inconformidades-meta-real${qs ? `?${qs}` : ''}`);
-  }
-
-
-  getCausas(code: string = 'E02') {
-    return this.http.get<any[]>(`${this.API}/causas?code=${encodeURIComponent(code)}`);
-  }
-
   getCausasAll(year?: number, zona: string = '00000', desde?: string, hasta?: string) {
     const params: string[] = [];
     if (year)             params.push(`year=${year}`);
@@ -66,14 +49,6 @@ export class DashboardService {
     if (mes)  params.push(`mes=${mes}`);
     if (year) params.push(`year=${year}`);
     return this.http.get<any[]>(`${this.API}/imu?${params.join('&')}`);
-  }
-
-  getCausasBothYears(zona: string = '00000') {
-    const q = zona !== '00000' ? `?zona=${zona}` : '';
-    return this.http.get<{
-      current:  { [code: string]: any[] };
-      previous: { [code: string]: any[] };
-    }>(`${this.API}/causas/bothyears${q}`);
   }
 
   getZonas() {

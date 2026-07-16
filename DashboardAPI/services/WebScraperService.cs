@@ -82,10 +82,11 @@ namespace DashboardAPI.Services
             var ctx = await pw.Chromium.LaunchPersistentContextAsync(dataDir,
                 new BrowserTypeLaunchPersistentContextOptions
                 {
-                    Headless  = headless,
-                    UserAgent = UserAgent,
-                    SlowMo    = slowMo,
-                    Args      = ["--no-sandbox", "--disable-setuid-sandbox"]
+                    Headless          = headless,
+                    UserAgent         = UserAgent,
+                    SlowMo            = slowMo,
+                    IgnoreHTTPSErrors = true,
+                    Args              = ["--no-sandbox", "--disable-setuid-sandbox"]
                 });
 
             return (pw, ctx);
@@ -716,26 +717,6 @@ namespace DashboardAPI.Services
             }
         }
 
-        // ── Público: scrapea un solo código (abre y cierra su propio navegador) ───────
-
-        public async Task<List<Dictionary<string, string>>> GetCausasData(
-            string fechaDesde, string fechaHasta, string tipoSolTermino = "E02", string cveZona = "00000")
-        {
-            var desde = fechaDesde.Replace("/", "-");
-            var hasta  = fechaHasta.Replace("/", "-");
-            var (pw, ctx) = await CreateBrowserAsync(headless: true, slowMo: 300, dirName: CausasPlaywrightDir);
-            try
-            {
-                var page = ctx.Pages.Count > 0 ? ctx.Pages[0] : await ctx.NewPageAsync();
-                return await ScrapeCausaCodeAsync(page, desde, hasta, tipoSolTermino, cveZona);
-            }
-            finally
-            {
-                await ctx.CloseAsync();
-                pw.Dispose();
-            }
-        }
-
         // ══════════════════════════════════════════════════════════════════════════════
         // ZONAS POR DIVISIÓN  (caché en memoria; se llena como efecto secundario del scraping)
         // ══════════════════════════════════════════════════════════════════════════════
@@ -823,5 +804,6 @@ namespace DashboardAPI.Services
             }
             return result;
         }
+
     }
 }
