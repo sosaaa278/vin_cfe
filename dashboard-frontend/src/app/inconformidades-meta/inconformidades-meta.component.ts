@@ -6,10 +6,13 @@ import { Chart, ChartConfiguration } from 'chart.js/auto';
 import * as XLSX from 'xlsx-js-style';
 import { AuthService } from '../services/auth.service';
 import { NavComponent } from '../shared/nav.component';
+import { DateRangeBarComponent } from '../shared/date-range-bar.component';
+import { DateRangeService } from '../services/date-range.service';
 import { saveWorkbook } from '../shared/excel-export';
 import { InconformidadesMetaService } from '../services/inconformidades-meta.service';
 import { DashboardService } from '../services/dashboard.service';
-import { HttpClient } from '@angular/common/http'
+import { HttpClient } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 
 // Plugin: valores numéricos encima de cada barra (responsive según ancho de barra)
 const META_DATALABELS_PLUGIN: any = {
@@ -85,7 +88,7 @@ const META_BG_COLUMNS_PLUGIN: any = {
 @Component({
   selector: 'app-inconformidades-meta',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavComponent],
+  imports: [CommonModule, FormsModule, NavComponent, DateRangeBarComponent],
   templateUrl: './inconformidades-meta.component.html',
   styleUrls: ['./inconformidades-meta.component.css']
 })
@@ -161,14 +164,26 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
   // Mapa código zona → nombre legible, poblado dinámicamente desde /api/data/zonas
   private zoneNames: { [code: string]: string } = {};
 
+  private rangeSub?: Subscription;
+
   constructor(
     private metaRealService: InconformidadesMetaService,
     private dashboardService: DashboardService,
     public auth: AuthService,
     private router: Router,
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
-  ) {}
+    private cdr: ChangeDetectorRef,
+    private dateRange: DateRangeService
+  ) {
+    // Igual que en causas/IMU: si el usuario ya generó el dashboard y luego
+    // cambia el rango de fechas global, recargamos con el rango nuevo.
+    // Ignoramos la primera emisión (la inicial, al entrar a la página).
+    let first = true;
+    this.rangeSub = this.dateRange.range$.subscribe(() => {
+      if (first) { first = false; return; }
+      if (this.rawTable.length > 0) this.loadData();
+    });
+  }
 
   ngOnInit(): void {
     this.dashboardService.getZonas().subscribe({
@@ -194,6 +209,7 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
       if (this.chartInstance) {
         this.chartInstance.destroy();
       }
+      this.rangeSub?.unsubscribe();
     }
   // ── Fetch and process live data from backend ─────────────────────────────────
   loadData(): void {
@@ -205,7 +221,8 @@ export class InconformidadesMetaComponent implements OnInit, OnDestroy {
     this.totalRecords = 0;
     this.tableDetected = 'NO';
 
-  this.metaRealService.obtenerDatosAsync().subscribe({
+  const { desde, hasta } = this.dateRange.current;
+  this.metaRealService.obtenerDatosAsync(desde, hasta).subscribe({
       next: (response: any) => {
         if (!response) {
           this.status = 'ERROR';

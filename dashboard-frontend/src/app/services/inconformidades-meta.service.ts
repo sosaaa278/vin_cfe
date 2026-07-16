@@ -8,7 +8,11 @@ import { environment } from '../../environments/environment';
 export class InconformidadesMetaService {
   constructor(private http: HttpClient) {}
 
-  obtenerDatosAsync() {
-    return this.http.get(`${environment.apiUrl}/api/InconformidadesMeta/scrape`);
+  obtenerDatosAsync(desde?: string, hasta?: string) {
+    const params: string[] = [];
+    if (desde) params.push(`desde=${encodeURIComponent(desde)}`);
+    if (hasta) params.push(`hasta=${encodeURIComponent(hasta)}`);
+    const q = params.length ? '?' + params.join('&') : '';
+    return this.http.get(`${environment.apiUrl}/api/InconformidadesMeta/scrape${q}`);
   }
 }

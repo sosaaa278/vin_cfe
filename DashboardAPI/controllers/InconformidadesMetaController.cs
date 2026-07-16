@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 using DashboardAPI.Data;
+using DashboardAPI.Helpers;
 using DashboardAPI.Models;
 using DashboardAPI.Services;
 
@@ -30,18 +31,27 @@ namespace DashboardAPI.Controllers
             User.FindFirstValue("division") ?? "DC000";
 
         [HttpGet("scrape")]
-        public async Task<IActionResult> ScrapeMetaReal()
+        public async Task<IActionResult> ScrapeMetaReal(
+            [FromQuery] string? desde = null,
+            [FromQuery] string? hasta = null)
         {
             var cveDivision = GetUserDivision();
-            var cacheKey    = $"meta-real-{cveDivision}";
+            // Normaliza "yyyy-MM-dd" (input HTML) a "yyyy/MM/dd" (formato que espera el portal),
+            // igual que hace RangoFechas para causas/IMU.
+            var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : null;
+            var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : null;
 
-            // ── 1. Cache fresca para esta división → devolver sin scrapear ──
+            // El rango de fechas forma parte de la llave de caché: un rango distinto
+            // no debe devolver el resultado cacheado de otro rango.
+            var cacheKey    = $"meta-real-{cveDivision}-{desdeUse}-{hastaUse}";
+
+            // ── 1. Cache fresca para esta división/rango → devolver sin scrapear ──
             var cache = await _db.ScrapeCaches.FirstOrDefaultAsync(c => c.Clave == cacheKey);
             if (cache != null && DateTime.UtcNow - cache.FechaGuardadoUtc < CacheTtl)
                 return Content(cache.Json, "application/json");
 
-            // ── 2. Scrapear con la división del usuario autenticado ──
-            var resultado = await _service.ObtenerDatosAsync(cveDivision: cveDivision);
+            // ── 2. Scrapear con la división del usuario autenticado y el rango elegido ──
+            var resultado = await _service.ObtenerDatosAsync(desdeUse, hastaUse, cveDivision);
 
             if (resultado == null || resultado.Data == null || resultado.Data.Count == 0)
                 return NotFound(new { message = "No se encontraron datos en la tabla." });

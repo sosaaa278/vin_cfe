@@ -28,6 +28,12 @@ playwright-data-*/
 DashboardAPI/wwwroot/
 
 # =========================
+# PUBLISH DE DESPLIEGUE (binarios grandes, incluye runtime de Playwright)
+# =========================
+
+DashboardAPI/publish-linux/
+
+# =========================
 # BINARIOS / HERRAMIENTAS DE TÚNEL (no versionar)
 # =========================
 
@@ -86,3 +92,9 @@ Thumbs.db
 
 claude.md
 documentacion.md
+
+# =========================
+# MARKDOWN (ningún .md se sube al repo)
+# =========================
+
+*.md
