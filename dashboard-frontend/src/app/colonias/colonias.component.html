@@ -1,0 +1,216 @@
+<div class="colonias-wrapper">
+
+  <app-nav></app-nav>
+  <app-date-range-bar></app-date-range-bar>
+
+  <!-- ==============================
+       ENCABEZADO
+  =============================== -->
+  <div class="dash-header mb-3">
+    <h1>Inconformidades por colonia</h1>
+    <p class="dash-subtitle">Detalle de solicitudes de servicio agrupado por colonia — CFE</p>
+  </div>
+
+  <!-- ==============================
+       CONTROLES
+  =============================== -->
+  <div class="card shadow-sm p-3 mb-3">
+    <div class="row g-3 align-items-end">
+
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">
+          Zona
+          <span *ngIf="zonasLoading" class="spinner-border spinner-border-sm ms-1 spinner-sm-zona" role="status"></span>
+        </label>
+        <select class="form-select" [ngModel]="selectedZona" (ngModelChange)="onZonaChange($event)" [disabled]="status === 'LOADING' || zonasLoading">
+          <option *ngIf="zonasLoading" value="00000">Cargando zonas…</option>
+          <option *ngFor="let z of zonas" [value]="z.value">{{ z.label }}</option>
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label fw-semibold">
+          Área
+          <span *ngIf="areasLoading" class="spinner-border spinner-border-sm ms-1 spinner-sm-zona" role="status"></span>
+        </label>
+        <select class="form-select" [(ngModel)]="selectedArea" [disabled]="status === 'LOADING' || areasLoading">
+          <option *ngIf="areasLoading" value="00000">Cargando áreas…</option>
+          <option *ngFor="let a of areas" [value]="a.value">{{ a.label }}</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <button class="btn btn-success w-100 btn-generate"
+                (click)="consultar()"
+                [disabled]="status === 'LOADING'">
+          <span *ngIf="!(status === 'LOADING' && loadingOffset === 0)">Consultar</span>
+          <span *ngIf="status === 'LOADING' && loadingOffset === 0">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            Cargando…
+          </span>
+        </button>
+      </div>
+
+      <div class="col-md-3">
+        <button class="btn btn-outline-success w-100"
+                (click)="iniciarComparacionAnio()"
+                [disabled]="status === 'LOADING' || tableData.length === 0">
+          <span *ngIf="!(status === 'LOADING' && loadingOffset === 1)">Comparar con {{ currentYear - 1 }}</span>
+          <span *ngIf="status === 'LOADING' && loadingOffset === 1">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            Cargando…
+          </span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==============================
+       ESTADOS
+  =============================== -->
+  <div *ngIf="status === 'WAITING'" class="alert alert-secondary">
+    Selecciona una zona, un área y un rango de fechas, y pulsa <strong>Consultar</strong>.
+  </div>
+
+  <div *ngIf="status === 'LOADING'" class="alert alert-info">
+    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+    Consultando el portal de CFE… (puede tardar unos segundos)
+  </div>
+
+  <div *ngIf="status === 'ERROR'" class="alert alert-danger">
+    {{ errorMsg }}
+  </div>
+
+  <div *ngIf="status === 'SUCCESS' && tableData.length === 0" class="alert alert-warning">
+    El reporte no devolvió datos para {{ selectedZonaLabel }}, {{ selectedAreaLabel }}.
+    Revisa <code>/api/data/colonias/debug</code> en el servidor para diagnosticar.
+  </div>
+
+  <!-- ==============================
+       GRÁFICA
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && tableData.length > 0" class="card shadow-sm p-3 mb-3">
+    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+      <button class="btn btn-success btn-sm ms-auto" (click)="exportChartImage()">
+        Exportar gráfica
+      </button>
+    </div>
+    <div class="chart-box">
+      <canvas id="coloniasChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TABLA COMPLETA
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && tableData.length > 0" class="card shadow-sm mb-3">
+    <div class="d-flex justify-content-between align-items-center p-2">
+      <h6 class="mb-0 fw-semibold">Detalle — {{ selectedZonaLabel }}, {{ selectedAreaLabel }}</h6>
+      <button class="btn btn-success btn-sm" (click)="exportExcel()">Exportar Excel</button>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered table-hover mb-0 colonias-table">
+        <thead>
+          <tr>
+            <th rowspan="3">Sec</th>
+            <th rowspan="3">Clave</th>
+            <th rowspan="3">Descripcion</th>
+            <th rowspan="3">Recibidas</th>
+            <th colspan="10">Resueltas registradas en el periodo</th>
+            <th colspan="5" rowspan="2">Pendientes registradas en el periodo</th>
+            <th rowspan="3">Con óptico</th>
+            <th colspan="2" rowspan="2">Reiterativas</th>
+          </tr>
+          <tr>
+            <th colspan="4">Rechazadas</th>
+            <th colspan="2">Canceladas</th>
+            <th colspan="4">Terminadas</th>
+          </tr>
+          <tr>
+            <th>Total</th><th>Vencidas</th><th>En tiempo</th><th>%</th>
+            <th>Total</th><th>%</th>
+            <th>Total</th><th>No cumplidas</th><th>Cumplidas</th><th>%</th>
+            <th>Total</th><th>Vencidas</th><th>Por vencer</th><th>En tiempo</th><th>%</th>
+            <th>Total</th><th>%</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of tableData">
+            <td *ngFor="let col of orderedCols">{{ col ? row[col] : '' }}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="fila-total">
+            <td *ngFor="let col of orderedCols">{{ col ? totalRow[col] : '' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TABLA COMPARATIVA
+  =============================== -->
+  <div *ngIf="isCompareMode && status === 'SUCCESS'" class="card shadow-sm p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h6 class="mb-0 fw-semibold">
+        Comparación por colonia (Recibidas) — {{ compareYear }} vs {{ currentYear }}
+      </h6>
+      <button class="btn btn-success btn-sm" (click)="exportCompareExcel()" [disabled]="compareRows.length === 0">
+        Exportar Excel
+      </button>
+    </div>
+
+    <div *ngIf="compareRows.length === 0" class="alert alert-warning mb-0">
+      Sin datos comparables entre los años consultados.
+    </div>
+
+    <div *ngIf="compareRows.length > 0" class="table-responsive">
+      <table class="table table-bordered table-sm colonias-compare-table">
+        <thead class="table-dark">
+          <tr>
+            <th>Clave</th>
+            <th>Descripcion</th>
+            <th class="text-end">{{ compareYear }}</th>
+            <th class="text-end">{{ currentYear }}</th>
+            <th class="text-end">Variación %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of compareRows">
+            <td><strong>{{ row.Clave }}</strong></td>
+            <td>{{ row.Descripcion }}</td>
+            <td class="text-end">{{ row.Anterior | number }}</td>
+            <td class="text-end fw-semibold"
+                [ngStyle]="{
+                  'background-color': row.Actual > row.Anterior ? 'rgba(220,53,69,0.28)'
+                                    : row.Actual < row.Anterior ? 'rgba(40,167,69,0.28)'
+                                    : 'transparent'
+                }">
+              {{ row.Actual | number }}
+            </td>
+            <td class="text-end fw-semibold"
+                [ngStyle]="{
+                  'background-color': row.Variacion > 0 ? 'rgba(220,53,69,0.28)'
+                                    : row.Variacion < 0 ? 'rgba(40,167,69,0.28)'
+                                    : 'transparent'
+                }">
+              {{ row.Variacion > 0 ? '+' : '' }}{{ row.Variacion | number:'1.1-1' }}%
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="fw-bold table-secondary">
+            <td>TOTAL</td>
+            <td></td>
+            <td class="text-end">{{ compareTotals.anterior | number }}</td>
+            <td class="text-end">{{ compareTotals.actual | number }}</td>
+            <td class="text-end">{{ compareTotals.variacion > 0 ? '+' : '' }}{{ compareTotals.variacion | number:'1.1-1' }}%</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>

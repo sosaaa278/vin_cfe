@@ -33,6 +33,12 @@ namespace DashboardAPI.Services
         private const int SlowMoMs              = 300;
         private const string PlaywrightDir      = "playwright-data-scraper";
         private const string CausasPlaywrightDir = "playwright-data-causas";
+        private const string ColoniasPlaywrightDir = "playwright-data-colonias";
+
+        // Confirmado por DevTools (Network → Payload) contra statusAtencion.asp: el campo
+        // "Agrupar" en realidad se llama cvePivote, y su valor para agrupar por colonia es
+        // el nombre del propio campo de colonia — mismo patrón que cvePivoteTerminacion en causas.
+        private const string AgruparColoniaValue = "cveColonia";
 
         // ── Selectores (centralizados para detectar cambios del portal) ──────────────
         private static class Sel
@@ -54,6 +60,10 @@ namespace DashboardAPI.Services
             public const string Entidad          = "select[name='entidadFederativa']";
             public const string GrupoSolicitud   = "select[name='grupoSolicitud']";
             public const string CausaTerminacion = "select[name='cveCausaTerminacion']";
+
+            // Colonias — confirmados por DevTools contra statusAtencion.asp
+            public const string Colonia = "select[name='cveColonia']";
+            public const string Agrupar = "select[name='cvePivote']";
         }
 
         private readonly AppDbContext              _context;
@@ -137,6 +147,32 @@ namespace DashboardAPI.Services
         // ══════════════════════════════════════════════════════════════════════════════
         // AYUDANTES PARA LEER EL HTML
         // ══════════════════════════════════════════════════════════════════════════════
+
+        /// <summary>Carpeta donde se guardan los volcados de HTML de diagnóstico (fuera de wwwroot).</summary>
+        public const string DebugDumpDir = "debug-dumps";
+
+        /// <summary>
+        /// Guarda el HTML de la página actual para diagnóstico cuando un selector esperado
+        /// no aparece (ej. cambió el portal). Nunca lanza — un fallo al volcar no debe
+        /// enmascarar el error real del scraping. El archivo se puede leer luego vía
+        /// GET /api/data/colonias/debug sin necesitar acceso SSH al servidor.
+        /// </summary>
+        private async Task DumpDebugHtmlAsync(IPage page, string tag)
+        {
+            try
+            {
+                var dir = Path.Combine(Directory.GetCurrentDirectory(), DebugDumpDir);
+                Directory.CreateDirectory(dir);
+                var path = Path.Combine(dir, $"debug_{tag}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.html");
+                var html = await page.ContentAsync();
+                await File.WriteAllTextAsync(path, html);
+                _logger.LogWarning("Volcado de diagnóstico guardado en {Path}", path);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("No se pudo guardar el volcado de diagnóstico para {Tag}: {Err}", tag, ex.Message);
+            }
+        }
 
         /// <summary>Decodifica entidades HTML y elimina los espacios duros (non-breaking).</summary>
         private static string Normalize(HtmlNode node) =>
@@ -556,6 +592,115 @@ namespace DashboardAPI.Services
             return result;
         }
 
+        /// <summary>
+        /// Lee la tabla de colonias (id="mytable"). El encabezado es de 3 niveles
+        /// (colspan/rowspan), igual que ParseMultiHeaderTable — pero a diferencia de esa
+        /// tabla, el portal DUPLICA cada celda de métrica en el body: una copia oculta
+        /// (acumulado histórico, class *T/*S, style "display: none") y una visible (el
+        /// rango de fechas elegido, class *I, style "display: table-cell"). Si mapeáramos
+        /// por posición sin filtrar, cada columna quedaría desalineada con la siguiente.
+        /// Confirmado por DevTools contra statusAtencion.asp (ver HTML real de la tabla).
+        /// </summary>
+        private static List<Dictionary<string, string>> ParseColoniasTable(HtmlNode table)
+        {
+            var result = new List<Dictionary<string, string>>();
+
+            var thead = table.SelectSingleNode(".//thead");
+            var tbody = table.SelectSingleNode(".//tbody");
+            if (thead == null || tbody == null) return result;
+
+            var headerRows = thead.SelectNodes("./tr")?.ToList() ?? new List<HtmlNode>();
+            var dataRows   = tbody.SelectNodes("./tr")?.ToList() ?? new List<HtmlNode>();
+            if (headerRows.Count == 0) return result;
+
+            // Rejilla de encabezado. NOTA: a diferencia de ParseMultiHeaderTable, este
+            // recorrido NO se detiene en la primera columna sin rowspan pendiente — sigue
+            // revisando columna por columna mientras haya celdas reales por colocar O
+            // arrastres de rowspan todavía activos más adelante. Esto es necesario porque
+            // esta tabla tiene VARIAS columnas seguidas con distinto rowspan al final de una
+            // fila corta (Pendientes rowspan=2, Con óptico rowspan=3, Reiterativas rowspan=2,
+            // justo después de una fila que solo define Rechazadas/Canceladas/Terminadas) —
+            // el algoritmo simple de ParseMultiHeaderTable corta el arrastre demasiado pronto
+            // ahí y desalinea todas las columnas desde "Pendientes" en adelante.
+            var grid       = new Dictionary<(int row, int col), string>();
+            var rowSpan    = new Dictionary<int, (string text, int left)>();
+
+            for (int r = 0; r < headerRows.Count; r++)
+            {
+                var cells = headerRows[r].SelectNodes("./td|./th") ?? new HtmlNodeCollection(null);
+                int col = 0;
+                int cellIdx = 0;
+
+                while (cellIdx < cells.Count || rowSpan.Any(kv => kv.Key >= col && kv.Value.left > 0))
+                {
+                    if (rowSpan.TryGetValue(col, out var occ) && occ.left > 0)
+                    {
+                        grid[(r, col)] = occ.text;
+                        rowSpan[col] = (occ.text, occ.left - 1);
+                        col++;
+                        continue;
+                    }
+
+                    if (cellIdx >= cells.Count) break;
+
+                    var cell  = cells[cellIdx++];
+                    var text  = Normalize(cell);
+                    int cspan = int.TryParse(cell.GetAttributeValue("colspan", "1"), out var cs) ? cs : 1;
+                    int rspan = int.TryParse(cell.GetAttributeValue("rowspan", "1"), out var rs) ? rs : 1;
+
+                    for (int c = 0; c < cspan; c++)
+                    {
+                        grid[(r, col)] = text;
+                        if (rspan > 1) rowSpan[col] = (text, rspan - 1);
+                        col++;
+                    }
+                }
+            }
+
+            int totalCols = grid.Keys.Count == 0 ? 0 : grid.Keys.Max(k => k.col) + 1;
+
+            var columns = new List<string>();
+            var seen    = new Dictionary<string, int>(StringComparer.Ordinal);
+            for (int c = 0; c < totalCols; c++)
+            {
+                var parts = new List<string>();
+                for (int r = 0; r < headerRows.Count; r++)
+                {
+                    if (grid.TryGetValue((r, c), out var t) &&
+                        !string.IsNullOrWhiteSpace(t) &&
+                        (parts.Count == 0 || parts[^1] != t))
+                        parts.Add(t);
+                }
+                var name = parts.Count > 0 ? string.Join(" ", parts) : $"COL{c}";
+                if (seen.TryGetValue(name, out var n)) { seen[name] = n + 1; name = $"{name} ({n + 1})"; }
+                else seen[name] = 1;
+                columns.Add(name);
+            }
+
+            // Filas de datos: descartamos las celdas ocultas (duplicado "T"/"S" del
+            // acumulado histórico) y nos quedamos solo con las visibles ("I" = intervalo,
+            // el rango de fechas elegido) — así el conteo de celdas visibles cuadra 1:1
+            // con las columnas del encabezado.
+            foreach (var tr in dataRows)
+            {
+                var allCells = tr.SelectNodes("./td");
+                if (allCells == null || allCells.Count < 2) continue;
+
+                var visibleCells = allCells
+                    .Where(td => !td.GetAttributeValue("style", "").Replace(" ", "")
+                                     .Contains("display:none", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+
+                var item = new Dictionary<string, string>();
+                for (int c = 0; c < visibleCells.Count && c < columns.Count; c++)
+                    item[columns[c]] = Normalize(visibleCells[c]);
+
+                if (item.Count > 0) result.Add(item);
+            }
+
+            return result;
+        }
+
         // ══════════════════════════════════════════════════════════════════════════════
         // CAUSAS — núcleo privado (un scrape por código, reutiliza una página existente)
         // ══════════════════════════════════════════════════════════════════════════════
@@ -766,6 +911,236 @@ namespace DashboardAPI.Services
         {
             _zonasCache.TryGetValue(cveDivision, out var hit);
             return Task.FromResult(hit ?? [new() { ["value"] = "00000", ["label"] = "Todas las zonas" }]);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════════
+        // ÁREAS POR ZONA  (mismo patrón que zonas por división, pero anidado un nivel más)
+        // ══════════════════════════════════════════════════════════════════════════════
+
+        private static readonly Dictionary<string, List<Dictionary<string, string>>> _areasCache = new();
+        private bool _areasRefreshedThisRequest = false;
+
+        /// <summary>
+        /// Dispara el AJAX de áreas para <paramref name="cveZona"/> (análogo a
+        /// TryCacheZonasAsync, pero repoblando select[name='cveArea']) y actualiza el caché.
+        /// Se ejecuta una vez por petición HTTP.
+        /// </summary>
+        private async Task TryCacheAreasAsync(IPage page, string cveZona)
+        {
+            if (_areasRefreshedThisRequest) return;
+            _areasRefreshedThisRequest = true;
+            try
+            {
+                await page.SelectOptionAsync(Sel.Zona, cveZona);
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 5_000 }); }
+                catch { }
+
+                var json = await page.EvaluateAsync<string>(
+                    "() => JSON.stringify(" +
+                    "  Array.from(document.querySelectorAll(\"select[name='cveArea'] option\"))" +
+                    "  .map(o => ({ value: o.value.trim(), label: o.text.trim() }))" +
+                    ")");
+                if (string.IsNullOrWhiteSpace(json)) return;
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, string>>>(json);
+                if (list?.Count > 1)
+                    _areasCache[cveZona] = list;
+            }
+            catch { /* no romper el scraping principal */ }
+        }
+
+        /// <summary>
+        /// Devuelve las áreas cacheadas para la zona (pobladas como efecto secundario del
+        /// scraping de colonias). Si aún no se ha hecho ningún scraping, devuelve solo "Todas las áreas".
+        /// </summary>
+        public Task<List<Dictionary<string, string>>> GetAreasForZonaAsync(string cveZona)
+        {
+            _areasCache.TryGetValue(cveZona, out var hit);
+            return Task.FromResult(hit ?? [new() { ["value"] = "00000", ["label"] = "Todas las áreas" }]);
+        }
+
+        /// <summary>
+        /// Consulta EN VIVO las áreas de una zona (sin depender de que ya se haya hecho
+        /// un scrape completo antes). Navega al formulario de colonias, selecciona
+        /// División→Zona (disparando el AJAX que repuebla cveArea) y lee las opciones
+        /// resultantes. Más lento que el caché (una navegación real, ~2-5s), pero
+        /// funciona la primera vez que se elige una zona nueva.
+        /// </summary>
+        public async Task<List<Dictionary<string, string>>> GetAreasLiveAsync(string cveZona, string cveDivision = "DC000")
+        {
+            _logger.LogInformation("GetAreasLive zona={Zona} division={Div}", cveZona, cveDivision);
+            var (pw, ctx) = await CreateBrowserAsync(dirName: ColoniasPlaywrightDir);
+            try
+            {
+                var page = ctx.Pages.FirstOrDefault() ?? await ctx.NewPageAsync();
+
+                if (!await NavigateWithRetryAsync(page, ColoniasReportUrl))
+                    throw new InvalidOperationException($"No se pudo cargar {ColoniasReportUrl}");
+
+                await page.WaitForSelectorAsync(Sel.FechaDesde, new() { Timeout = 30_000 });
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 }); } catch { }
+
+                await page.SelectOptionAsync(Sel.Division, cveDivision);
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 5_000 }); } catch { }
+                await page.WaitForTimeoutAsync(400); // margen extra por si el AJAX del portal tiene debounce
+
+                await page.SelectOptionAsync(Sel.Zona, cveZona);
+                try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 5_000 }); } catch { }
+                await page.WaitForTimeoutAsync(400);
+
+                var json = await page.EvaluateAsync<string>(
+                    "() => JSON.stringify(" +
+                    "  Array.from(document.querySelectorAll(\"select[name='cveArea'] option\"))" +
+                    "  .map(o => ({ value: o.value.trim(), label: o.text.trim() }))" +
+                    ")");
+
+                var list = string.IsNullOrWhiteSpace(json)
+                    ? null
+                    : System.Text.Json.JsonSerializer.Deserialize<List<Dictionary<string, string>>>(json);
+
+                _logger.LogInformation("GetAreasLive zona={Zona} devolvió {Count} áreas", cveZona, list?.Count ?? 0);
+
+                if (list?.Count > 1)
+                {
+                    _areasCache[cveZona] = list; // también sirve como caché para la próxima vez
+                    return list;
+                }
+                return [new() { ["value"] = "00000", ["label"] = "Todas las áreas" }];
+            }
+            finally
+            {
+                await ctx.CloseAsync();
+                pw.Dispose();
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════════════════
+        // COLONIAS — detalle de solicitudes agrupado por colonia
+        // ══════════════════════════════════════════════════════════════════════════════
+
+        private const string ColoniasReportUrl =
+            "https://cssnal.cfe.mx/iessInformesV2/statusAtencion.asp";
+
+        /// <summary>
+        /// Scrapea el reporte "Análisis Integral de Atención de Solicitudes de Servicio"
+        /// del portal CFE, agrupado siempre por Colonia (el usuario elige Zona/Área/fechas,
+        /// pero el agrupador es fijo para este reporte). Devuelve la tabla ya parseada
+        /// (encabezados de dos niveles, vía ParseMultiHeaderTable).
+        /// </summary>
+        public async Task<List<Dictionary<string, string>>> GetColoniasReportAsync(
+            string fechaDesde, string fechaHasta,
+            string cveZona = "00000", string cveArea = "00000", string cveDivision = "DC000")
+        {
+            _logger.LogInformation("GetColoniasReport {Desde} -> {Hasta} zona={Zona} area={Area}", fechaDesde, fechaHasta, cveZona, cveArea);
+
+            var (pw, ctx) = await CreateBrowserAsync(dirName: ColoniasPlaywrightDir);
+            try
+            {
+                var page = ctx.Pages.FirstOrDefault() ?? await ctx.NewPageAsync();
+
+                if (!await NavigateWithRetryAsync(page, ColoniasReportUrl))
+                    throw new InvalidOperationException($"No se pudo cargar {ColoniasReportUrl}");
+
+                try
+                {
+                    await page.WaitForSelectorAsync(Sel.FechaDesde, new() { Timeout = 30_000 });
+                }
+                catch (Exception ex)
+                {
+                    await DumpDebugHtmlAsync(page, "colonias_initial");
+                    throw new InvalidOperationException(
+                        "La página de colonias no cargó el formulario (sesión expirada o error de red). Revisa el volcado de diagnóstico.", ex);
+                }
+
+                // Igual que en causas: esperamos a que se asiente el AJAX inicial de combos
+                // antes de tocar cualquier <select>, para no perder la selección.
+                try
+                {
+                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("NetworkIdle (carga inicial de combos) timeout en colonias: {Err}", ex.Message);
+                }
+                await page.WaitForTimeoutAsync(600);
+
+                // Cachea zonas (por división) y áreas (por zona), en ese orden (área anida bajo zona).
+                await TryCacheZonasAsync(page, cveDivision);
+                await TryCacheAreasAsync(page, cveZona);
+
+                // Confirmado por DevTools: esta página usa fechas con GUION (yyyy-MM-dd),
+                // a diferencia de causas/IMU que usan diagonal (yyyy/MM/dd).
+                var fechaDesdeGuion = fechaDesde.Replace("/", "-");
+                var fechaHastaGuion = fechaHasta.Replace("/", "-");
+
+                var formState = await page.EvaluateAsync<Dictionary<string, string>>(
+                    "([d, h, z, a, ag]) => {" +
+                    "  var setField = function(name, val) {" +
+                    "    var el = document.querySelector(\"select[name='\" + name + \"']\");" +
+                    "    if (el) el.value = val;" +
+                    "  };" +
+                    "  var injectAndSet = function(name, val) {" +
+                    "    var el = document.querySelector(\"select[name='\" + name + \"']\");" +
+                    "    if (!el) return 'NO_SELECT';" +
+                    "    var existe = Array.prototype.some.call(el.options, function(o){ return o.value === val; });" +
+                    "    if (!existe) { var opt = document.createElement('option'); opt.value = val; opt.text = val; el.add(opt); }" +
+                    "    el.value = val;" +
+                    "    return el.value;" +
+                    "  };" +
+                    "  var checkOn = function(name) {" +
+                    "    var el = document.querySelector(\"input[name='\" + name + \"']\");" +
+                    "    if (el) el.checked = true;" +
+                    "  };" +
+                    "  var fd = document.querySelector(\"input[name='fechaDesde']\");" +
+                    "  var fh = document.querySelector(\"input[name='fechaHasta']\");" +
+                    "  if (fd) fd.value = d;" +
+                    "  if (fh) fh.value = h;" +
+                    "  setField('cveDivision',       '" + cveDivision + "');" +
+                    "  var zonaSet = injectAndSet('cveZona', z);" +
+                    "  var areaSet = injectAndSet('cveArea', a);" +
+                    "  setField('entidadFederativa', '0');" +
+                    "  setField('cveMunicipio',      'T');" +
+                    "  setField('cveColonia',        'T');" +
+                    "  var agSet = injectAndSet('cvePivote', ag);" +
+                    "  checkOn('fechaResueltas');" +
+                    "  checkOn('fechaPendientes');" +
+                    "  return { zonaSet: zonaSet, areaSet: areaSet, pivoteSet: agSet };" +
+                    "}",
+                    new[] { fechaDesdeGuion, fechaHastaGuion, cveZona, cveArea, AgruparColoniaValue });
+
+                _logger.LogInformation("Colonias form state before submit: {@State}", formState);
+
+                await page.ClickAsync(Sel.Submit);
+                try
+                {
+                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 25_000 });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("NetworkIdle after submit timed out en colonias: {Err}", ex.Message);
+                }
+                await page.WaitForTimeoutAsync(1500);
+
+                var html = await page.ContentAsync();
+                var doc  = new HtmlDocument();
+                doc.LoadHtml(html);
+
+                var table = doc.DocumentNode.SelectSingleNode("//table[@id='mytable']");
+                if (table == null)
+                {
+                    _logger.LogWarning("No se encontró la tabla #mytable en el reporte de colonias");
+                    await DumpDebugHtmlAsync(page, "colonias_no_table");
+                    return [];
+                }
+
+                var rows = ParseColoniasTable(table);
+                _logger.LogInformation("GetColoniasReport devolvió {Count} filas", rows.Count);
+                return rows;
+            }
+            finally
+            {
+                await ctx.CloseAsync();
+                pw.Dispose();
+            }
         }
 
         public async Task<Dictionary<string, List<Dictionary<string, string>>>> GetCausasDataAllAsync(

@@ -1,0 +1,89 @@
+.colonias-wrapper {
+  max-width: none;
+  margin: 0;
+  padding: 24px 20px;
+}
+
+.dash-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.dash-subtitle {
+  color: #6c757d;
+  margin: .15rem 0 0;
+  font-size: .9rem;
+}
+
+/* Tabla compacta: muchas columnas (encabezados de dos niveles del portal) */
+.colonias-table {
+  font-size: .7rem;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.colonias-table th,
+.colonias-table td {
+  padding: 1px 5px;
+}
+
+.colonias-table thead th {
+  background: #006341;
+  color: #fff;
+  text-align: center;
+  vertical-align: bottom;
+  font-size: .58rem;
+  font-weight: 600;
+  line-height: 1.05;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 60px;
+  position: sticky;
+  top: 0;
+}
+
+.colonias-table td {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Sec, Clave, Descripcion: alineadas a la izquierda con su ancho natural */
+.colonias-table td:nth-child(1),
+.colonias-table td:nth-child(2),
+.colonias-table td:nth-child(3) {
+  text-align: left;
+}
+.colonias-table th:nth-child(1),
+.colonias-table th:nth-child(2),
+.colonias-table th:nth-child(3) {
+  max-width: none;
+}
+
+.chart-box {
+  position: relative;
+  height: 420px;
+}
+
+/* Gráfica y tabla comparativa: más chicas que las de arriba */
+.chart-box-compare {
+  position: relative;
+  height: 280px;
+}
+
+.colonias-compare-table {
+  font-size: .7rem;
+}
+.colonias-compare-table th,
+.colonias-compare-table td {
+  padding: 2px 6px;
+}
+
+.fila-total {
+  font-weight: 700;
+  background: rgba(0, 99, 65, .1);
+}
+
+.spinner-sm-zona {
+  width: .8rem;
+  height: .8rem;
+}

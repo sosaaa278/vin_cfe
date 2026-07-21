@@ -54,4 +54,19 @@ export class DashboardService {
   getZonas() {
     return this.http.get<{ value: string; label: string }[]>(`${this.API}/zonas`);
   }
+
+  getAreas(zona: string = '00000') {
+    return this.http.get<{ value: string; label: string }[]>(`${this.API}/areas?zona=${zona}`);
+  }
+
+  // Reporte de solicitudes por colonia
+  getColonias(zona: string = '00000', area: string = '00000', desde?: string, hasta?: string) {
+    const params: string[] = [];
+    if (zona !== '00000') params.push(`zona=${zona}`);
+    if (area !== '00000') params.push(`area=${area}`);
+    if (desde)            params.push(`desde=${encodeURIComponent(desde)}`);
+    if (hasta)            params.push(`hasta=${encodeURIComponent(hasta)}`);
+    const q = params.length ? '?' + params.join('&') : '';
+    return this.http.get<any[]>(`${this.API}/colonias${q}`);
+  }
 }

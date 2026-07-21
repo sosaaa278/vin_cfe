@@ -10,7 +10,7 @@ namespace DashboardAPI.Models
     {
         public int Id { get; set; }
 
-        public string Fuente { get; set; } = "";        // IMU | CAUSAS
+        public string Fuente { get; set; } = "";        // IMU | CAUSAS | COLONIAS
         public DateTime FechaConsulta { get; set; }      // cuándo se scrapeó
 
         public int  Anio { get; set; }

@@ -40,6 +40,13 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
+  {
+    path: 'colonias',
+    loadComponent: () =>
+      import('./colonias/colonias.component').then(m => m.ColoniasComponent),
+    canActivate: [authGuard]
+  },
+
   { path: '**', redirectTo: 'login' }
 ];
 

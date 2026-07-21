@@ -135,6 +135,62 @@ namespace DashboardAPI.Services
             }
         }
 
+        // ── COLONIAS ─────────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Guarda el detalle por colonia. NOTA: a diferencia de IMU/CAUSAS, aquí "Area"
+        /// no identifica el área de la fila (la fila es una colonia, identificada por
+        /// Cve/Descripcion) sino el FILTRO de área que el usuario eligió al consultar —
+        /// se reutiliza la columna existente para no requerir una migración nueva.
+        /// </summary>
+        public async Task SaveColoniasAsync(
+            List<Dictionary<string, string>> rows, int anio, string zonaFiltro, string areaFiltro)
+        {
+            try
+            {
+                var previas = _db.HechosReportes.Where(h =>
+                    h.Fuente == "COLONIAS" && h.Anio == anio && h.ZonaFiltro == zonaFiltro && h.Area == areaFiltro);
+                _db.HechosReportes.RemoveRange(previas);
+
+                int added = 0;
+                foreach (var row in rows)
+                {
+                    var clave = FindByKeyword(row, "CLAVE");
+                    var desc  = FindByKeyword(row, "DESCRIP");
+
+                    foreach (var (col, valor) in row)
+                    {
+                        if (col.Contains("CLAVE", StringComparison.OrdinalIgnoreCase)) continue;
+                        if (col.Contains("DESCRIP", StringComparison.OrdinalIgnoreCase)) continue;
+                        if (!TryParseValor(valor, out var v)) continue;
+
+                        _db.HechosReportes.Add(new HechoReporte
+                        {
+                            Fuente        = "COLONIAS",
+                            FechaConsulta = DateTime.Now,
+                            Anio          = anio,
+                            Mes           = null,
+                            ZonaFiltro    = zonaFiltro,
+                            Cve           = clave,
+                            Area          = areaFiltro,
+                            Categoria     = "SOLICITUDES",
+                            Metrica       = col,
+                            Descripcion   = desc,
+                            Valor         = v
+                        });
+                        added++;
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+                _logger.LogInformation("ReporteStore: guardadas {Count} filas COLONIAS ({Anio}, zona {Zona}, área {Area})", added, anio, zonaFiltro, areaFiltro);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("ReporteStore.SaveColoniasAsync falló: {Err}", ex.Message);
+            }
+        }
+
         // ── Helpers ────────────────────────────────────────────────────────────────────
 
         /// <summary>Busca el primer valor cuya clave contenga la palabra dada (sin importar mayúsculas).</summary>

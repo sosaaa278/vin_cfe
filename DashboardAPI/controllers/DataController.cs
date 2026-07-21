@@ -63,6 +63,25 @@ namespace DashboardAPI.Controllers
             }
         }
 
+        [HttpGet("areas")]
+        public async Task<IActionResult> GetAreas([FromQuery] string zona = "00000")
+        {
+            try
+            {
+                var areas = await _scraper.GetAreasLiveAsync(zona, GetUserDivision());
+                return Ok(areas);
+            }
+            catch (CfePortalUnreachableException)
+            {
+                return Ok(new[] { new { value = "00000", label = "Todas las áreas" } });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("GetAreas: {Err}", ex.Message);
+                return Ok(new[] { new { value = "00000", label = "Todas las áreas" } });
+            }
+        }
+
         // =========================
         // POR CADA MIL USUARIOS
         // =========================
@@ -300,6 +319,66 @@ namespace DashboardAPI.Controllers
             {
                 _logger.LogError("CausasAll: portal CFE inaccesible: {Err}", ex.Message);
                 return StatusCode(503, ex.Message);
+            }
+        }
+
+        // =========================
+        // COLONIAS (detalle de solicitudes)
+        // =========================
+
+        [HttpGet("colonias")]
+        public async Task<IActionResult> Colonias(
+            [FromQuery] string zona = "00000",
+            [FromQuery] string area = "00000",
+            [FromQuery] string? desde = null,
+            [FromQuery] string? hasta = null)
+        {
+            var today    = DateTime.Now;
+            var useYear  = hasta != null ? RangoFechas.Anio(hasta) : today.Year;
+            var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(useYear);
+            var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(useYear);
+
+            try
+            {
+                var data = await _scraper.GetColoniasReportAsync(desdeUse, hastaUse, zona, area, GetUserDivision());
+                if (data.Count > 0)
+                    await _store.SaveColoniasAsync(data, useYear, zona, area);
+                return Ok(data);
+            }
+            catch (CfePortalUnreachableException ex)
+            {
+                _logger.LogError("Colonias: portal CFE inaccesible: {Err}", ex.Message);
+                return StatusCode(503, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error scraping reporte de colonias: {ex.Message}");
+            }
+        }
+
+        [HttpGet("colonias/debug")]
+        public IActionResult ColoniasDebug()
+        {
+            try
+            {
+                var dir = Path.Combine(Directory.GetCurrentDirectory(), WebScraperService.DebugDumpDir);
+                if (!Directory.Exists(dir))
+                    return NotFound("No hay volcados de diagnóstico todavía.");
+
+                var latest = new DirectoryInfo(dir)
+                    .GetFiles("debug_colonias_*.html")
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault();
+
+                if (latest == null)
+                    return NotFound("No hay volcados de diagnóstico de colonias todavía.");
+
+                var html = System.IO.File.ReadAllText(latest.FullName);
+                return Content(html, "text/html");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error leyendo el volcado de diagnóstico: {ex.Message}");
             }
         }
 
