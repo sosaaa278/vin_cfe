@@ -1,0 +1,4170 @@
+
+<style>
+
+
+  /*   ---------------    Estilos personalizados libreria Select2   --------------- */
+            
+
+     /* Estilo del select principal */
+
+     .select2-container .select2-selection--multiple {
+        min-height: 10px; /* Ajustar el tamaño del cuadro de selección */
+        /*min-height: 60px !important;*/
+        padding:0;
+        margin:0;
+        
+     }
+
+     .select2-container .select2-selection--single {
+        font-size: 12px !important;
+        height: 33px !important; /* Ajustar el tamaño del cuadro de selección */
+      
+        
+     }
+     
+     .select2-container {
+        font-size:12px !important;
+        
+     }
+     
+     .select2-selection__choice {
+        font-size: 12px; /* Cambia el tamaño de fuente de las etiquetas seleccionadas */
+        /*background-color: #bafcc6 !important;*/ /* Cambia el color de fondo de las etiquetas seleccionadas */
+        padding:3px !important
+        margin: 3px !important;
+        
+    }
+
+    .select2-container--default .select2-results>.select2-results__options {
+        max-height: 380px !important;
+        overflow-y: auto;
+      } 
+
+      
+     .select2-results__option {
+          padding: 1px 1px;
+          font-size: 10px;
+          height: auto;
+          line-height: 10px;
+      }
+
+    /*
+     .select2-container .select2-selection--single {
+          box-sizing: border-box;
+          cursor: pointer;
+          display: block;
+          height: 15px;
+          user-select: none;
+          -webkit-user-select: none;
+          padding: 0;
+          font-size: 10px;
+          line-height: 10px;
+      }
+
+    
+      
+      .select2-container--default .select2-selection--single .select2-selection__rendered {
+          color: #444;
+          line-height: 15px;
+      }
+
+      .select2-container--default .select2-selection--single .select2-selection__arrow {
+          height: 15px;
+          position: absolute;
+          top: 1px;
+          right: 1px;
+          width: 20px;
+      }
+
+
+     
+
+      
+
+           
+
+      */
+
+/*    --------------- FIN  Estilos personalizados  Select2 --------------- */
+
+
+
+
+.highcharts-data-table {
+    margin-top: 15px;
+}
+
+.highcharts-data-table td, .highcharts-data-table th, .highcharts-data-table caption {
+    border: 1px solid silver;
+    padding: 2px 5px;
+    font-size: 10px;
+}
+
+.highcharts-data-table td {
+    text-align:center;
+}
+
+.highcharts-data-table tr:nth-child(even), .highcharts-data-table thead tr {
+    background: #f8f8f8;
+}
+.highcharts-data-table tr:hover {
+    background: #eff;
+}
+.highcharts-data-table caption {
+    border-bottom: none;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+
+/* ------- MODIFICACIONES ESTILOS TABLESORTER ----- */ 
+
+.tablesorter th, .tablesorter thead td {
+    background-color:#1F5B51 !important;
+}
+
+.tablesorter .tablesorter-filter-row {
+	background-color: #eee !important;
+}
+.tablesorter .tablesorter-filter-row td {
+	background-color: #eee !important;
+}
+
+/*
+.HeaderBackgroundInstitucional .tablesorter-header {
+  background-color:#1F5B51 !important;
+}
+
+.HeaderBackgroundInstitucional .tablesorter-sticky-visible .tablesorter-header {
+  background-color:#1F5B51 !important;
+} */
+
+
+.tablaresumen table
+ {
+
+ border-collapse:collapse; 
+ font-size:11px;
+ font-weight:bold;
+ } 
+
+ .tablaresumen td {
+
+    padding: 3px;
+    font-size:10px;
+
+ }
+
+ /* Borde de celda 1px firme y gris tenue: nítido en pantallas de alta resolución
+    (el border='1' del HTML se renderiza subpíxel y casi no se ve en retina). */
+ .tablaresumen th, .tablaresumen td {
+    border: 1px solid #b8b8b8;
+ }
+
+ .tablaresumen thead th, .tablaresumen thead td {
+  padding: 7px;
+  font-size:11px;
+  font-weight:bold;
+  background-color:#1F5B51;
+  color:#fff;
+}
+
+.tablaresumen tfoot th,tfoot td {
+
+  padding: 5px;
+  font-size:11px;
+  font-weight:bold;
+
+}
+
+.tablaresumen thead {
+  border-bottom: 1.5px solid #777;
+}
+
+.tablaresumen tfoot {
+  border-top: 1.5px solid #777;
+}
+
+
+
+.linktabla a {
+    color: #0000ff !important;
+    text-decoration: none;
+    
+}
+
+
+.linktabla a:visited {
+        color:rgb(0, 0, 119) !important;
+
+}
+
+.linktabla a:link {
+        color: #0000ff !important;
+
+}
+
+.linktabla a:active {
+        color:rgb(102, 3, 163) !important;
+
+}
+.linktabla a:hover {
+        color: rgb(102, 3, 163) !important;
+
+}
+
+
+/*     -----------------       PROGRESS BAR */
+
+#myProgress {
+  margin-top:2px;
+  width: 230px;
+  height: 4px;
+  position: relative;
+  background-color: #ddd;
+}
+
+#myBar {
+  background-color: #6FAEC7;
+  width: 10px;
+  height: 4px;
+  position: absolute;
+}
+
+
+
+/*     -----------------       VENTANA CAPTURA        */ */
+
+
+/* Botón Actualizar: estilo plano (appearance:none) para que el color sí se aplique
+   (los botones nativos en macOS/Safari ignoran background-color). */
+#btnActualizar {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    cursor: pointer;
+    padding: 6px 22px !important;
+    border: 1px solid #17463e !important;
+    border-radius: 5px !important;
+    background: #1F5B51 !important;
+    color: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: bold !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: background-color 0.2s;
+}
+#btnActualizar:hover {
+    background: #28a745 !important;
+    border-color: #1e7e34 !important;
+    color: #ffffff !important;
+}
+/* Estado: cambios pendientes (requieren consulta) */
+#btnActualizar.pendiente {
+    background-color: #28a745 !important;
+    border-color: #1e7e34 !important;
+    color: #ffffff !important;
+    font-weight: bold;
+    animation: pulsoPendiente 1.2s ease-in-out infinite;
+}
+@keyframes pulsoPendiente {
+    0%   { box-shadow: 0 0 0 0 rgba(40,167,69,0.6); }
+    70%  { box-shadow: 0 0 0 8px rgba(40,167,69,0); }
+    100% { box-shadow: 0 0 0 0 rgba(40,167,69,0); }
+}
+/* Etiqueta "al instante" en secciones que aplican en vivo */
+.tag-envivo {
+    display:inline-block;
+    font-size:8px;
+    color:#1F7A1F;
+    background:#e8f6e8;
+    border:1px solid #bfe3bf;
+    border-radius:3px;
+    padding:0 3px;
+    vertical-align:middle;
+    margin-left:4px;
+}
+
+.modal {
+        /*display:    none;*/
+        position:   fixed;
+        z-index:    99999999;
+        top:        0;
+        left:       0;
+        height:     100%;
+        width:      100%;
+        background: rgba( 255, 255, 255, .7 ) 
+                    url('../../img/loaders/cargando_6.gif') 
+                    50% 
+                    40% 
+                    no-repeat;
+    } 
+    
+    .modal2 {
+        /*display:    none;*/
+        position:   fixed;
+        z-index:    99999999;
+        top:        0;
+        left:       0;
+        height:     100%;
+        width:      100%;
+        background: rgba( 255, 255, 255, .7 ) 
+                     url('../../img/loaders/cargando_6.gif') 
+                    50% 
+                    40% 
+                    no-repeat;
+
+    } 
+
+
+
+/* ++++++++++++ ADFORM +++++++++++++     */
+
+
+#addform {
+  position: fixed;
+  color:#000;
+  /*background-color: #ddd;*/
+  background-color: rgba(240, 240, 240, 1.0);
+  /*box-shadow: 5px 5px 5px 5px #000;*/
+   box-shadow:  -1px 4px 7px 5px rgba(0,0,0,0.7);
+  display: none;
+  width: 400px;
+  height: 200px;
+  border-radius: 20px;
+  padding: 20px;
+  /*left: 50%;
+  top: 50%;*/
+  margin-left: 10px;
+  bottom: 10px;
+  z-index: 1000;
+  border: 0px solid #bbb;
+  overflow: auto;
+}
+#addform .row {
+  /*margin: 10px 0 20px 0;*/
+
+}
+#addform input {
+  /*width: 380px;*/
+	padding: 5px 9px;
+	border: solid 1px #e1d1e1;
+	outline: 0;
+}
+   
+form input:hover, form textarea:hover, form input:focus, form textarea:focus { 
+	border-color: #a1a1a1; 
+	-webkit-box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 8px;
+	-moz-box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 8px;
+}
+
+#addform .row.tright {
+  position: fixed;
+  margin-left: 530px;
+
+}
+
+#addform .row.center {
+  margin-top: 5px;
+  text-align: center;
+}
+
+
+/* ++++++++++++ EDITFORM +++++++++++++     */
+
+
+#editform {
+  position: fixed;
+  color:#000;
+  /*background-color: #ddd;*/
+  background-color: rgba(240, 240, 240, 1.0);
+  /*box-shadow: 5px 5px 5px 5px #000;*/
+   box-shadow:  -1px 4px 7px 5px rgba(0,0,0,0.7);
+  display: none;
+  width: 450px;
+  height: 350px;
+  border-radius: 20px;
+  padding: 20px;
+  left: 50%;
+  /*top: 50%;*/
+  margin-left: -200px;
+  margin-top: 40px;
+  /*z-index: 1000;*/
+  border: 0px solid #bbb;
+  overflow: auto;
+}
+#editform .row {
+  /*margin: 10px 0 20px 0;*/
+
+}
+#editform input {
+  /*width: 380px;*/
+	padding: 5px 9px;
+	border: solid 1px #e1d1e1;
+	outline: 0;
+}
+   
+
+
+#editform .row.tright {
+  position: fixed;
+  margin-left: 530px;
+
+}
+
+#editform .row.center {
+  margin-top: 15px;
+  text-align: center;
+}
+
+/* ++++++++++++ FIN EDITFORM +++++++++++++     */
+
+.button {
+  font-family: Helvetica, Verdana, sans-serif;
+  display: inline-block;
+  margin-bottom: 0;
+  font-weight: normal;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  padding: 3px 3px 3px 3px;
+  font-size: 14px;
+  line-height: 1.42857143;
+  border-radius: 4px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  color: #333333;
+  background-color: #f1f1f1;
+  border-color: #cccccc;
+  transition: background-color 0.5s; }
+
+.button:hover,
+.button:focus,
+.button:active,
+.button:active {
+  color: #333333;
+  background-color: #cac9cb;
+  border-color: #adadad;
+  text-decoration: none; }
+
+.button i.fa {
+  /** usefull only with font-awesome icons */
+  margin-right: 0px; }
+
+/**** Delete button ***/
+.button.delete {
+  color: #ffffff;
+  background-color: #555;
+  border-color: #555; }
+
+.button.delete:hover,
+.button.delete:focus,
+.button.delete:active,
+.button.delete.active {
+  color: #ffffff;
+  background-color: #333;
+  border-color: #333; }
+
+/****** Add or green button ****/
+.button.add, .button.green {
+  font-family: Helvetica, Verdana, sans-serif;
+  color: #ffffff;
+  
+  background-color: #6ccb63;
+  border-color: #5db056; }
+
+.button.red {
+  font-family: Helvetica, Verdana, sans-serif;
+  color: #ffffff;
+  
+  background-color: #ff0000;
+  border-color: #ff0000; }
+
+.button.orange {
+  font-family: Helvetica, Verdana, sans-serif;
+  color: #ffffff;
+  
+  background-color: #FFA500;
+  border-color: #FFA500; }
+
+.button.add:hover,
+.button.add:focus,
+.button.add:active,
+.button.add.active,
+.button.green:hover,
+.button.green:focus,
+.button.green:active,
+.button.green.active {
+  color: #ffffff;
+  background-color: #5aad55;
+  border-color: #5db056; }
+
+
+i.fa.red { color: #d2322d; }
+
+i.fa.black { color: #555; }
+
+
+
+.fade-in {
+  animation: fadeIn ease 0.1s;
+  -webkit-animation: fadeIn ease 0.1s;
+  -moz-animation: fadeIn ease 0.1s;
+  -o-animation: fadeIn ease 0.1s;
+  -ms-animation: fadeIn ease 0.1s;
+}
+
+
+@keyframes fadeIn{
+  0% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@-moz-keyframes fadeIn {
+  0% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@-webkit-keyframes fadeIn {
+  0% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@-o-keyframes fadeIn {
+  0% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@-ms-keyframes fadeIn {
+  0% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+/* ++++++++++++ fin ADFORM +++++++++++++     */
+
+
+
+
+</style>
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<!-- META HTTP-EQUIV="REFRESH" CONTENT="300" -->
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>SISQUEM</title>
+
+<!--link rel="icon" type="image/x-icon" href="../../img/logos/favicon1.ico" /-->
+
+<link rel="icon" href="../../img/logos/sigma.png" type="image/png">
+
+
+        <link href="../../css/estilos.css" rel="stylesheet" type="text/css" />
+        <!--link rel="stylesheet" href="js/jquery_360/css/layout-default-latest.css" /-->
+        <link rel="stylesheet" href="js/jquery_360/css/themes/flick/jquery-ui.css" />
+
+
+        <script type="text/javascript" src="js/jquery_360/jquery.js"></script>
+        <script type="text/javascript" src="js/jquery_360/jquery-ui.js"></script>
+        <!--script type="text/javascript" src="js/jquery_360/jquery.layout.js"></script-->
+     
+        
+        <script src="js/Highcharts-7.2.2/code/highcharts.js"></script>
+        <script src="js/Highcharts-7.2.2/code/modules/data.js"></script>
+        <script src="js/Highcharts-7.2.2/code/modules/exporting.js"></script>
+        <script src="js/Highcharts-7.2.2/code/modules/export-data.js"></script>
+        <!-- Exportación del lado del cliente (offline): respeta tamaño y fuentes en pantalla y no usa el servidor externo -->
+        <script src="js/Highcharts-7.2.2/code/lib/jspdf.js"></script>
+        <script src="js/Highcharts-7.2.2/code/lib/svg2pdf.js"></script>
+        <script src="js/Highcharts-7.2.2/code/modules/offline-exporting.js"></script>
+
+
+     
+         <!-- TABLESORTER -->
+        <!-- base -->
+         <link rel="stylesheet" href="../../js/tablesorter-master/css/theme.default.css?18" type="text/css" id="" media="print, projection, screen" />
+        <script type="text/javascript" src="../../js/tablesorter-master/js/jquery.tablesorter.js?17"></script> 
+        <script type="text/javascript" src="../../js/tablesorter-master/js/jquery.tablesorter.widgets.js?17"></script> 
+        <!-- pager -->
+         <link rel="stylesheet" href="../../js/tablesorter-master/dist/css/jquery.tablesorter.pager.min.css?19" /> 
+         <script type="text/javascript" src="../../js/tablesorter-master/dist/js/extras/jquery.tablesorter.pager.min.js"></script> 
+        <script type="text/javascript" src="../../js/tablesorter-master/dist/js/widgets/widget-math.min.js"></script> 
+        
+        <!-- scroller -->
+        <!--script type="text/javascript" src="js/tablesorter/widget-scroller.js"></script-->
+        <script type="text/javascript" src="../../js/tablesorter-master/dist/js/widgets/widget-scroller.min.js"></script>
+    
+         <!-- output -->
+        <script type="text/javascript" src="../../js/tablesorter-master/js/parsers/parser-input-select.js"></script> 
+        <script type="text/javascript" src="../../js/tablesorter-master/js/widgets/widget-output.js"></script> 
+
+         <!-- select multiple -->
+         <link rel="stylesheet" href="../../js/multipleselect/multiple-select.css" />
+         <script src="../../js/multipleselect/multiple-select.js?v7"></script>
+        
+        <link rel="stylesheet" href="../../css/font-awesome-4.1.0/css/font-awesome.min.css" type="text/css" media="screen"/>
+
+
+        <link href="../../js/select2/css/select2.min.css" rel="stylesheet" />
+        <script src="../../js/select2/js/select2.full.min.js"></script>
+
+
+          
+</head>
+
+<body onload="">
+
+<!-- Overlay bloqueante mientras se actualiza/recarga cualquier gráfica o reporte -->
+<div id="overlayCarga" style="display:none; position:fixed; z-index:2000000000; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.75);">
+  <div style="position:absolute; top:40%; left:0; width:100%; text-align:center; color:#1F5B51; font-size:14px; font-weight:bold;">
+    <img height="50px" src="cargando_22.gif" /><br>
+    <span id="overlayCargaMsg">Actualizando...</span>
+  </div>
+</div>
+
+<!-- Acceso flotante a opciones EN VIVO cuando el filtro sale de vista (arriba a la derecha) -->
+<div id="fabOpciones" style="display:none; position:fixed; top:8px; right:10px; z-index:1500000000; text-align:right;">
+  <button id="fabOpcionesBtn" style="-webkit-appearance:none;appearance:none;cursor:pointer;background:#1F5B51;color:#fff;border:1px solid #17463e;border-radius:5px;padding:5px 12px;font-size:12px;font-weight:bold;box-shadow:0 1px 4px rgba(0,0,0,0.3);display:inline-flex;align-items:center;gap:5px;line-height:1;"><span style="font-size:18px;line-height:1;">&#9881;</span><span>Opciones</span></button>
+  <div id="panelOpcionesFlotante" style="display:none; margin-top:4px; background:#ffffff; border:1px solid #bbb; border-radius:6px; box-shadow:0 3px 10px rgba(0,0,0,0.25); padding:10px 14px; font-size:11px; text-align:left;">
+    <table border="0" cellpadding="0" cellspacing="0" style="font-size:11px;">
+      <tr style="vertical-align:top;">
+        <td style="padding-right:24px;">
+          <label style="display:block;"><input type="checkbox" id="f_conv_q07_e" style="vertical-align:middle;" /> Q07 a Emergencias</label>
+          <label style="display:block;"><input type="checkbox" id="f_graficas_detalle" style="vertical-align:middle;" /> Tipos de orden en gr&aacute;fica</label>
+          <label style="display:block;"><input type="checkbox" id="f_ver_por_dia" style="vertical-align:middle;" /> Agrupar por d&iacute;a</label>
+        </td>
+        <td>
+                    <label style="display:block;"><input type="checkbox" id="f_linea_suave" style="vertical-align:middle;" /> L&iacute;nea suave</label>
+          <label style="display:block;"><input type="checkbox" id="f_ver_etiquetas" style="vertical-align:middle;" /> Ver valores en l&iacute;neas</label>
+          <label style="display:block;"><input type="checkbox" id="f_ver_sombra" style="vertical-align:middle;" /> Sombra en l&iacute;neas</label>
+          <div style="margin-top:2px;">Tama&ntilde;o etiqueta:
+            <select id="f_tam_etiqueta" style="font-size:11px;">
+              <option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="14">14</option>
+            </select>
+          </div>
+        </td>
+        <td style="padding-left:24px;">
+          <div style="margin-top:2px;">Grosor l&iacute;neas:
+            <select id="f_grosor_linea" style="font-size:11px;">
+              <option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option><option value="2.5">2.5</option><option value="3">3</option><option value="3.5">3.5</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </div>
+          <div style="margin-top:2px;">Marcador:
+            <select id="f_tam_marcador" style="font-size:11px;">
+              <option value="0">Sin marcador</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="8">8</option>
+            </select>
+          </div>
+          <div style="margin-top:6px;">Grosor tipos orden:
+            <select id="f_grosor_linea_det" style="font-size:11px;">
+              <option value="0.5">0.5</option><option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option><option value="2.5">2.5</option><option value="3">3</option>
+            </select>
+          </div>
+          <div style="margin-top:2px;">Marcador tipos orden:
+            <select id="f_tam_marcador_det" style="font-size:11px;">
+              <option value="0">Sin marcador</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+            </select>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+
+
+
+
+<center>
+
+<table width="100%" style="border-bottom:1px #ddd solid;">
+<tr>
+  <td width="20%">
+
+  <img src="../../img/logos/logoDistribuidora_peq2.png" />
+
+  </td>
+  <td width="60%" align="center" valign="middle">
+      <h1>Sistema de Monitoreo de Quejas y Emergencias</h1>
+      <h1 style="display:block;font-size:14px;font-weight:normal;margin-top:10px;"></h1>
+
+  </td>
+
+  <td width="60%" align="center" valign="middle">
+      <!-- <h1>SiSQUEM</h1>
+      <h1 style="display:block;font-size:14px;font-weight:bold;margin-top:10px;">GMCyS</h1>
+-->
+  </td>
+
+</tr>
+</table>
+
+  </center>
+
+     
+        <br>
+            
+        
+            <table id="tablaFiltro" align="center" width="" border="0" >
+              <tr style ="height:70px;vertical-align:top;">
+
+              <td valign="top">
+              <strong style="font-size:14px;margin-bottom:5px;display:block;">Divisi&oacute;n</strong>
+                <select name='quedivision' id='quedivision' class="select2"    onchange="
+                                        getItemsSelector('getZonas.php?division='+this.value+'&zona='+'-1'+'&banco='+'-1', $('#selectZona'),'-1','Todas','' );
+                                        " >
+                                          <option value='XX' selected='selected'>Seleccionar...</option>
+                                    </select> 
+              </td>
+
+
+
+                <td valign="top" align="left" >
+
+                <strong style="font-size:14px;margin-bottom:5px;display:block;">Zona(s)</strong>
+
+                <select name="selectZona" id="selectZona" class="select2" onchange="" multiple='multiple' >
+                   
+                </select>
+
+               
+                
+                </td>
+
+                <td width="15px">&nbsp;</td>
+
+
+                <td valign="top">
+                
+                <strong style="font-size:14px;margin-bottom:5px;display:block;">Tipos de orden</strong>
+                    <select style='' name="tipoordenes_select" id="tipoordenes_select" class="select2"  multiple="multiple" >
+                      <option value='-1'>Todas</option>
+
+                    </select>
+
+
+                </td>
+
+                <td width="15px">&nbsp;</td>
+
+                <td valign="top">
+                
+                <strong style="font-size:14px;margin-bottom:5px;display:block;">Periodo</strong>
+                <span style='font-size:12px;text-align:center;'>Desde</span> <input type="text" id="fechaSeleccionada_inicial" name="fechaSeleccionada_inicial" value="2026-07-27"  autocomplete="off" size="12" style="font-size:12px;text-align:center;font-family: monospace;"  />
+                <br>
+                <span style='font-size:12px;text-align:center;'>&nbsp;Hasta</span> <input type="text" id="fechaSeleccionada_final" name="fechaSeleccionada_final" value="2026-07-27"  autocomplete="off" size="12" style="font-size:12px;text-align:center;font-family: monospace;"  />
+
+                </td>
+
+                
+                <td width="15px">&nbsp;</td>
+                
+                <!-- Opciones y botón Actualizar movidos a la fila inferior -->
+
+                <!--
+                <td align="right" width="30%">
+                    
+
+                    <button id='recargaAuto' name='recargaAuto' onclick="iniciarAutomatico();" >Pasar a modo automático</button> 
+                    <button id='recargaPausa' name='recargaPausa' onclick="pararAutomatico();" >Pasar a modo manual</button>
+                    <br><br>
+                    <label  id="labeltiempo"  name="labeltiempo"></label><br>
+                    <div id="myProgress">
+                      <div id="myBar"></div>
+                    </div>
+
+                </td> -->
+              </tr>
+
+              <tr>
+                <td colspan="10" align="center" valign="top" style="padding-top:6px;">
+
+                  <table id="tablaOpciones" border="0" cellpadding="0" cellspacing="0" align="center" style="margin:0 auto;">
+                    <tr style="vertical-align:top;">
+
+                      <td valign="top" style="padding-right:40px;">
+                        <strong style="font-size:14px;margin-bottom:5px;display:block;">Mostrar</strong>
+                        <input style="vertical-align:middle;" type='checkbox' id="reporte_ejecutivo" name="reporte_ejecutivo" checked /> <span style="font-size:10px">Reporte ejecutivo</span>
+                        <br>
+                        <input style="vertical-align:middle;" type='checkbox' id="mostrar_resumen" name="mostrar_resumen" /> <span style="font-size:10px">Resumen por zona, estado y municipio</span>
+                        <br>
+                        <input style="vertical-align:middle;" type='checkbox' id="check_listados_atendidas" name="check_listados_atendidas" /> <span style="font-size:10px">Listado atendidas</span>
+                        <br>
+                        <input style="vertical-align:middle;" type='checkbox' id="tablas_detalle" name="tablas_detalle" /> <span style="font-size:10px">Monitoreo pendientes</span>
+                      </td>
+
+                      <td valign="top" style="padding-right:40px;" id="col_mostrar_graficas">
+                        <strong style="font-size:14px;margin-bottom:5px;display:block;">&nbsp;</strong>
+                        <input style="vertical-align:middle;" type='checkbox' id="ver_g_pend" name="ver_g_pend" checked /> <span style="font-size:10px">Gr&aacute;fica de Pendientes</span>
+                        <br>
+                        <input style="vertical-align:middle;" type='checkbox' id="ver_g_aten" name="ver_g_aten" /> <span style="font-size:10px">Gr&aacute;fica de Atendidas</span>
+                        <br>
+                        <input style="vertical-align:middle;" type='checkbox' id="ver_g_gen" name="ver_g_gen" /> <span style="font-size:10px">Gr&aacute;fica de Generadas</span>
+                        <br>
+                        <input style="vertical-align:middle;" type='checkbox' id="ver_g_tot" name="ver_g_tot" /> <span style="font-size:10px">Gr&aacute;fica de Totales</span>
+                      </td>
+
+                      <!-- Separador amplio: las opciones en vivo quedan lejos a la derecha -->
+                      <td style="width:140px;">&nbsp;</td>
+
+                      <td valign="top">
+                        <strong style="font-size:14px;margin-bottom:5px;display:block;">Opciones</strong>
+                        <table border="0" cellpadding="0" cellspacing="0" style="font-size:11px;">
+                          <tr style="vertical-align:top;">
+
+                            <td style="padding-right:24px;">
+                                                  <label style="display:block;"><input type="checkbox" id="conv_q07_e" name="conv_q07_e" checked style="vertical-align:middle;" /> Q07 a Emergencias</label>
+                              <label style="display:block;"><input type="checkbox" id="graficas_detalle" name="graficas_detalle" style="vertical-align:middle;" /> Tipos de orden en gr&aacute;fica</label>
+                              <label style="display:block;"><input type="checkbox" id="ver_por_dia" name="ver_por_dia" style="vertical-align:middle;" /> Agrupar por d&iacute;a</label>
+                              <!-- QC2/QC7 ocultas para no saturar SICOSS con descargas sol=QC+. Para reactivarlas, quitar display:none. -->
+                              <span id="conversiones_qc" style="display:none;">
+                                <label style="display:block;"><input type="checkbox" id="conv_qc2_q" name="conv_qc2_q" style="vertical-align:middle;" /> QC2 &rarr; Queja</label>
+                                <label style="display:block;"><input type="checkbox" id="conv_qc7_q" name="conv_qc7_q" style="vertical-align:middle;" /> QC7 &rarr; Queja</label>
+                              </span>
+                            </td>
+
+                            <td>
+                                                            <label style="display:block;"><input type="checkbox" id="linea_suave" name="linea_suave" checked style="vertical-align:middle;" /> L&iacute;nea suave</label>
+                              <label style="display:block;"><input type="checkbox" id="ver_etiquetas" name="ver_etiquetas" checked style="vertical-align:middle;" /> Ver valores en l&iacute;neas</label>
+                              <label style="display:block;"><input type="checkbox" id="ver_sombra" name="ver_sombra" checked style="vertical-align:middle;" /> Sombra en l&iacute;neas</label>
+                              <div style="margin-top:2px;">Tama&ntilde;o etiqueta:
+                                <select id="tam_etiqueta" name="tam_etiqueta" style="font-size:11px;">
+                                  <option value="6">6</option>
+                                  <option value="7">7</option>
+                                  <option value="8" selected="selected">8</option>
+                                  <option value="9">9</option>
+                                  <option value="10">10</option>
+                                  <option value="11">11</option>
+                                  <option value="12">12</option>
+                                  <option value="14">14</option>
+                                </select>
+                              </div>
+                            </td>
+
+                            <td style="padding-left:24px;">
+                              <div style="margin-top:2px;">Grosor l&iacute;neas:
+                                <select id="grosor_linea" name="grosor_linea" style="font-size:11px;">
+                                  <option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option><option value="2.5">2.5</option><option value="3">3</option><option value="3.5" selected="selected">3.5</option><option value="4">4</option><option value="5">5</option>
+                                </select>
+                              </div>
+                              <div style="margin-top:2px;">Marcador:
+                                <select id="tam_marcador" name="tam_marcador" style="font-size:11px;">
+                                  <option value="0">Sin marcador</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4" selected="selected">4</option><option value="5">5</option><option value="6">6</option><option value="8">8</option>
+                                </select>
+                              </div>
+                              <div style="margin-top:6px;">Grosor tipos orden:
+                                <select id="grosor_linea_det" name="grosor_linea_det" style="font-size:11px;">
+                                  <option value="0.5">0.5</option><option value="1">1</option><option value="1.5">1.5</option><option value="2" selected="selected">2</option><option value="2.5">2.5</option><option value="3">3</option>
+                                </select>
+                              </div>
+                              <div style="margin-top:2px;">Marcador tipos orden:
+                                <select id="tam_marcador_det" name="tam_marcador_det" style="font-size:11px;">
+                                  <option value="0">Sin marcador</option><option value="1">1</option><option value="2" selected="selected">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option>
+                                </select>
+                              </div>
+                            </td>
+
+                          </tr>
+                        </table>
+                      </td>
+
+                    </tr>
+
+                    <!-- Botón Actualizar centrado debajo de las opciones que requieren consulta -->
+                    <tr>
+                      <td colspan="3" align="center" style="padding-top:10px; border-top:1px solid #e0e0e0;">
+                        <button id="btnActualizar" name='btnprocesar' onclick="generarReporteCOE();" >Actualizar</button>
+                        
+                        <div id="hintPendiente" style="display:none; font-size:8px;color:#1e7e34;font-weight:bold;margin-top:3px;line-height:1.1;">hay cambios sin aplicar</div>
+                      </td>
+                      <td colspan="2" align="left">
+                        <span id="btnPPT" onclick="generarPPT();" style="margin-left:14px;font-size:10px;color:#cccccc;cursor:pointer;" title="Genera el PPT de afectaciones (independiente del reporte; requiere zona(s) y periodo &le; 31 días)">ppt afec</span>
+                      </td>
+                    </tr>
+                  </table>
+
+                </td>
+              </tr>
+
+
+
+
+            </table>
+
+            <div id="nota_pendientes" style="display:none; text-align:center; font-size:11px; color:#a15c00; margin:4px auto 0 auto;">
+              &#9432; A&uacute;n no pasan 3 minutos de la hora en punto: el gr&aacute;fico de <b>Pendientes</b> puede estar incompleto. Gen&eacute;relo a partir del minuto :03.
+            </div>
+
+            <div id="infoReporte" style="text-align:center; font-size:11px; color:#555; margin:6px auto 0 auto;"></div>
+
+
+
+
+<center>
+
+
+ 
+
+
+
+
+
+
+  <!-- REPORTE TABLAS -->
+
+
+<div style='float:left; margin-left:80px; align:text-align:left;color:#ccc;' id="divppt"></div>
+<div id="contenedorReporte">
+
+  <div id="divAvisoIntegridad" style="max-width:900px; margin:8px auto 0 auto;"></div>
+
+  <br>
+
+  <table border="0" width="100%">
+    <tr>
+      <td width="100%" align="center" colspan="3" style ="vertical-align:top;">
+        <div id="divGrafica_E0" name="divGrafica_E0" style="width: 800px; height: 400px; border: 0px #000 solid;"></div>
+        <div id="resumenPendientes" style="display:none; width: 800px; margin: 10px auto 0 auto; text-align:center; font-family: Verdana, sans-serif; font-size: 13px; color:#333; line-height:1.6;"></div>
+        <br><br>
+        <div id="divGrafica_Q0" name="divGrafica_Q0" style="width: 800px; height: 400px; border: 0px #000 solid;"></div>
+        <br><br>
+        <div id="divGrafica_G0" name="divGrafica_G0" style="width: 800px; height: 400px; border: 0px #000 solid;"></div>
+        <br><br>
+        <div id="divGrafica_TOT" name="divGrafica_TOT" style="width: 800px; height: 400px; border: 0px #000 solid;"></div>
+      </td>
+
+    </tr>
+    <tr>
+      <td width="" align="center" style ="vertical-align:top;">
+        <div id="divResumen" ></div>
+      </td>
+    </tr>
+
+
+  </table>
+
+  <br>
+  
+  <div id="divReporte" width="100%" ></div>
+  <div id="divReporte_atendidas_E0" width="100%" ></div>
+  <div id="divReporte_atendidas_Q0" width="100%" ></div>
+  
+  <br>
+
+    <table border="0" width="100%">
+    <tr>
+
+
+
+    <td width="33%" align="center" style ="vertical-align:top;">
+      <div id="divResumen_e_edomun" ></div>
+    </td>
+    <td width="33%" align="center" style ="vertical-align:top;">
+      <div id="divResumen_q_edomun" ></div>
+    </td>
+
+  </tr>
+
+  </table>
+
+<br><br>
+
+
+</div>
+
+
+ <tr>
+              <!--
+  
+                  <td class='estilorep' align='right' colspan='3' ><div style='vertical-align: middle;'><a href='http://10.4.25.28/sinabecgeo/modulos/reportes_ppt/reporte_ppt_coe_progreso.php?clave_division=DW&precioventa=2.0424&fechacalculo=Mayo%202023'  role='tab'  target='_blank'><img height='30px' style='vertical-align: middle;' src='../../img/ppt/icon_ppt.png'/>Trabajos representativos</a></div></td>
+            -->
+              </tr>
+
+</center>
+
+
+
+
+<div class="modal2" id="fondomodal" style="display: none;" align="center" >
+
+                <form enctype="multipart/form-data" name="formularioedit" id="formularioedit">
+                    <div id="editform" class="fade-in"  >
+
+
+                       <h3 style="color:#000;text-align: center;">Observaciones</h3>
+
+                       <p id="infomededit"></p>
+                       
+                           <table class="" width="100%" border="0">
+                       <tbody>
+                           <tr>
+
+                               <td align="LEFT" style="font-size:10px"  colspan="4" >
+                                   ORDEN: <input name="edit_orden"  id="edit_orden"  type="text"  readonly />   
+                               </td>
+                          
+                              
+                           </tr>
+
+
+                           <tr>
+                                <td colspan="4" >
+                                   &nbsp;
+                               </td>
+                              
+                           </tr>
+                           
+                           <tr>
+                               <td align="right" style="font-size:10px">
+                                   Fecha ultima observaci&oacute;n:
+                               </td>
+                               <td align="left" style="font-size:10px">
+                                   <input  type="text" id="edit_fechaobs" name="edit_fechaobs" size="16"  style="font-size:9px;font-family: monospace;" readonly  />
+                               </td>
+
+                               <td align="left" style="font-size:9px">
+                                   RPE captur&oacute;                           
+                               </td>
+                               
+
+                               <td align="left" style="font-size:10px">
+                                   <input name="edit_rpe"  id="edit_rpe" size="5"  type="text"  readonly />     
+                               </td>
+
+                           </tr>
+                            
+                           <tr>
+                               <td align="left" style="font-size:10px" >
+                                   OBSERVACIONES:
+                               </td>
+                                <td  align="left" style="font-size:10px" colspan="3">
+                                   <textarea  name="edit_obs" id="edit_obs" rows = "10" cols = "62" maxlength="250" style="font-size:9px;font-family: monospace;" ></textarea>
+
+                               </td>
+                           </tr>
+                       
+                       </tbody>
+
+                   </table>
+                       
+                       <br>
+
+                           <table width="100%" style="scr" border="0">
+
+
+                               <tr>
+                                   <td align="center" colspan="2">
+                                      <a id="guardarbuttonEdit" class="button green">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Guardar&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
+                                   </td>
+                                   <td align="center" colspan="">
+                                       <a id="cancelbuttonEdit" class="button cancel">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Cancelar&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a>
+                                   </td>
+                               </tr>
+
+
+
+                           </table>   	
+
+                    </div>
+
+               </form>    
+    
+    </div> 
+
+
+<script>
+
+
+      function getItemsSelector (url,selector,valorVacio,textoVacio,seleccionaPrimeroUltimo){
+          
+          //var selectorObjetivo = $('#selectorDivision');
+
+          selector.val(null).empty(); // val(null) remueve lo seleccionado,  .empty remueve los items
+            
+                $.ajax({
+                    type: 'GET',
+                    url: url,
+                    dataType: 'json'
+                }).then(function (data) {
+        
+              
+
+                    /*
+                        ////selector.html('').select2({data: [{id: '', text: ''}]}); 
+                        select2(destroy) -> remueve el plugin select2 y deja el select normal
+                      */
+                    selector.val(null).empty(); // val(null) remueve lo seleccionado,  .empty remueve los items
+                    
+                    if ( valorVacio.length > 0 ) { 
+ 
+                      selector.append('<option value="' + valorVacio + '"  >' + textoVacio+ '</option>');
+                    }
+                    
+                    var indiceSelected ;
+                    
+                    if(data.results) {
+                    indiceSelected = data.results.length;
+                    ////////--console.log(indiceSelected);
+                    }
+
+                    var selected="";
+
+      
+
+                    $(data.results).each(function(i, v){ // indice, valor
+
+                      ////////--console.log(i);
+
+                            if(seleccionaPrimeroUltimo == 'primero' && i <= 0) {
+
+                              ////////--console.log('primero');
+                              selected="selected='selected'";
+
+
+                            } if(seleccionaPrimeroUltimo === 'ultimo' &&  i >= (indiceSelected-1) ) {
+
+                              ////////--console.log('ultimo');
+                              selected='selected="selected"';
+
+
+                            }else {
+
+                              selected="";
+
+                            }
+
+
+                            //if(v.id == 'E03' || v.id == 'E06' || v.id == 'E07' || v.id == 'Q01' || v.id == 'Q02' || v.id == 'Q07' ) {
+                            if(v.id == 'E01' || v.id == 'E02' || v.id == 'E03' || v.id == 'E04' || v.id == 'E05' || v.id == 'E06' || v.id == 'E07' || v.id == 'Q01' || v.id == 'Q02' || v.id == 'Q03' || v.id == 'Q04' || v.id == 'Q06' || v.id == 'Q07' || v.id == 'Q08' || v.id == 'QC2' || v.id == 'QC7' ) {
+                              selected='selected="selected"';
+                            }
+
+        
+                            selector.append('<option value="' + v.id + '" ' + selected + ' >' + v.text + '</option>');
+                      })
+
+
+                }); 
+                
+        }
+
+
+      function getItemsSelector_add (url,selector,valorVacio,textoVacio,seleccionaPrimeroUltimo){
+          
+          //var selectorObjetivo = $('#selectorDivision');
+
+          //selector.val(null).empty(); // val(null) remueve lo seleccionado,  .empty remueve los items
+            
+                $.ajax({
+                    type: 'GET',
+                    url: url,
+                    dataType: 'json'
+                }).then(function (data) {
+        
+              
+
+                    /*
+                        ////selector.html('').select2({data: [{id: '', text: ''}]}); 
+                        select2(destroy) -> remueve el plugin select2 y deja el select normal
+                      */
+                 //   selector.val(null).empty(); // val(null) remueve lo seleccionado,  .empty remueve los items
+                    
+                    if ( valorVacio.length > 0 ) { 
+ 
+                      selector.append('<option value="' + valorVacio + '"  >' + textoVacio+ '</option>');
+                    }
+                    
+                    var indiceSelected ;
+                    
+                    if(data.results) {
+                    indiceSelected = data.results.length;
+                    ////////--console.log(indiceSelected);
+                    }
+
+                    var selected="";
+
+      
+
+                    $(data.results).each(function(i, v){ // indice, valor
+
+                      ////////--console.log(i);
+
+                            if(seleccionaPrimeroUltimo == 'primero' && i <= 0) {
+
+                              ////////--console.log('primero');
+                              selected="selected='selected'";
+
+
+                            } if(seleccionaPrimeroUltimo === 'ultimo' &&  i >= (indiceSelected-1) ) {
+
+                              ////////--console.log('ultimo');
+                              selected='selected="selected"';
+
+
+                            }else {
+
+                              selected="";
+
+                            }
+
+
+                            //if(v.id == 'E03' || v.id == 'E06' || v.id == 'E07' || v.id == 'Q01' || v.id == 'Q02' || v.id == 'Q07' ) {
+                            if(v.id == 'E01' || v.id == 'E02' || v.id == 'E03' || v.id == 'E04' || v.id == 'E05' || v.id == 'E06' || v.id == 'E07' || v.id == 'Q01' || v.id == 'Q02' || v.id == 'Q03' || v.id == 'Q04' || v.id == 'Q06' || v.id == 'Q07' || v.id == 'Q08' || v.id == 'QC2' || v.id == 'QC7' ) {
+                              selected='selected="selected"';
+                            }
+
+        
+                            selector.append('<option value="' + v.id + '" ' + selected + ' >' + v.text + '</option>');
+                      })
+
+
+                }); 
+                
+        }
+
+
+
+      // Convierte una fecha YYYY-MM-DD a timestamp UTC
+      function fechaUtc(d) {
+          const [a, m, d2] = d.split('-').map(Number);
+          return Date.UTC(a, m - 1, d2);
+      }
+
+      // Genera array de plotBands para cada día entre inicio y fin
+      function generarPlotBands(fechaInicioStr, fechaFinStr) {
+          const plotBands = [];
+
+          const inicio = new Date(fechaInicioStr);
+          const fin = new Date(fechaFinStr);
+          const unDia = 24 * 60 * 60 * 1000; // ms en un día
+
+          for (let f = new Date(inicio); f <= fin; f = new Date(f.getTime() + unDia)) {
+              const desde = Date.UTC(f.getFullYear(), f.getMonth(), f.getDate());
+              const hasta = Date.UTC(f.getFullYear(), f.getMonth(), f.getDate() + 1);
+
+              plotBands.push({
+                  from: desde,
+                  to: hasta,
+                  color: f.getDate() % 2 === 0 ? 'rgba(0, 0, 255, 0.05)' : 'rgba(0, 255, 0, 0.05)',
+                  label: {
+                      text: f.toISOString().split('T')[0], // muestra la fecha
+                      align: 'center',
+                      verticalAlign: 'top',
+                      style: { color: '#333' }
+                  }
+              });
+          }
+
+          return plotBands;
+      }
+
+      // Suma elemento por elemento (por hora) de dos series. Si algún operando es null/undefined
+      // (serie "sin dato" por descarga fallida), el resultado de esa hora es null (hueco, no cero).
+      function sumarSeriesPorHora(a, b) {
+          var out = [];
+          var n = Math.max(a ? a.length : 0, b ? b.length : 0);
+          for (var i = 0; i < n; i++) {
+              var va = a ? a[i] : null;
+              var vb = b ? b[i] : null;
+              if (va === null || va === undefined || vb === null || vb === undefined) {
+                  out.push(null);
+              } else {
+                  out.push(va + vb);
+              }
+          }
+          return out;
+      }
+
+      // ----- Overlay bloqueante de pantalla durante actualizaciones -----
+      function mostrarOverlay(msg) {
+          if (msg) { $("#overlayCargaMsg").html(msg); }
+          $("#overlayCarga").show();
+      }
+      function ocultarOverlay() {
+          $("#overlayCarga").hide();
+      }
+      // Formato dd-mm-yyyy hh:mm
+      function fmtFechaHora(d) {
+          var dd = ('0' + d.getDate()).slice(-2);
+          var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+          var yyyy = d.getFullYear();
+          var hh = ('0' + d.getHours()).slice(-2);
+          var mi = ('0' + d.getMinutes()).slice(-2);
+          return dd + '-' + mm + '-' + yyyy + ' ' + hh + ':' + mi;
+      }
+
+      // Contador de cargas de red pendientes (cubre getAtend + tabla_v3): se oculta al llegar a 0
+      function overlayInc(msg) { window._cargasRed = (window._cargasRed || 0) + 1; mostrarOverlay(msg); }
+      function overlayDec() {
+          window._cargasRed = Math.max(0, (window._cargasRed || 0) - 1);
+          if (window._cargasRed === 0) {
+              ocultarOverlay();
+              // Al terminar TODA la actualización de red: mostrar fecha/hora de generación y duración
+              if (window._reporteInicio) {
+                  var fin = new Date();
+                  var ms = fin - window._reporteInicio;
+                  var durTxt = (ms < 60000) ? (Math.round(ms / 1000) + ' seg') : ((ms / 60000).toFixed(1) + ' min');
+                  $("#infoReporte").html('Reporte generado: <b>' + fmtFechaHora(window._reporteInicio) + '</b> &nbsp;&mdash;&nbsp; Duraci&oacute;n: <b>' + durTxt + '</b>');
+                  window._reporteInicio = null;
+              }
+          }
+      }
+
+      // Marca/limpia el botón Actualizar cuando hay cambios que SÍ requieren consulta
+      function marcarPendiente() { $("#btnActualizar").addClass("pendiente"); $("#hintPendiente").show(); }
+      function limpiarPendiente() { $("#btnActualizar").removeClass("pendiente"); $("#hintPendiente").hide(); }
+
+      // Si la exportación a PDF falla (sombras y/o etiquetas de valores, que svg2pdf no vectoriza con muchos
+      // puntos), se ofrece reintentar SIN sombras NI valores mediante un modal con botón claro.
+      function ofrecerPDFSimplificado(chart, optsPDF) {
+          var ov = document.createElement('div');
+          ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000000000;display:flex;align-items:center;justify-content:center;';
+          var box = document.createElement('div');
+          box.style.cssText = 'background:#fff;border-radius:8px;padding:18px 20px;max-width:400px;font-family:Verdana,sans-serif;font-size:13px;color:#333;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,0.3);';
+          box.innerHTML = '<div style="margin-bottom:14px;line-height:1.4;">No se pudo generar el PDF con todos los detalles (sombras, valores y marcadores). Esto pasa cuando hay muchos datos en la gr&aacute;fica.</div>';
+          var btnOk = document.createElement('button');
+          btnOk.textContent = 'Generar versión simple (solo líneas)';
+          btnOk.style.cssText = 'background:#1F5B51;color:#fff;border:none;border-radius:5px;padding:8px 14px;font-size:12px;cursor:pointer;margin:0 6px;';
+          var btnCancel = document.createElement('button');
+          btnCancel.textContent = 'Cancelar';
+          btnCancel.style.cssText = 'background:#ccc;color:#333;border:none;border-radius:5px;padding:8px 14px;font-size:12px;cursor:pointer;margin:0 6px;';
+          function cerrar(){ if (ov.parentNode) { ov.parentNode.removeChild(ov); } }
+          btnOk.onclick = function(){
+              cerrar();
+              try {
+                  // shadow/dataLabels están definidos POR SERIE y eso gana sobre plotOptions.series;
+                  // por eso el override debe ser un arreglo series[] de la misma longitud.
+                  // Nota: chartOptions sólo afecta la COPIA temporal de exportación; la gráfica en pantalla NO cambia.
+                  var ovr = [];
+                  var nSeries = (chart.options && chart.options.series) ? chart.options.series.length : chart.series.length;
+                  for (var i = 0; i < nSeries; i++) { ovr.push({ shadow: false, dataLabels: { enabled: false }, marker: { enabled: false } }); }
+                  chart.exportChartLocal(optsPDF, { plotOptions: { series: { shadow: false, dataLabels: { enabled: false }, marker: { enabled: false } } }, series: ovr });
+              } catch (e) {
+                  alert('Aún así no se pudo generar el PDF. Prueba activar "Agrupar por día" o exportar en PNG.');
+              }
+          };
+          btnCancel.onclick = cerrar;
+          box.appendChild(btnOk); box.appendChild(btnCancel);
+          ov.appendChild(box);
+          document.body.appendChild(ov);
+      }
+
+      // Modal de aviso de PERIODO GRANDE (>31 días con datos pesados de SICOSS). Botones "Continuar"/"Cancelar".
+      // 'onContinuar' se ejecuta al pulsar Continuar; Cancelar sólo cierra (el usuario ajusta filtros).
+      function mostrarAvisoPeriodo(nDias, onContinuar) {
+          var ov = document.createElement('div');
+          ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000000000;display:flex;align-items:center;justify-content:center;';
+          var box = document.createElement('div');
+          box.style.cssText = 'background:#fff;border-radius:8px;padding:18px 22px;max-width:460px;font-family:Verdana,sans-serif;font-size:13px;color:#333;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,0.3);';
+          box.innerHTML = '<div style="margin-bottom:14px;line-height:1.5;">Has seleccionado un periodo de <b>' + nDias + ' d&iacute;as</b>.<br><br>'
+                        + 'La gr&aacute;fica de <b>Pendientes</b> es r&aacute;pida (base de datos), pero <b>Atendidas, Generadas, '
+                        + 'Totales, Monitoreo pendientes</b> y los listados/res&uacute;menes se consultan de SICOSS, y con un periodo '
+                        + 'tan amplio la generaci&oacute;n puede tardar <b>varios minutos</b>.<br><br>'
+                        + '&iquest;Deseas continuar con la consulta?</div>';
+          var btnOk = document.createElement('button');
+          btnOk.textContent = 'Continuar';
+          btnOk.style.cssText = 'background:#1F5B51;color:#fff;border:none;border-radius:5px;padding:8px 18px;font-size:12px;cursor:pointer;margin:0 6px;';
+          var btnCancel = document.createElement('button');
+          btnCancel.textContent = 'Cancelar';
+          btnCancel.style.cssText = 'background:#ccc;color:#333;border:none;border-radius:5px;padding:8px 18px;font-size:12px;cursor:pointer;margin:0 6px;';
+          function cerrar(){ if (ov.parentNode) { ov.parentNode.removeChild(ov); } }
+          btnOk.onclick = function(){ cerrar(); if (typeof onContinuar === 'function') { onContinuar(); } };
+          btnCancel.onclick = cerrar;
+          box.appendChild(btnOk); box.appendChild(btnCancel);
+          ov.appendChild(box);
+          document.body.appendChild(ov);
+      }
+
+      // Reglas automáticas del filtro según periodo (días) y división seleccionados.
+      // - Periodo > 3 días: activar "Agrupar por día" automáticamente.
+      // - Nacional (D0) o periodo > 3 días: desmarcar e inhabilitar "Listado atendidas".
+      function aplicarReglasFiltros() {
+          var ini = (document.getElementById("fechaSeleccionada_inicial") || {}).value || '';
+          var fin = (document.getElementById("fechaSeleccionada_final") || {}).value || '';
+          var dias = 0;
+          if (ini && fin) { dias = (new Date(fin) - new Date(ini)) / (1000 * 60 * 60 * 24); }
+
+          var divEl = document.getElementById("quedivision");
+          var esNacional = divEl && divEl.value == '-1';
+
+          // 1) Periodo > 3 días -> agrupar por día
+          var chkDia = document.getElementById("ver_por_dia");
+          if (chkDia && dias > 3) { chkDia.checked = true; }
+
+          // 2) Listado atendidas: requiere zona(s) específica(s) seleccionada(s) y periodo <= 3 días.
+          //    (Antes dependía de "no Nacional"; ahora se permite bajo Nacional si hay zonas elegidas.)
+          var arregloZonasR = [].concat($('#selectZona').val() || []);
+          var hayZonasR = arregloZonasR.filter(function(z){ return z && z !== '-1'; }).length > 0;
+          var chkListado = document.getElementById("check_listados_atendidas");
+          if (chkListado) {
+              if (!hayZonasR || dias > 3) {
+                  chkListado.checked = false;
+                  chkListado.disabled = true;
+              } else {
+                  chkListado.disabled = false;
+              }
+          }
+      }
+
+      // Tope máximo del periodo (días), DINÁMICO según la división seleccionada:
+      // Nacional (D0 = -1) -> 31 días;  una división específica -> 730 días (2 años).
+      // El tope amplio es viable porque las consultas SICOSS se parten por mes (chunking) para periodos > 31 días.
+      // Debe coincidir con la validación del submit.
+      function diasMaxPeriodo() {
+          var div = document.getElementById("quedivision");
+          var v = div ? div.value : '';
+          // 730 SÓLO si hay una división específica (código tipo "DW"). Placeholder 'XX' (Seleccionar...),
+          // Nacional '-1' o sin selección ('') -> 31, para no burlar el límite eligiendo fechas primero.
+          return (v && v !== '-1' && v !== 'XX') ? 730 : 31;
+      }
+
+      // El límite de diasMaxPeriodo() se muestra SÓLO en el campo "Desde" (relativo a "Hasta"):
+      // "Hasta" queda libre (sin días deshabilitados por la regla) y acota a "Desde" al rango
+      // [Hasta - diasMaxPeriodo(), Hasta]. Si "Desde" queda fuera, se reajusta.
+      function limitarDesdeSegunHasta() {
+          var $ini = $("#fechaSeleccionada_inicial");
+          var $fin = $("#fechaSeleccionada_final");
+          var d2 = $fin.datepicker("getDate");
+          if (!d2) { return; }
+          var min = new Date(d2); min.setDate(min.getDate() - diasMaxPeriodo());
+          $ini.datepicker("option", "minDate", min);
+          $ini.datepicker("option", "maxDate", d2);
+          var ini = $ini.datepicker("getDate");
+          if (ini && ini > d2)       { $ini.datepicker("setDate", d2); }
+          else if (ini && ini < min) { $ini.datepicker("setDate", min); }
+      }
+
+      // Re-dibuja las gráficas con los datos ya cargados (sin volver a consultar a SICOSS),
+      // aplicando las opciones de visualización actuales (tipo de línea, etiquetas, sombra, tamaño).
+      // Muestra un destello breve del overlay para dar feedback consistente.
+      function refrescarGraficas() {
+          if (!window._argsGraficas) { return; }
+          mostrarOverlay('Aplicando cambios...');
+          setTimeout(function(){
+              configurarGraficos.apply(null, window._argsGraficas);
+              setTimeout(ocultarOverlay, 220);
+          }, 30);
+      }
+
+      // Captura la visibilidad actual de las series de cada gráfica (por nombre de serie),
+      // leyendo de las instancias guardadas antes de recrearlas.
+      function capturarVisibilidadSeries() {
+          var mapa = {};
+          if (window._chartsById) {
+              for (var id in window._chartsById) {
+                  var ch = window._chartsById[id];
+                  if (ch && ch.series) {
+                      mapa[id] = {};
+                      ch.series.forEach(function(s){ mapa[id][s.name] = s.visible; });
+                  }
+              }
+          }
+          return mapa;
+      }
+
+      // Restaura en la nueva gráfica la visibilidad que tenían las series con el mismo nombre.
+      function aplicarVisibilidadSeries(chart, id, mapa) {
+          if (!chart || !mapa || !mapa[id]) { return; }
+          var cambio = false;
+          chart.series.forEach(function(s){
+              if (mapa[id].hasOwnProperty(s.name) && s.visible !== mapa[id][s.name]) {
+                  s.setVisible(mapa[id][s.name], false);
+                  cambio = true;
+              }
+          });
+          if (cambio) { chart.redraw(); }
+      }
+
+      function configurarGraficos( title_periodo, labelx_rotacion, labelx_fontsize, labelx_prefijo
+                ,queFecha_ini,queFecha_fin, queZona,nomZona,eje_x,valores_emergencias_pendientes,valores_quejas_pendientes,valores_emergencias_atendidas
+                ,valores_emergencias_atendidas_acum,valores_emergencias_generadas
+                ,valores_emergencias_generadas_acum
+                ,valores_quejas_atendidas,valores_quejas_atendidas_acum
+                ,valores_quejas_generadas,valores_quejas_generadas_acum
+                ,valores_quejas_pendientes_detalle,valores_emergencias_pendientes_detalle,valores_emergencias_atendidas_detalle
+                ,valores_quejas_atendidas_detalle,valores_emergencias_generadas_detalle,valores_quejas_generadas_detalle
+                ,valores_q07_pendientes,valores_q07_atendidas,valores_q07_generadas ){
+
+                // Guardar los argumentos para poder re-dibujar (al cambiar opciones de visualización) sin volver a consultar
+                window._argsGraficas = Array.prototype.slice.call(arguments);
+
+                // Capturar la visibilidad actual de las series (lo que el usuario prendió/apagó en la leyenda)
+                // ANTES de recrear las gráficas, para restaurarla después y no perder su selección.
+                var _visGuardada = capturarVisibilidadSeries();
+
+
+                // ----- Conversión Q07 -> Emergencia EN VIVO (cliente) -----
+                // El backend manda los valores crudos (Q07 en Quejas) + el delta de Q07 por hora.
+                // Si el checkbox está activo, movemos Q07 de Quejas a Emergencias en COPIAS locales
+                // (sin mutar los args guardados, para poder prender/apagar sin reconsultar).
+                var conv_q07_e_on = (document.getElementById("conv_q07_e") && document.getElementById("conv_q07_e").checked);
+
+                function aplicarQ07(valE, valQ, delta) {
+                    if (!conv_q07_e_on || !delta) { return [valE, valQ]; }
+                    var e = valE ? valE.slice() : valE;
+                    var q = valQ ? valQ.slice() : valQ;
+                    for (var i = 0; i < delta.length; i++) {
+                        var d = delta[i] || 0;
+                        if (d && e && q && e[i] !== null && q[i] !== null) {
+                            e[i] = (e[i] || 0) + d;
+                            q[i] = (q[i] || 0) - d;
+                            if (q[i] < 0) { q[i] = 0; }
+                        }
+                    }
+                    return [e, q];
+                }
+
+                var _p = aplicarQ07(valores_emergencias_pendientes, valores_quejas_pendientes, valores_q07_pendientes);
+                valores_emergencias_pendientes = _p[0]; valores_quejas_pendientes = _p[1];
+
+                var _a = aplicarQ07(valores_emergencias_atendidas, valores_quejas_atendidas, valores_q07_atendidas);
+                valores_emergencias_atendidas = _a[0]; valores_quejas_atendidas = _a[1];
+
+                var _g = aplicarQ07(valores_emergencias_generadas, valores_quejas_generadas, valores_q07_generadas);
+                valores_emergencias_generadas = _g[0]; valores_quejas_generadas = _g[1];
+
+
+                // ----- Granularidad por día EN VIVO (cliente) -----
+                // El backend siempre envía los puntos por HORA. Si el usuario activa "Agrupar por día",
+                // colapsamos los puntos horarios a diarios SOBRE COPIAS locales (sin reconsultar).
+                // Reglas según la naturaleza de cada serie:
+                //   - Atendidas/Generadas (flujo/conteo) -> suma de las horas del día
+                //   - Pendientes (nivel/stock)           -> promedio del día
+                //   - Acumuladas (acumulado corrido)     -> último valor del día
+                function _agruparPorDia(ejeHoras) {
+                    var dias = []; var idx = {};
+                    for (var i = 0; i < ejeHoras.length; i++) {
+                        var dia = (ejeHoras[i] || '').substring(0, 10);
+                        if (!idx[dia]) { idx[dia] = []; dias.push(dia); }
+                        idx[dia].push(i);
+                    }
+                    return { dias: dias, idx: idx };
+                }
+                function _aggSerie(arr, agr, regla) {
+                    if (!arr) { return arr; }
+                    var out = [];
+                    for (var d = 0; d < agr.dias.length; d++) {
+                        var idxs = agr.idx[agr.dias[d]];
+                        var suma = 0, cnt = 0, ult = null, hayDato = false;
+                        for (var k = 0; k < idxs.length; k++) {
+                            var v = arr[idxs[k]];
+                            if (v === null || v === undefined) { continue; }
+                            hayDato = true; suma += v; cnt++; ult = v;
+                        }
+                        if (!hayDato) { out.push(null); }
+                        else if (regla === 'sum') { out.push(suma); }
+                        else if (regla === 'last') { out.push(ult); }
+                        else { out.push(Math.round(suma / cnt)); } // 'avg'
+                    }
+                    return out;
+                }
+                function _aggDetalle(obj, agr, regla) {
+                    if (!obj) { return obj; }
+                    var out = {};
+                    for (var key in obj) { if (obj.hasOwnProperty(key)) { out[key] = _aggSerie(obj[key], agr, regla); } }
+                    return out;
+                }
+
+                var verPorDia = (document.getElementById("ver_por_dia") && document.getElementById("ver_por_dia").checked);
+                if (verPorDia && eje_x && eje_x.length) {
+                    var _agr = _agruparPorDia(eje_x);
+                    valores_emergencias_pendientes = _aggSerie(valores_emergencias_pendientes, _agr, 'avg');
+                    valores_quejas_pendientes      = _aggSerie(valores_quejas_pendientes,      _agr, 'avg');
+                    valores_emergencias_atendidas  = _aggSerie(valores_emergencias_atendidas,  _agr, 'sum');
+                    valores_quejas_atendidas       = _aggSerie(valores_quejas_atendidas,       _agr, 'sum');
+                    valores_emergencias_generadas  = _aggSerie(valores_emergencias_generadas,  _agr, 'sum');
+                    valores_quejas_generadas       = _aggSerie(valores_quejas_generadas,       _agr, 'sum');
+                    valores_emergencias_atendidas_acum = _aggSerie(valores_emergencias_atendidas_acum, _agr, 'last');
+                    valores_quejas_atendidas_acum      = _aggSerie(valores_quejas_atendidas_acum,      _agr, 'last');
+                    valores_emergencias_generadas_acum = _aggSerie(valores_emergencias_generadas_acum, _agr, 'last');
+                    valores_quejas_generadas_acum      = _aggSerie(valores_quejas_generadas_acum,      _agr, 'last');
+                    valores_emergencias_pendientes_detalle = _aggDetalle(valores_emergencias_pendientes_detalle, _agr, 'avg');
+                    valores_quejas_pendientes_detalle      = _aggDetalle(valores_quejas_pendientes_detalle,      _agr, 'avg');
+                    valores_emergencias_atendidas_detalle  = _aggDetalle(valores_emergencias_atendidas_detalle,  _agr, 'sum');
+                    valores_quejas_atendidas_detalle       = _aggDetalle(valores_quejas_atendidas_detalle,       _agr, 'sum');
+                    valores_emergencias_generadas_detalle  = _aggDetalle(valores_emergencias_generadas_detalle,  _agr, 'sum');
+                    valores_quejas_generadas_detalle       = _aggDetalle(valores_quejas_generadas_detalle,       _agr, 'sum');
+                    // Etiquetas del eje X en formato dd/mm/yyyy (la clave interna sigue siendo YYYY-MM-DD)
+                    eje_x = _agr.dias.map(function(d){ return d.substring(8,10) + '/' + d.substring(5,7) + '/' + d.substring(0,4); });
+                }
+
+
+                ///////////  GRAFICOS
+
+ 
+      
+                var graficas_detalle = document.getElementById("graficas_detalle").checked;
+                var reporte_ejecutivo = document.getElementById("reporte_ejecutivo").checked;
+
+                var reporte_ejecutivo = document.getElementById("reporte_ejecutivo").checked;
+
+                // Tipo de línea para todas las series: 'spline' (suave) o 'line' (normal)
+                var tipoLinea = (document.getElementById("linea_suave") && document.getElementById("linea_suave").checked) ? 'spline' : 'line';
+
+                // Mostrar u ocultar las etiquetas de datos en los puntos
+                var verEtiquetas = (document.getElementById("ver_etiquetas") && document.getElementById("ver_etiquetas").checked) ? true : false;
+
+                // Sombra en las líneas (objeto para que sea más visible que la sombra por defecto)
+                var verSombra = (document.getElementById("ver_sombra") && document.getElementById("ver_sombra").checked) ? { color: '#333333', offsetX: 1, offsetY: 3, width: 5 } : false;
+
+                // Tamaño de la fuente de las etiquetas de datos
+                var tamEtiqueta = (document.getElementById("tam_etiqueta") ? document.getElementById("tam_etiqueta").value : '9') + 'px';
+
+                // Grosor de línea y tamaño de marcador (en vivo), por separado para series PRINCIPALES y para las de "Tipos de orden".
+                // Nota: NO usar "|| default" porque 0 es falsy y "Sin marcador" (0) quedaría descartado. Usar isNaN.
+                var _grLin = parseFloat(document.getElementById("grosor_linea")     ? document.getElementById("grosor_linea").value     : '3.5');
+                var grosorLinea    = isNaN(_grLin) ? 3.5 : _grLin;
+                var _tmMar = parseInt(  document.getElementById("tam_marcador")     ? document.getElementById("tam_marcador").value     : '4', 10);
+                var tamMarcador    = isNaN(_tmMar) ? 4 : _tmMar;
+                var _grLinD = parseFloat(document.getElementById("grosor_linea_det") ? document.getElementById("grosor_linea_det").value : '2');
+                var grosorLineaDet = isNaN(_grLinD) ? 2 : _grLinD;
+                var _tmMarD = parseInt(  document.getElementById("tam_marcador_det") ? document.getElementById("tam_marcador_det").value : '2', 10);
+                var tamMarcadorDet = isNaN(_tmMarD) ? 2 : _tmMarD;
+
+
+
+        
+                var color_e_pend = reporte_ejecutivo == true          ? '#1F3864' : '#ff0000';
+                var color_q_pend = reporte_ejecutivo == true          ? '#ED7D31' : '#ff0000';
+
+                var visibilidad_pend = false;
+                var visibilidad_aten = false;
+                var visibilidad_atenacum = false;
+                var visibilidad_gen = false;
+
+                var visibilidad_pend = reporte_ejecutivo == true      ? true : true;
+                var visibilidad_aten = reporte_ejecutivo == true      ? false : true;
+                //var visibilidad_atenacum = reporte_ejecutivo == false  ? false : false;
+                var visibilidad_gen = reporte_ejecutivo == true       ? false : true;
+
+                
+                
+
+                               
+
+
+                Highcharts.setOptions({
+                  lang: {
+                    months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                    weekdays: ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'],
+                    decimalPoint: '.',
+                    thousandsSep:',',
+                    contextButtonTitle: 'Exportar',
+                    downloadJPEG: 'JPG',
+                    downloadPDF: 'PDF',
+                    downloadPNG: 'PNG',
+                    downloadSVG: 'SVG',
+                    toggleTable: 'Ocultar/Mostrar tabla',
+                    loading: 'Cargando...',
+                    printChart: 'Imprimir',
+                    viewFullscreen: 'Pantalla completa',
+                    resetZoom: '][',
+                    resetZoomTitle: 'Reestablecer gráfico'
+                  },
+                  plotOptions: {
+                    series: {
+                      dataLabels: {
+                        allowOverlap: true,   // no ocultar etiquetas que se traslapan
+                        crop: false,          // no recortar las que quedan cerca del borde
+                        overflow: 'allow'     // permitir que sobresalgan del área de la gráfica
+                      }
+                    }
+                  }
+                });
+
+
+
+                // Arreglo vacío donde se almacenarán todas las series
+                let seriesArray_E = [];
+                let seriesArray_Q = [];
+                let seriesArray_Ejecutivo = [];
+                let seriesArray_Ejecutivo_Aten = [];
+                let seriesArray_Ejecutivo_Gen = [];
+
+                let datosE;
+                let datosQ;
+             
+
+                if(reporte_ejecutivo == true ) {
+
+                  
+                 datosE = [
+                   { yAxis: 0,  type: tipoLinea, name: 'E. Pendientes',               data: valores_emergencias_pendientes,        visible : visibilidad_pend,        color: color_e_pend, lineWidth: grosorLinea, dashStyle: 'Solid',     marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_e_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'E. Atendidas',                data: valores_emergencias_atendidas,         visible : visibilidad_aten,        color: color_e_pend, lineWidth: grosorLinea, dashStyle: 'Solid',     marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_e_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  //,{ yAxis: 1,  type: tipoLinea, name: 'E. Atendidas acumuladas',     data: valores_emergencias_atendidas_acum,    visible : visibilidad_atenacum,    color: '#3B7BB0', lineWidth: grosorLineaDet, dashStyle: 'ShortDot',  marker: { enabled: true, symbol: 'circle',   radius: 3  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#3B7BB0', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'E. Generadas',                data: valores_emergencias_generadas,         visible : visibilidad_gen,         color: color_e_pend, lineWidth: grosorLinea, dashStyle: 'Solid',     marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_e_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                ];
+
+                 datosQ = [
+                   { yAxis: 0,  type: tipoLinea, name: 'Q. Pendientes',               data: valores_quejas_pendientes,       visible : visibilidad_pend,        color: color_q_pend, lineWidth: grosorLinea, dashStyle: 'Solid',     marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_q_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'Q. Atendidas',                data: valores_quejas_atendidas,        visible : visibilidad_aten,        color: color_q_pend, lineWidth: grosorLinea, dashStyle: 'Solid',     marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_q_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'Q. Generadas',                data: valores_quejas_generadas,        visible : visibilidad_gen,         color: color_q_pend, lineWidth: grosorLinea, dashStyle: 'Solid',     marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_q_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  //,{ yAxis: 1,  type: tipoLinea, name: 'Q. Atendidas acumuladas',     data: valores_quejas_atendidas_acum,   visible : visibilidad_atenacum,    color: '#3B7BB0', lineWidth: grosorLineaDet, dashStyle: 'ShortDot',  marker: { enabled: true, symbol: 'circle',   radius: 3  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#3B7BB0', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  //,{ yAxis: 0,  type: tipoLinea, name: 'Q. Generadas',                data: valores_quejas_generadas,        visible : visibilidad_gen,         color: '#70349D', lineWidth: grosorLineaDet, dashStyle: 'Solid',     marker: { enabled: (tamMarcador > 0), symbol: 'diamond',  radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#70349D', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                ];
+
+              } else {
+
+
+                
+                 datosE = [
+                   { yAxis: 0,  type: tipoLinea, name: 'E. Pendientes',               data: valores_emergencias_pendientes,        visible : visibilidad_pend,        color: color_e_pend, lineWidth: grosorLineaDet, dashStyle: 'Solid',     marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_e_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'E. Atendidas',                data: valores_emergencias_atendidas,         visible : visibilidad_aten,        color: '#00bb00', lineWidth: grosorLineaDet, dashStyle: 'Solid',     marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#00bb00', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'E. Atendidas acumuladas',     data: valores_emergencias_atendidas_acum,    visible : visibilidad_atenacum,    color: '#3B7BB0', lineWidth: grosorLineaDet, dashStyle: 'ShortDot',  marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#3B7BB0', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'E. Generadas',                data: valores_emergencias_generadas,         visible : visibilidad_gen,         color: '#70349D', lineWidth: grosorLineaDet, dashStyle: 'Solid',     marker: { enabled: (tamMarcadorDet > 0), symbol: 'diamond',  radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#70349D', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                ];
+
+                 datosQ = [
+                   { yAxis: 0,  type: tipoLinea, name: 'Q. Pendientes',               data: valores_quejas_pendientes,       visible : visibilidad_pend,        color: color_q_pend, lineWidth: grosorLineaDet, dashStyle: 'Solid',     marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_q_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'Q. Atendidas',                data: valores_quejas_atendidas,        visible : visibilidad_aten,        color: '#00bb00', lineWidth: grosorLineaDet, dashStyle: 'Solid',     marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#00bb00', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'Q. Atendidas acumuladas',     data: valores_quejas_atendidas_acum,   visible : visibilidad_atenacum,    color: '#3B7BB0', lineWidth: grosorLineaDet, dashStyle: 'ShortDot',  marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#3B7BB0', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                  ,{ yAxis: 0,  type: tipoLinea, name: 'Q. Generadas',                data: valores_quejas_generadas,        visible : visibilidad_gen,         color: '#70349D', lineWidth: grosorLineaDet, dashStyle: 'Solid',     marker: { enabled: (tamMarcadorDet > 0), symbol: 'diamond',  radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#70349D', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                ];
+
+
+              }
+
+                if(reporte_ejecutivo == true ) {
+
+                  // Mostrar/ocultar cada gráfica ejecutiva según su casilla
+                  $("#divGrafica_E0").toggle(  document.getElementById("ver_g_pend").checked );
+                  $("#divGrafica_Q0").toggle(  document.getElementById("ver_g_aten").checked );
+                  $("#divGrafica_G0").toggle(  document.getElementById("ver_g_gen").checked );
+                  $("#divGrafica_TOT").toggle( document.getElementById("ver_g_tot").checked );
+
+                  // Resumen de texto bajo la gráfica de Pendientes (sólo modo ejecutivo).
+                  // "actual" = último valor; "corte anterior" = penúltimo. Delta = actual - anterior.
+                  // Delta positivo (creció el rezago) -> "sin evolución"; negativo (bajó) -> "con evolución".
+                  (function(){
+                      function _ultimosDos(arr){
+                          var r = [];
+                          if (Object.prototype.toString.call(arr) === '[object Array]') {
+                              for (var i = arr.length - 1; i >= 0 && r.length < 2; i--){
+                                  var v = arr[i];
+                                  if (v !== null && v !== undefined && !isNaN(v)) { r.push(Number(v)); }
+                              }
+                          }
+                          return r; // [actual, anterior]
+                      }
+                      function _fmtDelta(d){ return (d > 0 ? '+' + d : '' + d); }
+                      function _evo(d){ return (d < 0 ? 'con evolución' : 'sin evolución'); }
+
+                      var eP = _ultimosDos(valores_emergencias_pendientes);
+                      var qP = _ultimosDos(valores_quejas_pendientes);
+                      var eAct   = eP.length ? Math.round(eP[0]) : 0;
+                      var eDelta = eP.length >= 2 ? Math.round(eP[0] - eP[1]) : 0;
+                      var qAct   = qP.length ? Math.round(qP[0]) : 0;
+                      var qDelta = qP.length >= 2 ? Math.round(qP[0] - qP[1]) : 0;
+
+                      var txt = '';
+                      txt += 'Emergencias <b>' + eAct + '</b> pendientes, ' + _evo(eDelta) + ' con respecto al corte anterior de <b>' + _fmtDelta(eDelta) + '</b> pendientes<br>';
+                      txt += 'Quejas individuales <b>' + qAct + '</b> pendientes, ' + _evo(qDelta) + ' con respecto al corte anterior de <b>' + _fmtDelta(qDelta) + '</b> pendientes';
+
+                      $('#resumenPendientes').html(txt);
+                      // Sólo visible en modo ejecutivo + con la gráfica de Pendientes activa + con "Monitoreo pendientes" (tablas_detalle).
+                      $('#resumenPendientes').toggle( document.getElementById("ver_g_pend").checked && document.getElementById("tablas_detalle").checked );
+                  })();
+
+                      // Pendientes -> grafica E0 ;  Atendidas -> grafica Q0 ;  Generadas -> grafica G0 (misma estructura y diseño)
+                      datosE.concat(datosQ).forEach(serie => {
+
+                        var serieObj = {
+                            yAxis: serie.yAxis,
+                            type: serie.type,
+                            name: serie.name,
+                            data: serie.data,
+                            visible: serie.visible,
+                            color: serie.color,
+                            lineWidth: serie.lineWidth,
+                            dashStyle: serie.dashStyle,
+                            marker: serie.marker,
+                            dataLabels: serie.dataLabels
+                        };
+
+                        if (serie.name.indexOf('Atendidas') !== -1) {
+                            serieObj.visible = true; // visibles en su propia gráfica de atendidas
+                            seriesArray_Ejecutivo_Aten.push(serieObj);
+                        } else if (serie.name.indexOf('Generadas') !== -1) {
+                            serieObj.visible = true; // visibles en su propia gráfica de generadas
+                            seriesArray_Ejecutivo_Gen.push(serieObj);
+                        } else {
+                            seriesArray_Ejecutivo.push(serieObj);
+                        }
+
+                    });
+
+
+                } else {
+
+                  $("#divGrafica_E0").show();
+                  $("#divGrafica_Q0").show();
+                  $("#divGrafica_G0").hide();
+                  $("#divGrafica_TOT").hide();
+
+                  $('#resumenPendientes').hide(); // el resumen de texto es sólo del modo ejecutivo
+
+                    // Recorrer los datos para agregarlos al arreglo seriesArray utilizando push
+                    datosE.forEach(serie => {
+                      seriesArray_E.push({
+                            yAxis: serie.yAxis,
+                            type: serie.type,
+                            name: serie.name,
+                            data: serie.data,
+                            visible: serie.visible,
+                            color: serie.color,
+                            lineWidth: serie.lineWidth,
+                            dashStyle: serie.dashStyle,
+                            marker: serie.marker,
+                            dataLabels: serie.dataLabels
+                        });
+                    });
+
+                    // Recorrer los datos para agregarlos al arreglo seriesArray utilizando push
+                    datosQ.forEach(serie => {
+                        seriesArray_Q.push({
+                            yAxis: serie.yAxis,
+                            type: serie.type,
+                            name: serie.name,
+                            data: serie.data,
+                            visible: serie.visible,
+                            color: serie.color,
+                            lineWidth: serie.lineWidth,
+                            dashStyle: serie.dashStyle,
+                            marker: serie.marker,
+                            dataLabels: serie.dataLabels
+                        });
+                    });
+
+              }
+
+
+                //  ============================================================ DETALLE GRAFICAS ============================================================
+
+                
+
+                if(graficas_detalle == true ) {
+
+                  
+
+                  // -- Emergencias Pendientes
+
+                  Object.keys(valores_emergencias_pendientes_detalle).forEach(key => {
+
+                        if(reporte_ejecutivo == true ) {
+
+                          seriesArray_Ejecutivo.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Pendientes ' , data: valores_emergencias_pendientes_detalle[key] , color: color_e_pend, lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_e_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+
+                        } else {
+                      
+                          seriesArray_E.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Pendientes ' , data: valores_emergencias_pendientes_detalle[key] , color: '#00bb00', lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#00bb00', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+
+                        } // fin if reporte_ejecutivo
+
+
+                  });
+
+
+
+                  // -- Quejas Pendientes
+
+                  Object.keys(valores_quejas_pendientes_detalle).forEach(key => {
+
+
+                        if(reporte_ejecutivo == true ) {
+
+                          seriesArray_Ejecutivo.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Pendientes ' , data: valores_quejas_pendientes_detalle[key] , color: color_q_pend, lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_q_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+
+                        } else {
+                      
+                          seriesArray_Q.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Pendientes ' , data: valores_quejas_pendientes_detalle[key] , color: '#00bb00', lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#00bb00', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+
+                        }
+
+                  });                  
+               
+
+                  // -- Detalle por tipo para las gráficas ejecutivas de Atendidas y Generadas
+                  if(reporte_ejecutivo == true ) {
+
+                    // Emergencias Atendidas -> gráfica de Atendidas (Q0)
+                    Object.keys(valores_emergencias_atendidas_detalle || {}).forEach(key => {
+                          seriesArray_Ejecutivo_Aten.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Atendidas ' , data: valores_emergencias_atendidas_detalle[key] , color: color_e_pend, lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_e_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+                    });
+
+                    // Quejas Atendidas -> gráfica de Atendidas (Q0)
+                    Object.keys(valores_quejas_atendidas_detalle || {}).forEach(key => {
+                          seriesArray_Ejecutivo_Aten.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Atendidas ' , data: valores_quejas_atendidas_detalle[key] , color: color_q_pend, lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_q_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+                    });
+
+                    // Emergencias Generadas -> gráfica de Generadas (G0)
+                    Object.keys(valores_emergencias_generadas_detalle || {}).forEach(key => {
+                          seriesArray_Ejecutivo_Gen.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Generadas ' , data: valores_emergencias_generadas_detalle[key] , color: color_e_pend, lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_e_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+                    });
+
+                    // Quejas Generadas -> gráfica de Generadas (G0)
+                    Object.keys(valores_quejas_generadas_detalle || {}).forEach(key => {
+                          seriesArray_Ejecutivo_Gen.push( {  yAxis: 0,  type: tipoLinea, visible : false, name:  key + ' Generadas ' , data: valores_quejas_generadas_detalle[key] , color: color_q_pend, lineWidth: grosorLineaDet, dashStyle: 'ShortDot', marker: { enabled: (tamMarcadorDet > 0), symbol: 'circle',   radius: tamMarcadorDet  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: color_q_pend, align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } } );
+                    });
+
+                  } // fin reporte_ejecutivo (detalle atendidas/generadas)
+
+                } // fin if graficas_detalle
+
+                //  ============================================================ DETALLE GRAFICAS ============================================================
+
+
+
+                    var chart1 = new Highcharts.chart('divGrafica_E0', {
+                          chart: {
+                            events: {
+                              load: function() {
+                                ////////--console.log('venego load');
+                              }
+                            },
+                            zoomType: 'x',
+                            spacingTop: 30,
+                            //spacingLeft: 20,
+                            resetZoomButton: {
+                              position: {
+                                    align: 'left', // by default
+                                    verticalAlign: 'bottom', // by default
+                                    x: -60,
+                                    y: 30
+                                },
+                                theme: {
+                                    fill: '#fff',
+                                    stroke: null,
+                                    r: 0
+                                }
+                            },
+                            ignoreHiddenSeries: true,
+                            borderWidth: 1,
+                            borderColor:'#ccc',
+                            plotBorderWidth: 0,
+                            showAxes: true
+                          },
+                          credits:{
+                            enabled:false
+                          },
+                          title: {
+                              text: reporte_ejecutivo == true ? 'Emergencias y Quejas Pendientes' : 'Emergencias por hora',
+                              style: {
+                                    color: '#555',
+                                    fontSize: '13px',
+                                    fontWeight: 'bold',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          subtitle: {
+                              text: nomZona + '<br>' + title_periodo  ,
+                              style: {
+                                    color: '#555',
+                                    fontSize: '12px',
+                                    fontWeight: 'normal',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          xAxis: {
+                              categories: eje_x,
+                              min: 0,
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              //type: 'datetime',
+                              //plotBands: generarPlotBands(queFecha_ini, queFecha_fin),
+                              labels: {
+                                  rotation:labelx_rotacion,
+                                  style: {
+                                    color: '#000000',
+                                    fontSize: labelx_fontsize,
+                                    fontWeight: 'normal',
+                                    fontFamily: 'helvetica'
+                                            },
+                                  x: 0,
+                                  y: 20,
+                                  formatter: function() {
+
+                                              // En modo "Agrupar por día" la categoría ya es dd-mm-yyyy: mostrarla completa.
+                                              if (verPorDia) { return this.value; }
+
+                                              if(labelx_prefijo) {
+
+                                                return '(' + this.value.substr(8,2) + ')   '+ this.value.substring(11) ;
+                                                
+                                              } else {
+                                                
+                                                return this.value.substring(11);
+
+                                              }
+                                              
+                                          }
+                                    }
+                          },
+                          yAxis: [{
+                              title: {
+                                  text: 'Cantidad',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              //max: Math.max(...valores_emergencias),
+                              gridLineWidth:1,
+                              gridLineColor:'#e6e6e6',
+                              gridLineDashStyle:'Solid',
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true
+                          },{
+                              title: {
+                                  text:  reporte_ejecutivo == true ? '' : 'Cantidad generadas',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              max: Math.max(...valores_emergencias_generadas),
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true,
+                              opposite: true
+                          }],
+                          plotOptions: {
+                            series: {
+                              shadow: verSombra,         
+                              animation: {
+                                duration: 500
+                                }
+                              },
+                              line: {
+                                enableMouseTracking: true
+                              },
+                              column: {
+                                stacking: 'normal',
+                                enableMouseTracking: true
+                              }
+                      
+                          },
+                          tooltip: {
+                            shared: true,
+                            headerFormat: ' Corte a las <b>{point.x}</b> hr<br>',
+                            //pointFormat: '{series.name}: <b>{point.y}</b><br/>',
+                            style: {
+                              fontSize: '9px',
+                            },
+                              positioner: function () {
+                                return { x: 0, y: 0 };
+                              },
+                              
+                              shadow: false,
+                              borderWidth: 0,
+                              backgroundColor: 'rgba(255,255,255,0.0)'
+                              
+                          },
+                          legend: {
+                                itemStyle: {
+                                    fontSize: '11px',
+                                    fontWeight: 'normal',
+                                    color: '#777'
+                                },
+                                itemHoverStyle: {
+                                    color: '#000',
+                                    fontWeight: 'normal'
+                                },
+                                itemHiddenStyle: {
+                                    color: '#ddd',
+                                    'text-decoration': 'none'
+                                }
+                            },
+                        
+                            
+                          exporting: {
+                            fallbackToExportServer: false,
+                            scale: 2,
+                            csv: {
+                              columnHeaderFormatter: function(item, key) {
+                                  if (!item || item instanceof Highcharts.Axis) {
+                                      return 'Hora'
+                                  } else {
+                                      return item.name;
+                                  }
+                              }
+                            },
+                            allowHTML: false,
+                            menuItemDefinitions: {
+                              downloadPNG: {
+                                text: 'PNG',
+                                onclick: function() {
+                                  this.exportChartLocal({ type: 'image/png', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight });
+                                }
+                              },
+                              downloadPDF: {
+                                text: 'PDF',
+                                onclick: function() {
+                                  var sombraPDF = (document.getElementById('ver_sombra') && document.getElementById('ver_sombra').checked) ? { color: '#6f6f6f', offsetX: 1, offsetY: 3, width: 4 } : false;
+                                  var optsPDF = { type: 'application/pdf', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight };
+                                  try {
+                                    // Intento normal (respeta el checkbox de sombra)
+                                    this.exportChartLocal(optsPDF, { plotOptions: { series: { shadow: sombraPDF } } });
+                                  } catch (ePDF) {
+                                    // Sombras y/o etiquetas suelen impedir el PDF con muchos puntos: ofrecer reintento simplificado.
+                                    ofrecerPDFSimplificado(this, optsPDF);
+                                  }
+                                }
+                              },
+                              // Custom definition
+                              toggleTable: {
+                                onclick: function() {
+                                  if (this.dataTableDiv && this.dataTableDiv.style.display !== 'none') {
+                                    this.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    this.viewData();
+                                    this.dataTableDiv.style.display = '';
+                                  }
+                                },
+                                text: 'Ver/Ocultar Tabla'
+                              }
+                            },
+                            buttons: {
+                              contextButton: {
+                                menuItems: ['downloadPNG', 'downloadPDF', 'separator', 'toggleTable']
+                              }
+                            }
+                          },
+
+
+                          series: reporte_ejecutivo == true ? seriesArray_Ejecutivo : seriesArray_E
+
+                      }, function (chart) { // on complete
+                          var i = 0;
+
+                          
+                          chart.renderer.button('T',10, 330)
+                              .attr({
+                                  zIndex: 3,
+                                  'stroke-width': 0,
+                                  stroke: '#ffffff',
+                                  fill: '#ffffff',
+                                  r: 2,
+                                  padding: 4,
+                                  style: {
+                                    color: '#cccccc'
+                                  }
+                                  
+                                  
+                              })
+                              .on('click', function () {
+                                
+
+                                if (chart.dataTableDiv && chart.dataTableDiv.style.display !== 'none') {
+                                    chart.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    chart.viewData();
+                                    chart.dataTableDiv.style.display = '';
+                                  }
+                                  
+                              })
+                              .css({
+                                color: '#ccc',
+                                fontSize: '6px',
+                                fontWeight: 'normal'
+                              })
+                              .add(); 
+
+                        });
+
+                      
+                    
+
+                        //////////////////////////   CHART QUEJAS
+
+
+          
+                      // Crear el gráfico de líneas con Highcharts
+                      var chart2 = new Highcharts.chart('divGrafica_Q0', {
+                        chart: {
+                          events: {
+                              load: function() {
+                                ////////--console.log('venego load');
+                              }
+                            },
+                            zoomType: 'x',
+                            spacingTop: 30,
+                            //spacingLeft: 20,
+                            resetZoomButton: {
+                              position: {
+                                    align: 'left', // by default
+                                    verticalAlign: 'bottom', // by default
+                                    x: -60,
+                                    y: 30
+                                },
+                                theme: {
+                                    fill: '#fff',
+                                    stroke: null,
+                                    r: 0
+                                }
+                            },
+                            ignoreHiddenSeries: true,
+                            borderWidth: 1,
+                            borderColor:'#ccc',
+                            plotBorderWidth: 0,
+                            showAxes: true
+                          },
+                          credits:{
+                            enabled:false
+                          },
+                          title: {
+                              text: reporte_ejecutivo == true ? 'Emergencias y Quejas Atendidas' : 'Quejas por hora',
+                              style: {
+                                    color: '#555',
+                                    fontSize: '13px',
+                                    fontWeight: 'bold',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          subtitle: {
+                              text: nomZona + '<br>' + title_periodo,
+                              style: {
+                                    color: '#555',
+                                    fontSize: '12px',
+                                    fontWeight: 'normal',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          xAxis: {
+                              categories: eje_x,
+                              min: 0,
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              labels: {
+                                  rotation:labelx_rotacion,
+                                  style: {
+                                    color: '#000000',
+                                    fontSize: labelx_fontsize,
+                                    fontWeight: 'normal',
+                                    fontFamily: 'helvetica'
+                                            },
+                                  x: 0,
+                                  y: 20,
+                                  formatter: function() {
+                                              
+                                              if (verPorDia) { return this.value; }
+
+                                              if(labelx_prefijo) {
+
+                                                return '(' + this.value.substr(8,2) + ')   '+ this.value.substring(11) ;
+                                                
+                                              } else {
+                                                
+                                                return this.value.substring(11);
+                                                
+                                              }
+                                        }
+                                    }
+
+                          },
+                          yAxis: [{
+                              title: {
+                                  text: 'Cantidad',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              //max: 12000000,
+                              gridLineWidth:1,
+                              gridLineColor:'#e6e6e6',
+                              gridLineDashStyle:'Solid',
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true
+                          },{
+                              title: {
+                                  text: reporte_ejecutivo == true ? '' : 'Cantidad generadas',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              max: Math.max(...valores_quejas_generadas),
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true,
+                              opposite: true
+                          }],
+                          plotOptions: {
+                            series: {
+                              shadow: verSombra,         
+                              animation: {
+                                duration: 500
+                                }
+                              },
+                              line: {
+                                enableMouseTracking: true
+                              },
+                              column: {
+                                stacking: 'normal',
+                                enableMouseTracking: true
+                              }
+                      
+                          },
+                          tooltip: {
+                            shared: true,
+                            headerFormat: ' Corte a las <b>{point.x}</b> hr<br>',
+                            //pointFormat: '{series.name}: <b>{point.y}</b><br/>',
+                            style: {
+                              fontSize: '9px',
+                            },
+                              positioner: function () {
+                                return { x: 0, y: 0 };
+                              },
+                              
+                              shadow: false,
+                              borderWidth: 0,
+                              backgroundColor: 'rgba(255,255,255,0.0)'
+                              
+                          },
+                          legend: {
+                                itemStyle: {
+                                    fontSize: '11px',
+                                    fontWeight: 'normal',
+                                    color: '#777'
+                                },
+                                itemHoverStyle: {
+                                    color: '#000',
+                                    fontWeight: 'normal'
+                                },
+                                itemHiddenStyle: {
+                                    color: '#ddd',
+                                    'text-decoration': 'none'
+                                }
+                            },
+
+                            exporting: {
+                            fallbackToExportServer: false,
+                            scale: 2,
+                              csv: {
+                              columnHeaderFormatter: function(item, key) {
+                                  if (!item || item instanceof Highcharts.Axis) {
+                                      return 'Hora'
+                                  } else {
+                                      return item.name;
+                                  }
+                              }
+                            },
+                            allowHTML: false,
+                            menuItemDefinitions: {
+                              downloadPNG: {
+                                text: 'PNG',
+                                onclick: function() {
+                                  this.exportChartLocal({ type: 'image/png', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight });
+                                }
+                              },
+                              downloadPDF: {
+                                text: 'PDF',
+                                onclick: function() {
+                                  var sombraPDF = (document.getElementById('ver_sombra') && document.getElementById('ver_sombra').checked) ? { color: '#6f6f6f', offsetX: 1, offsetY: 3, width: 4 } : false;
+                                  var optsPDF = { type: 'application/pdf', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight };
+                                  try {
+                                    // Intento normal (respeta el checkbox de sombra)
+                                    this.exportChartLocal(optsPDF, { plotOptions: { series: { shadow: sombraPDF } } });
+                                  } catch (ePDF) {
+                                    // Sombras y/o etiquetas suelen impedir el PDF con muchos puntos: ofrecer reintento simplificado.
+                                    ofrecerPDFSimplificado(this, optsPDF);
+                                  }
+                                }
+                              },
+                              // Custom definition
+                              toggleTable: {
+                                onclick: function() {
+                                  if (this.dataTableDiv && this.dataTableDiv.style.display !== 'none') {
+                                    this.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    this.viewData();
+                                    this.dataTableDiv.style.display = '';
+                                  }
+                                },
+                                text: 'Ver/Ocultar Tabla'
+                              }
+                            },
+                            buttons: {
+                              contextButton: {
+                                menuItems: ['downloadPNG', 'downloadPDF', 'separator', 'toggleTable']
+                              }
+                            }
+                          },
+
+                          series: reporte_ejecutivo == true ? seriesArray_Ejecutivo_Aten : seriesArray_Q
+                      }, function (chart) { // on complete
+                          var i = 0;
+
+
+                          
+                          chart.renderer.button('T',10, 330)
+                              .attr({
+                                  zIndex: 3,
+                                  'stroke-width': 0,
+                                  stroke: '#ffffff',
+                                  fill: '#ffffff',
+                                  r: 2,
+                                  padding: 4,
+                                  style: {
+                                    color: '#cccccc'
+                                  }
+                                  
+                                  
+                              })
+                              .on('click', function () {
+
+                                if (chart.dataTableDiv && chart.dataTableDiv.style.display !== 'none') {
+                                    chart.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    chart.viewData();
+                                    chart.dataTableDiv.style.display = '';
+                                  }
+                                  
+                              })
+                              .css({
+                                color: '#ccc',
+                                fontSize: '8px',
+                                fontWeight: 'normal'
+                              })
+                              .add();
+
+                              
+
+                        });
+
+                      //////////////////////////   CHART GENERADAS
+
+                      var chart3 = new Highcharts.chart('divGrafica_G0', {
+                        chart: {
+                          events: {
+                              load: function() {
+                                ////////--console.log('venego load');
+                              }
+                            },
+                            zoomType: 'x',
+                            spacingTop: 30,
+                            //spacingLeft: 20,
+                            resetZoomButton: {
+                              position: {
+                                    align: 'left', // by default
+                                    verticalAlign: 'bottom', // by default
+                                    x: -60,
+                                    y: 30
+                                },
+                                theme: {
+                                    fill: '#fff',
+                                    stroke: null,
+                                    r: 0
+                                }
+                            },
+                            ignoreHiddenSeries: true,
+                            borderWidth: 1,
+                            borderColor:'#ccc',
+                            plotBorderWidth: 0,
+                            showAxes: true
+                          },
+                          credits:{
+                            enabled:false
+                          },
+                          title: {
+                              text: reporte_ejecutivo == true ? 'Emergencias y Quejas Generadas' : 'Generadas por hora',
+                              style: {
+                                    color: '#555',
+                                    fontSize: '13px',
+                                    fontWeight: 'bold',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          subtitle: {
+                              text: nomZona + '<br>' + title_periodo,
+                              style: {
+                                    color: '#555',
+                                    fontSize: '12px',
+                                    fontWeight: 'normal',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          xAxis: {
+                              categories: eje_x,
+                              min: 0,
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              labels: {
+                                  rotation:labelx_rotacion,
+                                  style: {
+                                    color: '#000000',
+                                    fontSize: labelx_fontsize,
+                                    fontWeight: 'normal',
+                                    fontFamily: 'helvetica'
+                                            },
+                                  x: 0,
+                                  y: 20,
+                                  formatter: function() {
+                                              
+                                              if (verPorDia) { return this.value; }
+
+                                              if(labelx_prefijo) {
+
+                                                return '(' + this.value.substr(8,2) + ')   '+ this.value.substring(11) ;
+                                                
+                                              } else {
+                                                
+                                                return this.value.substring(11);
+                                                
+                                              }
+                                        }
+                                    }
+
+                          },
+                          yAxis: [{
+                              title: {
+                                  text: 'Cantidad',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              //max: 12000000,
+                              gridLineWidth:1,
+                              gridLineColor:'#e6e6e6',
+                              gridLineDashStyle:'Solid',
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true
+                          },{
+                              title: {
+                                  text: reporte_ejecutivo == true ? '' : 'Cantidad generadas',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              max: Math.max(...valores_quejas_generadas),
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true,
+                              opposite: true
+                          }],
+                          plotOptions: {
+                            series: {
+                              shadow: verSombra,         
+                              animation: {
+                                duration: 500
+                                }
+                              },
+                              line: {
+                                enableMouseTracking: true
+                              },
+                              column: {
+                                stacking: 'normal',
+                                enableMouseTracking: true
+                              }
+                      
+                          },
+                          tooltip: {
+                            shared: true,
+                            headerFormat: ' Corte a las <b>{point.x}</b> hr<br>',
+                            //pointFormat: '{series.name}: <b>{point.y}</b><br/>',
+                            style: {
+                              fontSize: '9px',
+                            },
+                              positioner: function () {
+                                return { x: 0, y: 0 };
+                              },
+                              
+                              shadow: false,
+                              borderWidth: 0,
+                              backgroundColor: 'rgba(255,255,255,0.0)'
+                              
+                          },
+                          legend: {
+                                itemStyle: {
+                                    fontSize: '11px',
+                                    fontWeight: 'normal',
+                                    color: '#777'
+                                },
+                                itemHoverStyle: {
+                                    color: '#000',
+                                    fontWeight: 'normal'
+                                },
+                                itemHiddenStyle: {
+                                    color: '#ddd',
+                                    'text-decoration': 'none'
+                                }
+                            },
+
+                            exporting: {
+                            fallbackToExportServer: false,
+                            scale: 2,
+                              csv: {
+                              columnHeaderFormatter: function(item, key) {
+                                  if (!item || item instanceof Highcharts.Axis) {
+                                      return 'Hora'
+                                  } else {
+                                      return item.name;
+                                  }
+                              }
+                            },
+                            allowHTML: false,
+                            menuItemDefinitions: {
+                              downloadPNG: {
+                                text: 'PNG',
+                                onclick: function() {
+                                  this.exportChartLocal({ type: 'image/png', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight });
+                                }
+                              },
+                              downloadPDF: {
+                                text: 'PDF',
+                                onclick: function() {
+                                  var sombraPDF = (document.getElementById('ver_sombra') && document.getElementById('ver_sombra').checked) ? { color: '#6f6f6f', offsetX: 1, offsetY: 3, width: 4 } : false;
+                                  var optsPDF = { type: 'application/pdf', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight };
+                                  try {
+                                    // Intento normal (respeta el checkbox de sombra)
+                                    this.exportChartLocal(optsPDF, { plotOptions: { series: { shadow: sombraPDF } } });
+                                  } catch (ePDF) {
+                                    // Sombras y/o etiquetas suelen impedir el PDF con muchos puntos: ofrecer reintento simplificado.
+                                    ofrecerPDFSimplificado(this, optsPDF);
+                                  }
+                                }
+                              },
+                              // Custom definition
+                              toggleTable: {
+                                onclick: function() {
+                                  if (this.dataTableDiv && this.dataTableDiv.style.display !== 'none') {
+                                    this.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    this.viewData();
+                                    this.dataTableDiv.style.display = '';
+                                  }
+                                },
+                                text: 'Ver/Ocultar Tabla'
+                              }
+                            },
+                            buttons: {
+                              contextButton: {
+                                menuItems: ['downloadPNG', 'downloadPDF', 'separator', 'toggleTable']
+                              }
+                            }
+                          },
+
+                          series: seriesArray_Ejecutivo_Gen
+                      }, function (chart) { // on complete
+                          var i = 0;
+
+
+                          
+                          chart.renderer.button('T',10, 330)
+                              .attr({
+                                  zIndex: 3,
+                                  'stroke-width': 0,
+                                  stroke: '#ffffff',
+                                  fill: '#ffffff',
+                                  r: 2,
+                                  padding: 4,
+                                  style: {
+                                    color: '#cccccc'
+                                  }
+                                  
+                                  
+                              })
+                              .on('click', function () {
+
+                                if (chart.dataTableDiv && chart.dataTableDiv.style.display !== 'none') {
+                                    chart.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    chart.viewData();
+                                    chart.dataTableDiv.style.display = '';
+                                  }
+                                  
+                              })
+                              .css({
+                                color: '#ccc',
+                                fontSize: '8px',
+                                fontWeight: 'normal'
+                              })
+                              .add();
+
+                              
+
+                        });
+
+                      //////////////////////////   CHART TOTALES (suma Emergencias + Quejas)
+
+                      var generadas_tot  = sumarSeriesPorHora(valores_emergencias_generadas, valores_quejas_generadas);
+                      var pendientes_tot = sumarSeriesPorHora(valores_emergencias_pendientes, valores_quejas_pendientes);
+                      var atendidas_tot  = sumarSeriesPorHora(valores_emergencias_atendidas, valores_quejas_atendidas);
+
+                      var seriesArray_Ejecutivo_Tot = [
+                         { yAxis: 0, type: tipoLinea, name: 'Generadas',  data: generadas_tot,  visible: true, color: '#ED7D31', lineWidth: grosorLinea, dashStyle: 'Solid', marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#ED7D31', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                        ,{ yAxis: 0, type: tipoLinea, name: 'Pendientes', data: pendientes_tot, visible: false, color: '#1F3864', lineWidth: grosorLinea, dashStyle: 'Solid', marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#1F3864', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                        ,{ yAxis: 0, type: tipoLinea, name: 'Atendidas',  data: atendidas_tot,  visible: true, color: '#3B7D23', lineWidth: grosorLinea, dashStyle: 'Solid', marker: { enabled: (tamMarcador > 0), symbol: 'circle',   radius: tamMarcador  }, dataLabels: { enabled: verEtiquetas, rotation: 0, color: '#3B7D23', align: 'center', x: 0, y: -3, style: {fontSize: tamEtiqueta,fontWeight: 'bold', fontFamily: 'Verdana, sans-serif', strokeWidth: 1, textOutline: '#ffffff' } } }
+                      ];
+
+                      var chart4 = new Highcharts.chart('divGrafica_TOT', {
+                        chart: {
+                          events: {
+                              load: function() {
+                                ////////--console.log('venego load');
+                              }
+                            },
+                            zoomType: 'x',
+                            spacingTop: 30,
+                            //spacingLeft: 20,
+                            resetZoomButton: {
+                              position: {
+                                    align: 'left', // by default
+                                    verticalAlign: 'bottom', // by default
+                                    x: -60,
+                                    y: 30
+                                },
+                                theme: {
+                                    fill: '#fff',
+                                    stroke: null,
+                                    r: 0
+                                }
+                            },
+                            ignoreHiddenSeries: true,
+                            borderWidth: 1,
+                            borderColor:'#ccc',
+                            plotBorderWidth: 0,
+                            showAxes: true
+                          },
+                          credits:{
+                            enabled:false
+                          },
+                          title: {
+                              text: reporte_ejecutivo == true ? 'Totales por hora (Emergencias + Quejas)' : 'Totales por hora',
+                              style: {
+                                    color: '#555',
+                                    fontSize: '13px',
+                                    fontWeight: 'bold',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          subtitle: {
+                              text: nomZona + '<br>' + title_periodo,
+                              style: {
+                                    color: '#555',
+                                    fontSize: '12px',
+                                    fontWeight: 'normal',
+                                    useHTML: true
+                                },
+                                margin: 20
+                          },
+                          xAxis: {
+                              categories: eje_x,
+                              min: 0,
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              labels: {
+                                  rotation:labelx_rotacion,
+                                  style: {
+                                    color: '#000000',
+                                    fontSize: labelx_fontsize,
+                                    fontWeight: 'normal',
+                                    fontFamily: 'helvetica'
+                                            },
+                                  x: 0,
+                                  y: 20,
+                                  formatter: function() {
+                                              
+                                              if (verPorDia) { return this.value; }
+
+                                              if(labelx_prefijo) {
+
+                                                return '(' + this.value.substr(8,2) + ')   '+ this.value.substring(11) ;
+                                                
+                                              } else {
+                                                
+                                                return this.value.substring(11);
+                                                
+                                              }
+                                        }
+                                    }
+
+                          },
+                          yAxis: [{
+                              title: {
+                                  text: 'Cantidad',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              //max: 12000000,
+                              gridLineWidth:1,
+                              gridLineColor:'#e6e6e6',
+                              gridLineDashStyle:'Solid',
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true
+                          },{
+                              title: {
+                                  text: reporte_ejecutivo == true ? '' : 'Cantidad generadas',
+                                  style: {
+                                      color: '#464646',
+                                      fontSize: '11px',
+                                      fontWeight: 'normal'
+                                              },
+                              },
+                              min: 0,
+                              max: Math.max(...valores_quejas_generadas),
+                              gridLineWidth:0,
+                              lineWidth:1,
+                              lineColor:'#777',
+                              tickInterval:10,
+                              tickWidth:1,
+                              startOnTick:false,
+                              endOnTick: true,
+                              opposite: true
+                          }],
+                          plotOptions: {
+                            series: {
+                              shadow: verSombra,         
+                              animation: {
+                                duration: 500
+                                }
+                              },
+                              line: {
+                                enableMouseTracking: true
+                              },
+                              column: {
+                                stacking: 'normal',
+                                enableMouseTracking: true
+                              }
+                      
+                          },
+                          tooltip: {
+                            shared: true,
+                            headerFormat: ' Corte a las <b>{point.x}</b> hr<br>',
+                            //pointFormat: '{series.name}: <b>{point.y}</b><br/>',
+                            style: {
+                              fontSize: '9px',
+                            },
+                              positioner: function () {
+                                return { x: 0, y: 0 };
+                              },
+                              
+                              shadow: false,
+                              borderWidth: 0,
+                              backgroundColor: 'rgba(255,255,255,0.0)'
+                              
+                          },
+                          legend: {
+                                itemStyle: {
+                                    fontSize: '11px',
+                                    fontWeight: 'normal',
+                                    color: '#777'
+                                },
+                                itemHoverStyle: {
+                                    color: '#000',
+                                    fontWeight: 'normal'
+                                },
+                                itemHiddenStyle: {
+                                    color: '#ddd',
+                                    'text-decoration': 'none'
+                                }
+                            },
+
+                            exporting: {
+                            fallbackToExportServer: false,
+                            scale: 2,
+                              csv: {
+                              columnHeaderFormatter: function(item, key) {
+                                  if (!item || item instanceof Highcharts.Axis) {
+                                      return 'Hora'
+                                  } else {
+                                      return item.name;
+                                  }
+                              }
+                            },
+                            allowHTML: false,
+                            menuItemDefinitions: {
+                              downloadPNG: {
+                                text: 'PNG',
+                                onclick: function() {
+                                  this.exportChartLocal({ type: 'image/png', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight });
+                                }
+                              },
+                              downloadPDF: {
+                                text: 'PDF',
+                                onclick: function() {
+                                  var sombraPDF = (document.getElementById('ver_sombra') && document.getElementById('ver_sombra').checked) ? { color: '#6f6f6f', offsetX: 1, offsetY: 3, width: 4 } : false;
+                                  var optsPDF = { type: 'application/pdf', sourceWidth: this.chartWidth, sourceHeight: this.chartHeight };
+                                  try {
+                                    // Intento normal (respeta el checkbox de sombra)
+                                    this.exportChartLocal(optsPDF, { plotOptions: { series: { shadow: sombraPDF } } });
+                                  } catch (ePDF) {
+                                    // Sombras y/o etiquetas suelen impedir el PDF con muchos puntos: ofrecer reintento simplificado.
+                                    ofrecerPDFSimplificado(this, optsPDF);
+                                  }
+                                }
+                              },
+                              // Custom definition
+                              toggleTable: {
+                                onclick: function() {
+                                  if (this.dataTableDiv && this.dataTableDiv.style.display !== 'none') {
+                                    this.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    this.viewData();
+                                    this.dataTableDiv.style.display = '';
+                                  }
+                                },
+                                text: 'Ver/Ocultar Tabla'
+                              }
+                            },
+                            buttons: {
+                              contextButton: {
+                                menuItems: ['downloadPNG', 'downloadPDF', 'separator', 'toggleTable']
+                              }
+                            }
+                          },
+
+                          series: seriesArray_Ejecutivo_Tot
+                      }, function (chart) { // on complete
+                          var i = 0;
+
+
+                          
+                          chart.renderer.button('T',10, 330)
+                              .attr({
+                                  zIndex: 3,
+                                  'stroke-width': 0,
+                                  stroke: '#ffffff',
+                                  fill: '#ffffff',
+                                  r: 2,
+                                  padding: 4,
+                                  style: {
+                                    color: '#cccccc'
+                                  }
+                                  
+                                  
+                              })
+                              .on('click', function () {
+
+                                if (chart.dataTableDiv && chart.dataTableDiv.style.display !== 'none') {
+                                    chart.dataTableDiv.style.display = 'none';
+                                  } else {
+                                    chart.viewData();
+                                    chart.dataTableDiv.style.display = '';
+                                  }
+                                  
+                              })
+                              .css({
+                                color: '#ccc',
+                                fontSize: '8px',
+                                fontWeight: 'normal'
+                              })
+                              .add();
+
+                              
+
+                        });
+
+                      chart1.reflow();
+                      chart2.reflow();
+                      chart3.reflow();
+                      chart4.reflow();
+                      chart1.redraw();
+                      chart2.redraw();
+                      chart3.redraw();
+                      chart4.redraw();
+
+                      // Guardar referencias de las gráficas (para capturar visibilidad en el próximo refresco)
+                      window._chartsById = {
+                          'divGrafica_E0': chart1,
+                          'divGrafica_Q0': chart2,
+                          'divGrafica_G0': chart3,
+                          'divGrafica_TOT': chart4
+                      };
+
+                      // Restaurar la visibilidad de series que el usuario tenía prendida/apagada
+                      aplicarVisibilidadSeries(chart1, 'divGrafica_E0', _visGuardada);
+                      aplicarVisibilidadSeries(chart2, 'divGrafica_Q0', _visGuardada);
+                      aplicarVisibilidadSeries(chart3, 'divGrafica_G0', _visGuardada);
+                      aplicarVisibilidadSeries(chart4, 'divGrafica_TOT', _visGuardada);
+
+                /////////// FIN GRAFICOS
+
+
+      }
+
+
+      function obtenerTablas() {
+
+        var arreglotiposordenes = $('#tipoordenes_select').val(); 
+                  if (arreglotiposordenes) {
+                     //// alert("Ordenes: " + arreglotiposordenes.join(", "));
+                  } else {
+                    ////  alert("No hay valores seleccionados");
+                  }
+
+        var queDivision = document.getElementById("quedivision").value; 
+        
+
+        var queZona = document.getElementById("selectZona").value; 
+
+        var objSelZona = document.getElementById("selectZona");
+
+        var nomZona = queDivision + queZona.substring(2, 4) ; // objSelZona.options[objSelZona.selectedIndex].text;
+
+        //console.log(objSelZona.options[objSelZona.selectedIndex]);
+
+
+        var queFecha_ini = document.getElementById("fechaSeleccionada_inicial").value; 
+        var queFecha_fin = document.getElementById("fechaSeleccionada_final").value; 
+
+
+        var tablas_detalle = document.getElementById("tablas_detalle").checked;
+        var reporte_ejecutivo = document.getElementById("reporte_ejecutivo").checked;
+        var mostrar_resumen = document.getElementById("mostrar_resumen").checked;
+
+
+        $.ajax({
+          url: 'reportes_sicoss_pendientes_tabla_v3.php',
+          type: 'post',
+          data: {
+
+             'fecha' : queFecha_ini
+            ,'fechafin' : queFecha_fin
+            ,'selectzona' : ([].concat($('#selectZona').val() || []))
+            ,'selectdivision' : queDivision
+            ,'arreglotiposordenes' : arreglotiposordenes
+            ,'tablas_detalle' : tablas_detalle
+            ,'reporte_ejecutivo' : reporte_ejecutivo
+            ,'mostrar_resumen' : mostrar_resumen
+            ,'conv_q07_e' : document.getElementById("conv_q07_e").checked
+            ,'conv_qc2_q' : document.getElementById("conv_qc2_q").checked
+            ,'conv_qc7_q' : document.getElementById("conv_qc7_q").checked
+
+          },
+          beforeSend: function(){
+
+                            overlayInc('Elaborando tablas...');
+
+                            //$("#divGrafica_E0").hide();
+                            //$("#divGrafica_Q0").hide();
+
+                            ////$("#divMapa").hide();
+                            if(mostrar_resumen == true || tablas_detalle == true) {
+                              $("#divResumen").html(" <img height='50px' src='cargando_22.gif' /> Elaborando tablas de pendientes ...");
+                            }
+                            if(mostrar_resumen == true) {
+                              $("#divResumen_e_edomun").html(" <img height='50px' src='cargando_22.gif' /> Elaborando resumen de Emergencias por Estados y Municipios...");
+                              $("#divResumen_q_edomun").html(" <img height='50px' src='cargando_22.gif' /> Elaborando resumen de Quejas por Estados y Municipios...");
+                            }
+
+
+
+                        if(tablas_detalle == true) {  $("#divReporte").html(" <img height='50px' src='cargando_22.gif' /> Actualizando listado ...");   }
+
+                            //$("#divspinner").show();
+                          },
+          success: function(data){
+
+            
+            //$("#divspinner").hide();
+
+            //   $("#divGrafica_E0").show(); 
+            //   $("#divGrafica_Q0").show(); 
+
+                ////$("#divMapa").show(); 
+
+
+                const arregloTablas = data; //JSON.parse(data);
+
+
+                if(mostrar_resumen == true || tablas_detalle == true) {
+                  $("#divResumen").html(arregloTablas[0]);
+                }
+
+                if(mostrar_resumen == true) {
+                  $("#divResumen_e_edomun").html(arregloTablas[2]);
+                  $("#divResumen_q_edomun").html(arregloTablas[3]);
+                }
+
+
+                if(tablas_detalle == true) { $("#divReporte").html(arregloTablas[1]);  }  /// descomentar para ver listado
+                
+
+                /////////////  TABLE SORTER
+
+
+
+                var $table = $('table');
+                  $('.download').click(function(){
+            
+                  // alert('prueba');
+                    $('#tablatopten').trigger('outputTable');
+                });
+
+                ///////////  FIN TABLE SORTER
+
+
+
+                  
+
+
+                    $('#tablatopten').tablesorter({debug: false ,
+                    //theme: 'jui',
+                    showProcessing: true,
+                    // agrega widget, posibles opciones son : widgets: [ 'zebra', 'stickyHeaders', 'filter','scroller' ],
+                    widgets: [  'math','stickyHeaders','filter','output' ],
+                    sortList: [  [6,1]  ],
+                  // widgets: [ 'output','zebra', 'scroller','math'],
+                    //widthFixed : true,
+                    //headerTemplate : '{content} {icon}',
+                    widgetOptions : {
+
+                      
+                      // scroller
+                      scroller_fixedColumns: 4,
+                      scroller_height: 300,
+                      scroller_jumpToHeader: true,
+                      scroller_addFixedOverlay: false,
+                      scroll_barWidth: 5,
+
+                      
+                    
+                            filter_reset         : '.reset',
+                            
+
+                            filter_filteredRow   : 'filtered',
+                                          //filter_reset         : '.reset', 
+                                          filter_defaultAttrib : 'data-value',
+                                          filter_functions : {
+                      
+                                          // Add select menu to this column
+                                          // set the column value to true ( 0 : true  ) , and/or add 'filter-select' class name to header
+
+                                          1 : {
+                                              'DW01' : 'DW01',
+                                              'DW03' : 'DW03',
+                                              'DW04' : 'DW04',
+                                              'DW05' : 'DW05',
+                                              'DW06' : 'DW06',
+                                              'DW07' : 'DW07',
+                                              'DW08' : 'DW08',
+                                              'DW12' : 'DW12',
+                                              'DW22' : 'DW22'
+                                            },
+
+                                           /* 2 : {
+                                              'MERIDA' : 'MERIDA',
+                                              'TICUL' : 'TICUL',
+                                              'CAMPECHE' : 'CAMPECHE',
+                                              'CARMEN' : 'CARMEN',
+                                              'CHETUMAL' : 'CHETUMAL',
+                                              'TIZIMIN' : 'TIZIMIN',
+                                              'MOTUL' : 'MOTUL',
+                                              'CANCUN' : 'CANCUN',
+                                              'RIVIERA MAYA' : 'RIVIERA MAYA'
+                                            }, */
+                                            4 : {
+                                              'E*' : 'E*',
+                                              'E01' : 'E01',
+                                              'E03' : 'E03',
+                                              'E06' : 'E06',
+                                              'E07' : 'E07',
+                                              'Q*' : 'Q*',
+                                              'QC2' : 'QC2',
+                                              'QC7' : 'QC7'
+
+                                            },
+                                            8 : {
+                                              'Pend' : 'Pend',
+                                              'EnAt' : 'EnAt',
+                                              'PreA' : 'PreA'
+
+                                            },
+                                            10 : {
+                                              'Rural' : 'Rural',
+                                              'Urbana' : 'Urbana'
+                                            }
+                      
+                                          
+                                          },
+
+
+                            output_headerRows    : true,        // output all header rows (multiple rows)
+                            output_popupStyle    : 'width=580,height=310',
+                            output_saveFileName  : 'LISTADO_QE_PENDIETES.csv',
+                            output_delivery: 'download',
+                            // all, visible or filtered
+                            output_saveRows: 'filtered',
+                            // left double quote
+                            output_replaceQuote: '\u201c;',
+                            // if true, include any HTML within the table cell
+                            output_includeHTML: false,
+                            // remove extra whitespace before & after the cell content
+                            output_trimSpaces: true,
+                            // if true, wrap all output in quotes
+                            output_wrapQuotes: false,
+
+                            math_data     : 'math', // data-math attribute
+                            //math_ignore   : [0, 1],
+                            math_mask     : '#,##0.##',
+                            math_none     : 'N/A', // no matching math elements found (text added to cell)
+                  
+                            },
+                            initialized: function(table) {
+                              // Not an ideal solution to fix column alignment,
+                              // but it works (for now)
+                            // $(table).resize();
+                            }
+
+                    }).bind('filterEnd', function() {
+                    
+                  }).tablesorterPager({
+                container: $('.ts-pager'),
+                output: '{startRow} - {endRow} / {filteredRows} ({totalRows})',
+                size: 15000
+                });       
+                
+
+                $('#tablatopten').addClass('linktabla');
+
+ 
+                /*
+                $('#FormularioExportacion').show();
+
+              $('.botonExcel').click(function(event) {
+                // alert($('<div>').append( $('<table>').append($('#tablatopten tr:visible').eq(0).clone())).html()  );
+
+              $('#datos_a_enviar').val( $('<div>').append( $('<table>').append($('#tablatopten tr:visible').clone())).html()  );
+              $('#FormularioExportacion').submit();
+                      });  
+                      */
+
+            /////////////
+
+
+
+          }
+          ,complete: function(){ overlayDec(); }
+        });
+
+      }
+          
+
+function generarReporteCOE(skipAvisos) {
+
+        var queDivision = document.getElementById("quedivision").value;
+
+        var queDivision_text_obj = $("#quedivision").find(':selected');
+        var queDivision_text =  $(queDivision_text_obj).text();
+        var queDivision_key =  $(queDivision_text_obj).val();
+
+
+
+        var queZona = document.getElementById("selectZona").value; 
+
+        var queZona_text_obj = $("#selectZona").find(':selected');
+        
+        var queZona_text =  $(queZona_text_obj[0]).text();
+        var queZona_key=  $(queZona_text_obj[0]).val();
+
+        // Zonas seleccionadas (multi). "Todas" (-1) o vacío = sin filtro de zona.
+        var arregloZonas = [].concat($('#selectZona').val() || []);
+        var zonasSel = arregloZonas.filter(function(z){ return z && z !== '-1'; });
+        var hayZonas = zonasSel.length > 0;
+
+
+        if(queDivision == '' || queDivision =='XX') {
+
+         alert("Seleccione una división"); return 0;
+
+        }
+
+
+        var arreglotiposordenes = $('#tipoordenes_select').val(); 
+                  if (arreglotiposordenes) {
+                     //// alert("Ordenes: " + arreglotiposordenes.join(", "));
+                     if(arreglotiposordenes == '' || arreglotiposordenes =='-1') {
+
+                      alert("Debe seleccionar algun tipo de orden");
+                      return 0;
+
+                      }
+
+                  } else {
+                     alert("Debe seleccionar algun tipo de orden");
+                     return 0;
+                  }
+        
+
+
+
+        
+
+        var objSelZona = document.getElementById("selectZona");
+
+        var nomZona = '';
+
+        if ( hayZonas ) {
+
+          // Una o varias zonas seleccionadas.
+          if ( zonasSel.length === 1 ) {
+            nomZona += zonasSel[0] + ' - Zona '+ queZona_text.substring(7, queZona_text.length) ;
+          } else {
+            // Varias zonas: clave + nombre de cada una. El texto de la opción ya es "DW12 - Nombre".
+            var zonasTextos = $('#selectZona').find('option:selected').filter(function(){ return $(this).val() !== '-1'; }).map(function(){ return $.trim($(this).text()); }).get();
+            nomZona += zonasSel.length + ' zonas: ' + zonasTextos.join(', ') ;
+          }
+
+        } else if ( queDivision_key == '-1' ) {
+
+          nomZona += queDivision_text.substring(5, queDivision_text.length) ;
+
+        } else {
+
+          nomZona += queDivision_key + ' - División ' + queDivision_text.substring(5, queDivision_text.length) ;
+
+        }
+
+         
+        
+        var queFecha_ini = document.getElementById("fechaSeleccionada_inicial").value; 
+        var queFecha_fin = document.getElementById("fechaSeleccionada_final").value; 
+
+        var tablas_detalle = document.getElementById("tablas_detalle").checked; 
+        var reporte_ejecutivo = document.getElementById("reporte_ejecutivo").checked;
+        var check_listados_atendidas = document.getElementById("check_listados_atendidas").checked;
+
+        // Optimización: sólo descargar atendidas/generadas si alguna gráfica solicitada las necesita.
+        // En no-ejecutivo se necesitan siempre (las gráficas E0/Q0 incluyen esas series).
+        var ver_g_aten = document.getElementById("ver_g_aten").checked;
+        var ver_g_gen  = document.getElementById("ver_g_gen").checked;
+        var ver_g_tot  = document.getElementById("ver_g_tot").checked;
+
+        var req_atendidas = ( !reporte_ejecutivo || ver_g_aten || ver_g_tot || check_listados_atendidas );
+        var req_generadas = ( !reporte_ejecutivo || ver_g_gen  || ver_g_tot );
+
+        // Conversiones de tipo de orden (homologadas con las tablas)
+        var conv_q07_e = document.getElementById("conv_q07_e").checked;
+        var conv_qc2_q = document.getElementById("conv_qc2_q").checked;
+        var conv_qc7_q = document.getElementById("conv_qc7_q").checked;
+
+
+        // Aviso: el gráfico de Pendientes usa el corte de la hora en punto, que tarda ~3 minutos
+        // en quedar listo. Si la fecha final es HOY y aún no pasan 3 min de la hora, se avisa.
+        var ver_g_pend = document.getElementById("ver_g_pend").checked;
+        var necesitaPendientes = ( ver_g_pend || ver_g_tot || !reporte_ejecutivo );
+
+        var ahora = new Date();
+        var hoyStr = ahora.getFullYear() + '-' + ('0' + (ahora.getMonth() + 1)).slice(-2) + '-' + ('0' + ahora.getDate()).slice(-2);
+
+        if ( !skipAvisos && necesitaPendientes && queFecha_fin == hoyStr && ahora.getMinutes() < 3 ) {
+            var hh = ('0' + ahora.getHours()).slice(-2);
+            var msg = "El gráfico de Pendientes usa el corte de la hora en punto, que tarda unos 3 minutos en quedar listo.\n\n"
+                    + "Para las " + hh + ":00, genérelo a partir de las " + hh + ":03.\n\n"
+                    + "¿Desea continuar de todas formas?";
+            if ( !confirm(msg) ) { return 0; }
+        }
+
+
+
+        // Tope dinámico: 31 días en Nacional, 730 días (2 años) si hay una división seleccionada.
+        const dias_permitidos_listado = diasMaxPeriodo();
+
+        const fecha1 = new Date(queFecha_fin);
+        const fecha2 = new Date(queFecha_ini);
+        const diferenciaMs = fecha1 - fecha2;
+        const diferenciaDias = diferenciaMs / (1000 * 60 * 60 * 24);
+
+
+
+
+        if( check_listados_atendidas  == true   ) {
+
+
+            if ( !hayZonas ) {
+
+               alert("La opción -- Incluir listado atendidas -- solo debe seleccionarse a nivel de Zona (seleccione una o más zonas). Favor de ajustar sus opciones.");
+               return 0;
+
+            }
+            
+
+
+        } 
+
+
+            if(diferenciaDias > dias_permitidos_listado ) {
+
+               alert("El periodo de consulta no debe ser mayor a " +dias_permitidos_listado + " días. Su periodo actual es de "+diferenciaDias + " dias. Favor de ajustar el periodo de consulta.");
+               return 0;
+
+            }
+
+        
+            
+
+
+        // Aviso de PERIODO GRANDE (>31 días): la gráfica de Pendientes es rápida (BD directa), pero Atendidas,
+        // Generadas, Totales, Monitoreo y listados/resúmenes se consultan de SICOSS y pueden tardar varios minutos.
+        // Sólo se avisa si se piden datos pesados; el usuario puede continuar o cancelar para ajustar filtros.
+        if ( !skipAvisos && diferenciaDias > 31 ) {
+            var mostrar_resumen_chk = document.getElementById("mostrar_resumen").checked;
+            var hayPesado = ( req_atendidas || req_generadas || tablas_detalle || check_listados_atendidas || mostrar_resumen_chk );
+            if ( hayPesado ) {
+                // Modal propio: "Continuar" re-invoca la generación saltando los avisos; "Cancelar" no hace nada.
+                mostrarAvisoPeriodo( Math.round(diferenciaDias), function(){ generarReporteCOE(true); } );
+                return 0;
+            }
+        }
+
+
+        $("#divReporte").html("");
+        $("#divResumen").html("");
+
+        $("#divReporte_atendidas_E0").html("");
+        $("#divReporte_atendidas_Q0").html(""); 
+        $("#divppt").html("");
+
+        $("#divReporte_atendidas_E0").hide(); 
+        $("#divReporte_atendidas_Q0").hide();
+
+        $("#divppt").hide();
+       
+        
+
+        var divGrafica_E0 = document.getElementById("divGrafica_E0");
+        var divGrafica_Q0 = document.getElementById("divGrafica_Q0");
+        var divGrafica_G0 = document.getElementById("divGrafica_G0");
+        var divGrafica_TOT = document.getElementById("divGrafica_TOT");
+
+
+        
+        $.ajax({
+          url: 'reportes_sicoss_pendientes_getAtend.php',
+          type: 'post',
+          data: {
+
+             'fecha' : queFecha_ini 
+            ,'fechafin' : queFecha_fin
+            ,'selectzona' : ([].concat($('#selectZona').val() || [])) 
+            ,'selectdivision' : queDivision
+            ,'arreglotiposordenes': arreglotiposordenes
+            ,'tablas_detalle': tablas_detalle
+            ,'reporte_ejecutivo': reporte_ejecutivo
+            ,'check_listados_atendidas': check_listados_atendidas
+            ,'req_atendidas': req_atendidas
+            ,'req_generadas': req_generadas
+            ,'conv_q07_e': conv_q07_e
+            ,'conv_qc2_q': conv_qc2_q
+            ,'conv_qc7_q': conv_qc7_q
+
+          },
+          beforeSend: function(){
+
+                overlayInc('Recopilando datos de SICOSS. Puede tardar unos minutos...');
+                limpiarPendiente();
+                window._reporteInicio = new Date();   // inicio de la generación del reporte
+                $("#infoReporte").html('Generando reporte&hellip; Inicio: <b>' + fmtFechaHora(window._reporteInicio) + '</b>');
+
+                $("#divGrafica_E0").html("");
+                $("#divGrafica_Q0").html("");
+                $("#divGrafica_G0").html("");
+                $("#divGrafica_TOT").html("");
+                $("#divAvisoIntegridad").html("");
+                $("#divppt").html("");
+                $("#divppt").show();
+
+                if(check_listados_atendidas == true) {  
+
+                    $("#divReporte_atendidas_E0").show(); 
+                    $("#divReporte_atendidas_Q0").show();
+                      
+                    $("#divReporte_atendidas_E0").html(" <img height='50px' src='cargando_22.gif' /> Actualizando listado emergencias atendidas ...");   
+                    $("#divReporte_atendidas_Q0").html(" <img height='50px' src='cargando_22.gif' /> Actualizando listado quejas atendidas ...");   
+
+                }
+
+                $("div").remove(".highcharts-data-table");
+
+                $("#divReporte").html(""); 
+                $("#divResumen").html("");
+                $("#divResumen_e_edomun").html("");                           
+                $("#divResumen_q_edomun").html("");  
+
+                },
+          success: function(data){
+
+          
+              if (divGrafica_E0.style.opacity !== undefined) {
+
+                divGrafica_E0.style.opacity = 1;
+
+              } else {
+
+                //alert("Your browser doesn't support this example!");
+
+              }
+
+
+              if (divGrafica_Q0.style.opacity !== undefined) {
+
+                divGrafica_Q0.style.opacity = 1;
+
+              } else {
+
+                //alert("Your browser doesn't support this example!");
+
+              }
+                ////////--console.log( data );
+
+
+                const arregloEstadisticos = data; // JSON.parse(data);
+
+                Object.entries(arregloEstadisticos).forEach((entry) => {
+
+                  const [key, value] = entry;
+                  ////////--console.log(`${key}: ${value}`);
+
+                });
+                        
+
+
+                var eje_x = arregloEstadisticos['eje_x'];
+                var valores_emergencias_pendientes = arregloEstadisticos['valores_emergencias_pendientes'];
+                var valores_quejas_pendientes = arregloEstadisticos['valores_quejas_pendientes'];
+                var valores_emergencias_atendidas = arregloEstadisticos['valores_emergencias_atendidas'];
+                var valores_emergencias_atendidas_acum = arregloEstadisticos['valores_emergencias_atendidas_acum'];
+                var valores_emergencias_generadas = arregloEstadisticos['valores_emergencias_generadas'];
+                var valores_emergencias_generadas_acum = arregloEstadisticos['valores_emergencias_generadas_acum'];
+                var valores_quejas_atendidas = arregloEstadisticos['valores_quejas_atendidas'];
+                var valores_quejas_atendidas_acum = arregloEstadisticos['valores_quejas_atendidas_acum'];
+                var valores_quejas_generadas = arregloEstadisticos['valores_quejas_generadas'];
+                var valores_quejas_generadas_acum = arregloEstadisticos['valores_quejas_generadas_acum'];
+
+                // Delta Q07 por hora (para aplicar la conversión Q07->Emergencia en vivo en el cliente)
+                var valores_q07_pendientes = arregloEstadisticos['valores_q07_pendientes'];
+                var valores_q07_atendidas  = arregloEstadisticos['valores_q07_atendidas'];
+                var valores_q07_generadas  = arregloEstadisticos['valores_q07_generadas'];
+
+
+                var valores_quejas_pendientes_detalle = arregloEstadisticos['valores_quejas_pendientes_detalle'];
+                var valores_emergencias_pendientes_detalle = arregloEstadisticos['valores_emergencias_pendientes_detalle'];
+
+                var valores_emergencias_atendidas_detalle = arregloEstadisticos['valores_emergencias_atendidas_detalle'];
+                var valores_quejas_atendidas_detalle = arregloEstadisticos['valores_quejas_atendidas_detalle'];
+                var valores_emergencias_generadas_detalle = arregloEstadisticos['valores_emergencias_generadas_detalle'];
+                var valores_quejas_generadas_detalle = arregloEstadisticos['valores_quejas_generadas_detalle'];
+
+                var html_LISTADO_ATENDIDAS_E0 = arregloEstadisticos['html_LISTADO_ATENDIDAS_E0'];
+                var html_LISTADO_ATENDIDAS_Q0 = arregloEstadisticos['html_LISTADO_ATENDIDAS_Q0'];
+                // El botón de PPT ahora es estático y siempre visible (#btnPPT, junto a Actualizar);
+                // ya no se inyecta dinámicamente aquí. Se deja $("#divppt") sin uso.
+                // var html_ppt = arregloEstadisticos['html_ppt'];
+                // $("#divppt").html(html_ppt);
+
+
+                // ----- Aviso de integridad de descargas (SICOSS) -----
+                var integridad = arregloEstadisticos['integridad'];
+                if (integridad && integridad.ok === false && integridad.fallos && integridad.fallos.length > 0) {
+
+                    var aviso = '<div style="padding:10px 14px; border:1px solid #e0a800; background:#fff3cd; color:#664d03; border-radius:6px; font-size:12px; text-align:left;">';
+                    aviso += '<strong>&#9888; Datos incompletos.</strong> Algunas descargas a SICOSS fallaron; se grafica s&oacute;lo la informaci&oacute;n disponible. Las series sin dato aparecen como hueco (no como cero).<ul style="margin:6px 0 0 18px; padding:0;">';
+
+                    integridad.fallos.forEach(function(f){
+                        aviso += '<li>Divisi&oacute;n <b>' + f.zona + '</b> &mdash; ' + f.tipo + ' <i>(' + f.motivo + ')</i>';
+                        if (f.url) {
+                            aviso += '<br><span style="font-size:11px;">URL que fall&oacute;: <a href="' + f.url + '" target="_blank" style="color:#664d03; text-decoration:underline; word-break:break-all;">' + f.url + '</a></span>';
+                        }
+                        aviso += '</li>';
+                    });
+
+                    aviso += '</ul>';
+                    aviso += '<div style="margin-top:8px; font-weight:bold;">&#8635; Vuelva a ejecutar la consulta (bot&oacute;n <em>Actualizar</em>) para reintentar las descargas que fallaron.</div>';
+                    aviso += '</div>';
+                    $("#divAvisoIntegridad").html(aviso);
+
+                } else {
+
+                    $("#divAvisoIntegridad").html("");
+                }
+
+
+                 if(check_listados_atendidas == true) {
+                  $("#divReporte_atendidas_E0").html(html_LISTADO_ATENDIDAS_E0); 
+                  $("#divReporte_atendidas_Q0").html(html_LISTADO_ATENDIDAS_Q0); 
+                 }
+                
+
+
+
+                if(eje_x  == 'fuera de tiempo') {
+
+                  alert(' Esperar 3 minutos después de la hora en punto para generar el reporte');
+                  return 0;
+
+                }
+
+
+                //console.log(arregloEstadisticos['eje_x']);
+
+
+                //////// parametros del grafico segun la cantidad de dias del periodo seleccionado
+                
+                var labelx_rotacion = 0;
+                var labelx_prefijo ='';
+                var labelx_fontsize ='9px';
+                var title_periodo = queFecha_fin.substr(8,2)+'-'+queFecha_fin.substr(5,2)+'-'+queFecha_fin.substr(0,4);
+
+                
+                if(diferenciaDias > 0 ) {
+
+                  divGrafica_E0.style.width = '95%';
+                  divGrafica_E0.style.height = '400px';
+                  divGrafica_Q0.style.width = '95%';
+                  divGrafica_Q0.style.height = '400px';
+                  divGrafica_G0.style.width = '95%';
+                  divGrafica_G0.style.height = '400px';
+                  divGrafica_TOT.style.width = '95%';
+                  divGrafica_TOT.style.height = '400px';
+
+                  title_periodo = 'del ' + queFecha_ini.substr(8,2)+'-'+queFecha_ini.substr(5,2)+'-'+queFecha_ini.substr(0,4) + '  al  ' + queFecha_fin.substr(8,2)+'-'+queFecha_fin.substr(5,2)+'-'+queFecha_fin.substr(0,4);
+                  labelx_rotacion = -45;
+                  labelx_fontsize ='9px';
+                  labelx_prefijo = true;
+
+
+                } else {
+
+                  divGrafica_E0.style.width = '900px';
+                  divGrafica_E0.style.height = '400px';
+                  divGrafica_Q0.style.width = '900px';
+                  divGrafica_Q0.style.height = '400px';
+                  divGrafica_G0.style.width = '900px';
+                  divGrafica_G0.style.height = '400px';
+                  divGrafica_TOT.style.width = '900px';
+                  divGrafica_TOT.style.height = '400px';
+
+                  labelx_rotacion = 0;
+                  labelx_fontsize ='9px';
+                  labelx_prefijo = false;
+                  title_periodo = queFecha_fin.substr(8,2)+'-'+queFecha_fin.substr(5,2)+'-'+queFecha_fin.substr(0,4);
+
+                }
+
+
+                //////// generar grafico
+
+
+                configurarGraficos(title_periodo,labelx_rotacion, labelx_fontsize, labelx_prefijo
+                ,queFecha_ini, queFecha_fin,queZona,nomZona,eje_x,valores_emergencias_pendientes,valores_quejas_pendientes,valores_emergencias_atendidas
+                ,valores_emergencias_atendidas_acum,valores_emergencias_generadas
+                ,valores_emergencias_generadas_acum,valores_quejas_atendidas,valores_quejas_atendidas_acum
+                ,valores_quejas_generadas,valores_quejas_generadas_acum
+                ,valores_quejas_pendientes_detalle,valores_emergencias_pendientes_detalle,valores_emergencias_atendidas_detalle
+                ,valores_quejas_atendidas_detalle,valores_emergencias_generadas_detalle,valores_quejas_generadas_detalle
+                ,valores_q07_pendientes,valores_q07_atendidas,valores_q07_generadas );
+
+                // Sólo pedir las tablas (resumen zonas/edos/mun y/o listado) si se necesitan.
+                // Si ambas están apagadas, se omite por completo la llamada a tabla_v3.php (ahorra descargas por zona).
+                var mostrar_resumen = document.getElementById("mostrar_resumen").checked;
+
+                if(mostrar_resumen == true || tablas_detalle == true) {
+
+                    obtenerTablas();
+
+                } else {
+
+                    $("#divResumen").html("");
+                    $("#divResumen_e_edomun").html("");
+                    $("#divResumen_q_edomun").html("");
+                    $("#divReporte").html("");
+                }
+
+          
+
+
+          }
+          ,complete: function(){ overlayDec(); }
+        });
+
+
+              
+  }
+
+
+function generarPPT() {
+
+  // PPT multi-zona (Fase 2): el .pptx es binario; se pide por AJAX como BLOB y se dispara la descarga
+  // en el cliente (sin pestaña nueva). Las zonas se envían como arreglo (clave-nombre "DW12,DX13").
+  var arreglotiposordenes = $('#tipoordenes_select').val() || [];
+  var queDivision = document.getElementById("quedivision").value;
+  var zonasPPT = [].concat($('#selectZona').val() || []).filter(function(z){ return z && z !== '-1'; });
+
+  if (zonasPPT.length === 0) { alert('Seleccione una o más zonas para generar el PPT.'); return; }
+
+  // El PPT consulta SICOSS por el periodo: no se permite un rango mayor a 31 días.
+  var fIniPPT = document.getElementById("fechaSeleccionada_inicial").value;
+  var fFinPPT = document.getElementById("fechaSeleccionada_final").value;
+  var diasPPT = (new Date(fFinPPT) - new Date(fIniPPT)) / (1000 * 60 * 60 * 24);
+  if (isNaN(diasPPT) || diasPPT < 0) { alert('Revise las fechas seleccionadas para el PPT.'); return; }
+  if (diasPPT > 31) {
+      alert('El PPT de afectaciones no permite un periodo mayor a 31 días.\nSu periodo actual es de ' + Math.round(diasPPT) + ' días. Ajuste las fechas.');
+      return;
+  }
+
+  var params = new URLSearchParams();
+  params.append('fecha', document.getElementById("fechaSeleccionada_inicial").value);
+  params.append('fechafin', document.getElementById("fechaSeleccionada_final").value);
+  params.append('selectzona', zonasPPT.join(','));                 // backend: explode(',') -> arreglo de zonas
+  params.append('selectdivision', queDivision);
+  params.append('arreglotiposordenes', arreglotiposordenes.join(','));
+  params.append('tablas_detalle', document.getElementById("tablas_detalle").checked);
+  params.append('reporte_ejecutivo', document.getElementById("reporte_ejecutivo").checked);
+
+  if (typeof overlayInc === 'function') { overlayInc('Generando PPT de afectaciones...'); }
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', 'ppt_afectaciones_v2.php', true);
+  xhr.responseType = 'blob';
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+
+  xhr.onload = function () {
+      if (typeof overlayDec === 'function') { overlayDec(); }
+      if (xhr.status !== 200) { alert('No se pudo generar el PPT (HTTP ' + xhr.status + ').'); return; }
+      var blob = xhr.response;
+      var filename = 'afectaciones.pptx';
+      var cd = xhr.getResponseHeader('Content-Disposition');
+      if (cd) { var m = /filename="?([^";]+)"?/i.exec(cd); if (m && m[1]) { filename = m[1]; } }
+      var url = window.URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+  };
+  xhr.onerror = function () {
+      if (typeof overlayDec === 'function') { overlayDec(); }
+      alert('Error de red al generar el PPT de afectaciones.');
+  };
+
+  xhr.send(params.toString());
+}
+  
+/* ===== DESACTIVADO: versión ajax antigua de generarPPT. La ACTIVA es la versión XHR/blob de arriba. No usar. =====
+function generarPPT() {
+
+        var arreglotiposordenes = $('#tipoordenes_select').val();
+                  if (arreglotiposordenes) {
+                     //// alert("Ordenes: " + arreglotiposordenes.join(", "));
+                  } else {
+                    ////  alert("No hay valores seleccionados");
+                  }
+
+        var queDivision = document.getElementById("quedivision").value; 
+
+        var queZona = document.getElementById("selectZona").value; 
+
+        var objSelZona = document.getElementById("selectZona");
+
+        var nomZona = queDivision + queZona.substring(2, 4) ; 
+
+        var queFecha_ini = document.getElementById("fechaSeleccionada_inicial").value; 
+        var queFecha_fin = document.getElementById("fechaSeleccionada_final").value; 
+
+        var tablas_detalle = document.getElementById("tablas_detalle").checked; 
+        var reporte_ejecutivo = document.getElementById("reporte_ejecutivo").checked; 
+        
+
+        $.ajax({
+          url: 'ppt_afectaciones_v2.php',
+          type: 'post',
+          data: {
+
+             'fecha' : queFecha_ini
+            ,'fechafin' : queFecha_fin
+            // PPT multi-zona (Fase 2): se envía el arreglo de zonas seleccionadas.
+            ,'selectzona' : ([].concat($('#selectZona').val() || []))
+            ,'selectdivision' : queDivision
+            ,'arreglotiposordenes' : arreglotiposordenes
+            ,'tablas_detalle' : tablas_detalle
+            ,'reporte_ejecutivo' : reporte_ejecutivo
+
+          },
+          beforeSend: function(){
+                        
+          },
+          success: function(data){
+
+            const arregloTablas = data; //JSON.parse(data);
+
+          }
+        });
+
+  } */
+
+  $( document ).ready(function() {
+
+        // La columna "Mostrar gráficas" sólo aplica en modo ejecutivo
+        function toggleColGraficas() {
+            $("#col_mostrar_graficas").toggle( $("#reporte_ejecutivo").is(":checked") );
+        }
+        $("#reporte_ejecutivo").on("change", toggleColGraficas);
+        toggleColGraficas();
+
+        // Opciones de sólo-visualización: al cambiarlas, re-dibujar con los datos ya cargados
+        // (sin volver a consultar). Si aún no hay datos, no hace nada.
+        $("#linea_suave, #ver_etiquetas, #ver_sombra, #tam_etiqueta, #conv_q07_e, #graficas_detalle, #ver_por_dia, #grosor_linea, #tam_marcador, #grosor_linea_det, #tam_marcador_det").on("change", function(){
+            refrescarGraficas();
+        });
+
+        // Opciones que SÍ requieren consulta: al cambiarlas, marcar el botón Actualizar como "pendiente"
+        $("#quedivision, #selectZona, #tipoordenes_select, #fechaSeleccionada_inicial, #fechaSeleccionada_final, #reporte_ejecutivo, #mostrar_resumen, #check_listados_atendidas, #tablas_detalle, #ver_g_pend, #ver_g_aten, #ver_g_gen, #ver_g_tot, #conv_qc2_q, #conv_qc7_q").on("change", function(){
+            limitarDesdeSegunHasta();  // el tope de días depende de la división (Nacional=31 / división=730)
+            aplicarReglasFiltros();
+            marcarPendiente();
+        });
+
+        // Q07 a Emergencias: en las GRÁFICAS se aplica en vivo (no reconsulta); pero las TABLAS (Monitoreo pendientes /
+        // resumen por zona) lo resuelven server-side al generar. Por eso, si hay alguna tabla activa, al cambiar Q07 se
+        // marca el reporte como pendiente para que la tabla se regenere y refleje la conversión.
+        $("#conv_q07_e").on("change", function(){
+            if ( $("#tablas_detalle").is(":checked") || $("#mostrar_resumen").is(":checked") ) { marcarPendiente(); }
+        });
+
+        // Eventos propios de select2 (división, zona, tipos de orden), por si el 'change' no se propaga
+        $("#quedivision, #selectZona, #tipoordenes_select").on("select2:select select2:unselect select2:clear", function(){
+            limitarDesdeSegunHasta();  // el tope de días depende de la división (Nacional=31 / división=730)
+            aplicarReglasFiltros();
+            marcarPendiente();
+        });
+
+        // Estado inicial de las reglas del filtro (periodo / división)
+        aplicarReglasFiltros();
+
+        // La nota de Pendientes sólo se muestra si AHORA estamos dentro de los primeros 3 minutos de la hora
+        if ( new Date().getMinutes() < 3 ) {
+            $("#nota_pendientes").show();
+        }
+
+        // ----- Barra flotante de opciones EN VIVO cuando el filtro sale de vista -----
+        (function(){
+            var pares = [
+                ['f_linea_suave',  'linea_suave'],
+                ['f_ver_etiquetas','ver_etiquetas'],
+                ['f_ver_sombra',   'ver_sombra'],
+                ['f_tam_etiqueta', 'tam_etiqueta'],
+                ['f_conv_q07_e',   'conv_q07_e'],
+                ['f_graficas_detalle', 'graficas_detalle'],
+                ['f_ver_por_dia',  'ver_por_dia'],
+                ['f_grosor_linea',     'grosor_linea'],
+                ['f_tam_marcador',     'tam_marcador'],
+                ['f_grosor_linea_det', 'grosor_linea_det'],
+                ['f_tam_marcador_det', 'tam_marcador_det']
+            ];
+            // Copiar estado real -> flotante (al abrir el panel)
+            function sincronizarHaciaFlotante() {
+                pares.forEach(function(p){
+                    var f = document.getElementById(p[0]), r = document.getElementById(p[1]);
+                    if (!f || !r) { return; }
+                    if (r.type === 'checkbox') { f.checked = r.checked; } else { f.value = r.value; }
+                });
+            }
+            // Cambio en el flotante -> aplicar al control real y disparar su 'change' (refresca en vivo)
+            pares.forEach(function(p){
+                $('#'+p[0]).on('change', function(){
+                    var f = document.getElementById(p[0]), r = document.getElementById(p[1]);
+                    if (r.type === 'checkbox') { r.checked = f.checked; } else { r.value = f.value; }
+                    $(r).trigger('change');
+                });
+            });
+            // Abrir/cerrar el panel
+            $('#fabOpcionesBtn').on('click', function(){
+                var $p = $('#panelOpcionesFlotante');
+                if ($p.is(':visible')) { $p.hide(); } else { sincronizarHaciaFlotante(); $p.show(); }
+            });
+            // Mostrar el botón cuando ~la mitad de la sección de opciones ya se ocultó por arriba.
+            function actualizarFab() {
+                var t = document.getElementById('tablaOpciones');
+                if (!t) { return; }
+                var rect = t.getBoundingClientRect();
+                if (rect.top + rect.height / 2 < 0) {
+                    $('#fabOpciones').show();
+                } else {
+                    $('#fabOpciones').hide();
+                    $('#panelOpcionesFlotante').hide();
+                }
+            }
+            $(window).on('scroll resize', actualizarFab);
+            actualizarFab();
+        })();
+
+
+        getItemsSelector_add('getDivisiones.php', $('#quedivision'),'-1','D0 - Nacional','' );
+        // El select de zonas NO se puebla al iniciar: se llena sólo al elegir una división/Nacional
+        // (el onchange del select de división dispara getZonas con la división elegida).
+        // getItemsSelector('getZonas.php?division=-1', $('#selectZona'),'-1','Todas','' );
+        getItemsSelector('getTiposOrdenes.php?division=-1', $('#tipoordenes_select'),'','','' );
+
+
+    
+
+
+
+         
+                $.datepicker.setDefaults($.datepicker.regional["es"]);
+
+
+                $("#fechaSeleccionada_inicial").datepicker({
+                  maxDate: "+0m +0w",
+                  //minDate: "2023-07-02",
+                  monthNames: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+                  dayNames: ["Dom","Lun","Mar","Mie","Juv","Vie","Sab"],
+                  dayNamesMin: ["Do","Lu","Ma","Mi","Ju","Vi","Sa"],
+                  navigationAsDateFormat: true,
+                  dateFormat: "yy-mm-dd",
+                  showWeek: true,
+                  weekHeader: "S",
+                  firstDay: 1,
+                  showButtonPanel: true,
+                  currentText: "H",
+                  closeText: "Cerrar",
+                  onSelect: function(){ aplicarReglasFiltros(); marcarPendiente(); }
+
+                });
+
+                $("#fechaSeleccionada_final").datepicker({
+                  maxDate: "+0m +0w",
+                  //minDate: "2023-07-02",
+                  monthNames: ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"],
+                  dayNames: ["Dom","Lun","Mar","Mie","Juv","Vie","Sab"],
+                  dayNamesMin: ["Do","Lu","Ma","Mi","Ju","Vi","Sa"],
+                  navigationAsDateFormat: true,
+                  dateFormat: "yy-mm-dd",
+                  showWeek: true,
+                  weekHeader: "S",
+                  firstDay: 1,
+                  showButtonPanel: true,
+                  currentText: "H",
+                  closeText: "Cerrar",
+                  onSelect: function(){ limitarDesdeSegunHasta(); aplicarReglasFiltros(); marcarPendiente(); }
+
+                });
+
+                // Estado inicial: acotar "Desde" según la fecha "Hasta" actual
+                limitarDesdeSegunHasta();
+
+
+       $('#quedivision').select2({
+            
+            tags: false
+            ,placeholder: " - Seleccionar - "
+            ,width: '200px'      
+            ,closeOnSelect : true
+            ,allowClear: false
+            ,minimumResultsForSearch: 20
+            //,maximumSelectionSize: 1
+            //,minimumInputLength: 0
+            ,multiple: false
+            ,language: {
+                  inputTooShort: function () {
+                    return "Debe introducir mas caracteres...";
+                  },
+                  noResults: function () {
+                    return 'Sin resultados';
+                  },
+                  searching: function () {
+                    return 'Buscando…';
+                  },
+                  removeAllItems: function () {
+                    return 'Remover todos los items';
+                  },
+                  removeItem: function () {
+                    return 'Remover item';
+                  },
+                  search: function() {
+                    return 'Buscar';
+                }
+                  
+              }
+
+            //,dropdownParent: $('#enterInformationModal')
+        
+        });
+
+
+      $('#selectZona').select2({
+            
+            tags: false
+            ,placeholder: " - Todas - "
+            ,width: '200px'
+            ,closeOnSelect : false
+            ,allowClear: true
+            ,minimumResultsForSearch: 10
+            ,language: {
+                  inputTooShort: function () {
+                    return "Debe introducir mas caracteres...";
+                  },
+                  noResults: function () {
+                    return 'Sin resultados';
+                  },
+                  searching: function () {
+                    return 'Buscando…';
+                  },
+                  removeAllItems: function () {
+                    return 'Remover todos los items';
+                  },
+                  removeItem: function () {
+                    return 'Remover item';
+                  },
+                  search: function() {
+                    return 'Buscar';
+                }
+                  
+              }
+            //,maximumSelectionSize: 1
+            //,minimumInputLength: 0
+            ,multiple: true
+            //,dropdownParent: $('#enterInformationModal')
+
+        });
+
+
+        $('#tipoordenes_select').select2({
+
+            tags: false
+            ,placeholder: "Seleccionar..."
+            ,width: '360px'
+            ,closeOnSelect : false
+            ,allowClear: true
+            ,language: {
+                  inputTooShort: function () {
+                    return "Debe introducir mas caracteres...";
+                  },
+                  noResults: function () {
+                    return 'Sin resultados';
+                  },
+                  searching: function () {
+                    return 'Buscando…';
+                  },
+                  removeAllItems: function () {
+                    return 'Remover todos los items';
+                  },
+                  removeItem: function () {
+                    return 'Remover item';
+                  },
+                  search: function() {
+                    return 'Buscar';
+                }
+                  
+              }
+        
+            //,maximumSelectionSize: 1
+            //,minimumInputLength: 0
+           
+            //,multiple: true
+            //,dropdownParent: $('#enterInformationModal')
+            ,templateSelection: function (data) {
+                    // Retorna solo el valor de la opción seleccionada (data.id es el valor del <option>)
+                    return data.id;
+                }
+        
+        });
+
+
+
+          // Evento click para obtener valores seleccionados
+          $('#tipoordenes_select').change(function() {
+            
+            });
+        
+        
+
+        /*
+        $(function() {
+
+                $('#tipoordenes_select').change(function() {
+                    console.log($(this).val());
+                }).multipleSelect({
+                    width: '100px'
+                });
+
+          });*/
+
+  });
+
+</script>
+
+</body>
+</html>

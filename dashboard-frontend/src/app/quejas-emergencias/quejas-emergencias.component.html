@@ -1,0 +1,350 @@
+<div class="qe-wrapper">
+
+  <app-nav></app-nav>
+  <app-date-range-bar></app-date-range-bar>
+
+  <!-- ==============================
+       ENCABEZADO
+  =============================== -->
+  <div class="dash-header mb-3">
+    <h1>Quejas y Emergencias</h1>
+    <p class="dash-subtitle">Monitoreo en vivo de emergencias y quejas — sistema sisquem</p>
+  </div>
+
+  <!-- ==============================
+       CONTROLES
+  =============================== -->
+  <div class="card shadow-sm p-3 mb-3">
+    <div class="row g-3 align-items-start">
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">
+          Zona
+          <span *ngIf="zonasLoading" class="spinner-border spinner-border-sm ms-1" role="status"></span>
+        </label>
+        <select [(ngModel)]="selectedZona" class="form-select" [disabled]="status === 'LOADING'">
+          <option *ngFor="let z of zonas" [value]="z.value">{{ z.label }}</option>
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label class="form-label fw-semibold">
+          Tipos de orden
+        </label>
+        <div class="qe-dropdown-actions">
+          <a href="javascript:void(0)" (click)="seleccionarTodosTipos()">Todos</a>
+          <a href="javascript:void(0)" (click)="limpiarTipos()">Ninguno</a>
+        </div>
+        <div class="qe-checklist-grid">
+          <label class="qe-check-item" *ngFor="let t of TIPOS_ORDEN">
+            <input type="checkbox" [checked]="selectedTipos.includes(t)" (change)="toggleTipo(t)" [disabled]="status === 'LOADING'">
+            {{ t }}
+          </label>
+        </div>
+      </div>
+
+      <div class="col-md-4 d-flex flex-column justify-content-end h-100">
+        <button class="btn btn-success" (click)="consultar()" [disabled]="status === 'LOADING'">
+          <span *ngIf="status !== 'LOADING'">Consultar</span>
+          <span *ngIf="status === 'LOADING'">
+            <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            Consultando…
+          </span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==============================
+       ESTADOS
+  =============================== -->
+  <div *ngIf="status === 'WAITING'" class="alert alert-secondary">
+    Elige un rango de fechas y pulsa <strong>Consultar</strong>. Deja "Zona(s)" vacío para consultar todas.
+  </div>
+
+  <div *ngIf="status === 'LOADING'" class="alert alert-info">
+    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+    Consultando el sistema de Quejas y Emergencias…
+  </div>
+
+  <div *ngIf="status === 'ERROR'" class="alert alert-danger">
+    {{ errorMsg }}
+  </div>
+
+  <div *ngIf="status === 'SUCCESS' && !integridadOk" class="alert alert-warning">
+    El sistema reportó una descarga incompleta de alguna de sus fuentes internas — los datos podrían estar parciales.
+  </div>
+
+  <div *ngIf="status === 'SUCCESS' && !data?.graficas?.ejeX?.length" class="alert alert-warning">
+    El reporte no devolvió datos para el rango/filtros elegidos.
+    Revisa <code>/api/data/quejas-emergencias/debug</code> en el servidor para diagnosticar.
+  </div>
+
+  <!-- ==============================
+       RESUMEN GENERAL (vivo, igual que sisquem) — mismo estilo kpi-card que /dashboard
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && data?.resumenGlobal" class="kpi-analytics-section mb-3">
+
+    <h5 class="section-title">Emergencias</h5>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4 col-6">
+        <div class="kpi-card kpi-neutral">
+          <span class="kpi-label">Pendientes</span>
+          <span class="kpi-value">{{ data?.resumenGlobal?.emergenciasPendientes ?? 0 | number }}</span>
+        </div>
+      </div>
+      <div class="col-md-4 col-6">
+        <div class="kpi-card kpi-danger">
+          <span class="kpi-label">Vencidas</span>
+          <span class="kpi-value">{{ data?.resumenGlobal?.emergenciasVencidas ?? 0 | number }}</span>
+        </div>
+      </div>
+      <div class="col-md-4 col-6">
+        <div class="kpi-card kpi-success">
+          <span class="kpi-label">En atención</span>
+          <span class="kpi-value">{{ data?.resumenGlobal?.emergenciasEnAtencion ?? 0 | number }}</span>
+        </div>
+      </div>
+    </div>
+
+    <h5 class="section-title">Quejas</h5>
+    <div class="row g-3">
+      <div class="col-md-4 col-6">
+        <div class="kpi-card kpi-neutral">
+          <span class="kpi-label">Pendientes</span>
+          <span class="kpi-value">{{ data?.resumenGlobal?.quejasPendientes ?? 0 | number }}</span>
+        </div>
+      </div>
+      <div class="col-md-4 col-6">
+        <div class="kpi-card kpi-danger">
+          <span class="kpi-label">Vencidas</span>
+          <span class="kpi-value">{{ data?.resumenGlobal?.quejasVencidas ?? 0 | number }}</span>
+        </div>
+      </div>
+      <div class="col-md-4 col-6">
+        <div class="kpi-card kpi-success">
+          <span class="kpi-label">En atención</span>
+          <span class="kpi-value">{{ data?.resumenGlobal?.quejasEnAtencion ?? 0 | number }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ==============================
+       KPI POR TIPO DE ORDEN — mismo estilo kpi-card
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && kpiTipos.length" class="row g-2 mb-3">
+    <div class="col-6 col-md-3 col-lg-2" *ngFor="let k of kpiTipos">
+      <div class="kpi-card" [class.kpi-info]="k.tipo.charAt(0) === 'E'" [class.kpi-warning]="k.tipo.charAt(0) === 'Q'">
+        <span class="kpi-label">{{ k.tipo }}</span>
+        <span class="kpi-value">{{ k.count }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       GRÁFICAS
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && data?.graficas?.ejeX?.length" class="row g-3 mb-3">
+    <div class="col-md-6" *ngFor="let def of chartDefs">
+      <div class="card shadow-sm p-2">
+        <div class="chart-box">
+          <canvas [id]="def.id"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       RESUMEN POR ZONA
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && (resumenEmergenciasCols.length || resumenQuejasCols.length)" class="row g-3 mb-3">
+    <div class="col-md-6" *ngIf="resumenEmergenciasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Emergencias pendientes por zona</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.resumenEmergencias, 'emergencias_pendientes_zona.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-resumen-table">
+            <thead><tr><th *ngFor="let c of resumenEmergenciasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.resumenEmergencias" [class.fw-bold]="isRowTotal(row, resumenEmergenciasCols)" [class.table-secondary]="isRowTotal(row, resumenEmergenciasCols)">
+                <td *ngFor="let c of resumenEmergenciasCols">{{ row[c] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" *ngIf="resumenQuejasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Quejas pendientes por zona</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.resumenQuejas, 'quejas_pendientes_zona.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-resumen-table">
+            <thead><tr><th *ngFor="let c of resumenQuejasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.resumenQuejas" [class.fw-bold]="isRowTotal(row, resumenQuejasCols)" [class.table-secondary]="isRowTotal(row, resumenQuejasCols)">
+                <td *ngFor="let c of resumenQuejasCols">{{ row[c] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       RESUMEN POR ESTADO / MUNICIPIO
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && (resumenEstadoEmergenciasCols.length || resumenEstadoQuejasCols.length)" class="row g-3 mb-3">
+    <div class="col-md-3" *ngIf="resumenEstadoEmergenciasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Emergencias pendientes por Estado</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.resumenEstadoEmergencias, 'emergencias_pendientes_estado.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-resumen-table">
+            <thead><tr><th *ngFor="let c of resumenEstadoEmergenciasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.resumenEstadoEmergencias" [class.fw-bold]="isRowTotal(row, resumenEstadoEmergenciasCols)" [class.table-secondary]="isRowTotal(row, resumenEstadoEmergenciasCols)">
+                <td *ngFor="let c of resumenEstadoEmergenciasCols">{{ row[c] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3" *ngIf="resumenMunicipioEmergenciasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Emergencias pendientes por Municipio</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.resumenMunicipioEmergencias, 'emergencias_pendientes_municipio.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-resumen-table">
+            <thead><tr><th *ngFor="let c of resumenMunicipioEmergenciasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.resumenMunicipioEmergencias" [class.fw-bold]="isRowTotal(row, resumenMunicipioEmergenciasCols)" [class.table-secondary]="isRowTotal(row, resumenMunicipioEmergenciasCols)">
+                <td *ngFor="let c of resumenMunicipioEmergenciasCols">{{ row[c] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3" *ngIf="resumenEstadoQuejasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Quejas pendientes por Estado</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.resumenEstadoQuejas, 'quejas_pendientes_estado.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-resumen-table">
+            <thead><tr><th *ngFor="let c of resumenEstadoQuejasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.resumenEstadoQuejas" [class.fw-bold]="isRowTotal(row, resumenEstadoQuejasCols)" [class.table-secondary]="isRowTotal(row, resumenEstadoQuejasCols)">
+                <td *ngFor="let c of resumenEstadoQuejasCols">{{ row[c] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3" *ngIf="resumenMunicipioQuejasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Quejas pendientes por Municipio</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.resumenMunicipioQuejas, 'quejas_pendientes_municipio.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-resumen-table">
+            <thead><tr><th *ngFor="let c of resumenMunicipioQuejasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.resumenMunicipioQuejas" [class.fw-bold]="isRowTotal(row, resumenMunicipioQuejasCols)" [class.table-secondary]="isRowTotal(row, resumenMunicipioQuejasCols)">
+                <td *ngFor="let c of resumenMunicipioQuejasCols">{{ row[c] }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       TABLA DETALLE (con color condicional)
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && (detalleEmergenciasCols.length || detalleQuejasCols.length)" class="row g-3 mb-3">
+    <div class="col-md-6" *ngIf="detalleEmergenciasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Emergencias pendientes — detalle</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.detalleEmergencias, 'emergencias_pendientes_detalle.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-detalle-table">
+            <thead><tr><th *ngFor="let c of detalleEmergenciasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.detalleEmergencias" [class.fw-bold]="isRowTotal(row, detalleEmergenciasCols)" [class.table-secondary]="isRowTotal(row, detalleEmergenciasCols)">
+                <td *ngFor="let c of detalleEmergenciasCols"
+                    [ngStyle]="cellColor(row, c) ? {'background-color': cellColor(row, c)} : {}">
+                  {{ row[c] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6" *ngIf="detalleQuejasCols.length">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex justify-content-between align-items-center px-2 mb-1">
+          <h6 class="fw-semibold mb-0">Quejas pendientes — detalle</h6>
+          <button class="btn btn-outline-success btn-sm" (click)="exportTableExcel(data?.detalleQuejas, 'quejas_pendientes_detalle.xlsx')">Excel</button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered mb-0 qe-detalle-table">
+            <thead><tr><th *ngFor="let c of detalleQuejasCols">{{ c }}</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let row of data?.detalleQuejas" [class.fw-bold]="isRowTotal(row, detalleQuejasCols)" [class.table-secondary]="isRowTotal(row, detalleQuejasCols)">
+                <td *ngFor="let c of detalleQuejasCols"
+                    [ngStyle]="cellColor(row, c) ? {'background-color': cellColor(row, c)} : {}">
+                  {{ row[c] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       LISTADO GRANDE
+  =============================== -->
+  <div *ngIf="status === 'SUCCESS' && listadoCols.length" class="card shadow-sm mb-3">
+    <div class="d-flex justify-content-between align-items-center p-2">
+      <h6 class="mb-0 fw-semibold">Listado de solicitudes pendientes ({{ data?.listado?.length }})</h6>
+      <button class="btn btn-success btn-sm" (click)="exportTableExcel(data?.listado, 'quejas_emergencias_listado.xlsx')">Exportar Excel</button>
+    </div>
+    <div class="table-responsive qe-listado-scroll">
+      <table class="table table-sm table-bordered table-hover mb-0 qe-listado-table">
+        <thead>
+          <tr><th *ngFor="let c of listadoCols">{{ c }}</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of data?.listado">
+            <td *ngFor="let c of listadoCols">{{ row[c] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

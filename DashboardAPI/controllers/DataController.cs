@@ -21,6 +21,7 @@ namespace DashboardAPI.Controllers
         private readonly WebScraperService _scraper;
         private readonly FullCompareService _fullCompare;
         private readonly ReporteStore _store;
+        private readonly SisquemService _sisquem;
         private readonly ILogger<DataController> _logger;
 
         public DataController(
@@ -28,12 +29,14 @@ namespace DashboardAPI.Controllers
             AppDbContext context,
             FullCompareService fullCompare,
             ReporteStore store,
+            SisquemService sisquem,
             ILogger<DataController> logger)
         {
             _scraper     = scraper;
             _context     = context;
             _fullCompare = fullCompare;
             _store       = store;
+            _sisquem     = sisquem;
             _logger      = logger;
         }
 
@@ -375,6 +378,108 @@ namespace DashboardAPI.Controllers
 
                 var html = System.IO.File.ReadAllText(latest.FullName);
                 return Content(html, "text/html");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error leyendo el volcado de diagnóstico: {ex.Message}");
+            }
+        }
+
+        // Desglose por tipo de inconformidad (E02-E07) agrupado por colonia — usado por el modal
+        // de "clic en colonia" del apartado Colonias. El portal no permite filtrar a una sola
+        // colonia, así que se repite el reporte una vez por código y se combina por Clave.
+        private static readonly string[] ColoniaInconformidadCodes =
+            ["E01", "E02", "E03", "E04", "E05", "E06", "E07",
+             "Q01", "Q02", "Q03", "Q04", "Q06", "Q07", "Q08", "QC2", "QC7"];
+
+        [HttpGet("colonias/inconformidades")]
+        public async Task<IActionResult> ColoniaInconformidades(
+            [FromQuery] string zona = "00000",
+            [FromQuery] string area = "00000",
+            [FromQuery] string? desde = null,
+            [FromQuery] string? hasta = null)
+        {
+            var today    = DateTime.Now;
+            var useYear  = hasta != null ? RangoFechas.Anio(hasta) : today.Year;
+            var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(useYear);
+            var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(useYear);
+
+            try
+            {
+                var data = await _scraper.GetColoniaInconformidadesAsync(
+                    desdeUse, hastaUse, zona, area, GetUserDivision(), ColoniaInconformidadCodes);
+                return Ok(data);
+            }
+            catch (CfePortalUnreachableException ex)
+            {
+                _logger.LogError("ColoniaInconformidades: portal CFE inaccesible: {Err}", ex.Message);
+                return StatusCode(503, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error scraping desglose de inconformidades por colonia: {ex.Message}");
+            }
+        }
+
+        // =========================
+        // QUEJAS Y EMERGENCIAS (sistema sisquem)
+        // =========================
+
+        [HttpGet("quejas-emergencias")]
+        public async Task<IActionResult> QuejasEmergencias(
+            [FromQuery] string[]? zona = null,
+            [FromQuery] string[]? tipoOrden = null,
+            [FromQuery] string? desde = null,
+            [FromQuery] string? hasta = null)
+        {
+            var today    = DateTime.Now;
+            var useYear  = hasta != null ? RangoFechas.Anio(hasta) : today.Year;
+            var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(useYear);
+            var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(useYear);
+
+            // sisquem usa el código corto de división (ej. "DC"), distinto al formato
+            // "DC000" que usa GetUserDivision() para el resto de los reportes (cssnal.cfe.mx).
+            var divisionLarga = GetUserDivision();
+            var divisionCorta = divisionLarga.Length >= 2 ? divisionLarga[..2] : divisionLarga;
+
+            try
+            {
+                var data = await _sisquem.GetReporteAsync(desdeUse, hastaUse, divisionCorta, zona, tipoOrden);
+                if (data.ResumenEmergencias.Count > 0 || data.ResumenQuejas.Count > 0)
+                    await _store.SaveQuejasEmergenciasAsync(data, useYear, zona);
+                return Ok(data);
+            }
+            catch (CfePortalUnreachableException ex)
+            {
+                _logger.LogError("QuejasEmergencias: sisquem inaccesible: {Err}", ex.Message);
+                return StatusCode(503, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "QuejasEmergencias: error inesperado: {Err}", ex.Message);
+                return BadRequest($"Error consultando el reporte de Quejas y Emergencias: {ex.Message}");
+            }
+        }
+
+        [HttpGet("quejas-emergencias/debug")]
+        public IActionResult QuejasEmergenciasDebug()
+        {
+            try
+            {
+                var dir = Path.Combine(Directory.GetCurrentDirectory(), WebScraperService.DebugDumpDir);
+                if (!Directory.Exists(dir))
+                    return NotFound("No hay volcados de diagnóstico todavía.");
+
+                var latest = new DirectoryInfo(dir)
+                    .GetFiles("debug_quejas_emergencias_*.json")
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault();
+
+                if (latest == null)
+                    return NotFound("No hay volcados de diagnóstico de Quejas y Emergencias todavía.");
+
+                var json = System.IO.File.ReadAllText(latest.FullName);
+                return Content(json, "application/json");
             }
             catch (Exception ex)
             {

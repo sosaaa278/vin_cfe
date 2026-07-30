@@ -1,0 +1,143 @@
+.qe-wrapper {
+  max-width: none;
+  margin: 0;
+  padding: 24px 20px;
+}
+
+.dash-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.dash-subtitle {
+  color: #6c757d;
+  margin: .15rem 0 0;
+  font-size: .9rem;
+}
+
+.chart-box {
+  position: relative;
+  height: 300px;
+}
+
+.qe-resumen-table,
+.qe-detalle-table {
+  font-size: .72rem;
+}
+.qe-resumen-table th,
+.qe-resumen-table td,
+.qe-detalle-table th,
+.qe-detalle-table td {
+  padding: 3px 6px;
+  text-align: center;
+}
+
+.qe-listado-table {
+  font-size: .68rem;
+  width: 100%;
+}
+.qe-listado-table th,
+.qe-listado-table td {
+  padding: 2px 5px;
+  white-space: nowrap;
+}
+.qe-listado-table thead th {
+  background: #006341;
+  color: #fff;
+  position: sticky;
+  top: 0;
+}
+
+.qe-listado-scroll {
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.qe-dropdown-actions {
+  display: flex;
+  gap: 12px;
+  font-size: .78rem;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #eee;
+}
+.qe-dropdown-actions a {
+  color: #1F5B51;
+  text-decoration: none;
+}
+.qe-dropdown-actions a:hover {
+  text-decoration: underline;
+}
+
+/* ── Tipos de orden: checklist siempre visible en cuadrícula ────────────────── */
+.qe-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px 8px;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.qe-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .82rem;
+  font-weight: normal;
+  margin-bottom: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── KPI cards — mismo diseño que dashboard.component.css (sin emojis) ──────── */
+.kpi-analytics-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+.kpi-card {
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  height: 100%;
+  border-left: 4px solid #cbd5e1;
+  transition: box-shadow 0.2s;
+}
+.kpi-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
+
+.kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #6b7280;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a202c;
+  line-height: 1.2;
+}
+
+.kpi-neutral  { border-left-color: #94a3b8; }
+.kpi-success  { border-left-color: #16a34a; }
+.kpi-danger   { border-left-color: #ef4444; }
+.kpi-warning  { border-left-color: #f59e0b; }
+.kpi-info     { border-left-color: #3b82f6; }

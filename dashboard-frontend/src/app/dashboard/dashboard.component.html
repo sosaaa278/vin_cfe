@@ -139,9 +139,10 @@
       <div class="col-md-5">
         <label class="form-label fw-semibold">Tipo de inconformidad</label>
         <select
-          #codeSelect
           class="form-select"
-          (change)="loadCompareByCode(codeSelect.value)">
+          [ngModel]="selectedCode || 'ALL'"
+          (ngModelChange)="onCodeSelectChange($event)">
+          <option value="ALL">Todas (agrupado)</option>
           <option value="30202">30202</option>
           <option value="E02">E02</option>
           <option value="E03">E03</option>
@@ -268,10 +269,11 @@
               </td>
             </tr>
 
-            <!-- Sub-fila 2025 (remarcada como año comparativo) -->
-            <tr *ngIf="!isTotal(row['AREA'])" class="tr-subrow">
+            <!-- Sub-fila 2025 (remarcada como año comparativo) — también se muestra para la
+                 fila TOTAL (antes se ocultaba con *ngIf, dejando el total 2025 sin mostrar) -->
+            <tr class="tr-subrow">
               <td *ngFor="let col of visibleColumns; let isFirst = first"
-                  [ngStyle]="get2025SubRowCellStyle(isFirst)">
+                  [ngStyle]="get2025SubRowCellStyle(isFirst, isTotal(row['AREA']))">
                 <ng-container *ngIf="col === 'AREA'">
                   <em class="em-year-label">↳ 2025</em>
                 </ng-container>
@@ -279,7 +281,7 @@
                   {{ get2025Value(row['AREA'], col) | number }}
                 </ng-container>
               </td>
-              <td [ngStyle]="get2025SubRowCellStyle(false)" class="td-subrow-total">
+              <td [ngStyle]="get2025SubRowCellStyle(false, isTotal(row['AREA']))" class="td-subrow-total">
                 {{ getZoneTotal2025(row['AREA']) | number }}
               </td>
             </tr>

@@ -1030,117 +1030,189 @@ namespace DashboardAPI.Services
             string fechaDesde, string fechaHasta,
             string cveZona = "00000", string cveArea = "00000", string cveDivision = "DC000")
         {
-            _logger.LogInformation("GetColoniasReport {Desde} -> {Hasta} zona={Zona} area={Area}", fechaDesde, fechaHasta, cveZona, cveArea);
-
             var (pw, ctx) = await CreateBrowserAsync(dirName: ColoniasPlaywrightDir);
             try
             {
                 var page = ctx.Pages.FirstOrDefault() ?? await ctx.NewPageAsync();
-
-                if (!await NavigateWithRetryAsync(page, ColoniasReportUrl))
-                    throw new InvalidOperationException($"No se pudo cargar {ColoniasReportUrl}");
-
-                try
-                {
-                    await page.WaitForSelectorAsync(Sel.FechaDesde, new() { Timeout = 30_000 });
-                }
-                catch (Exception ex)
-                {
-                    await DumpDebugHtmlAsync(page, "colonias_initial");
-                    throw new InvalidOperationException(
-                        "La página de colonias no cargó el formulario (sesión expirada o error de red). Revisa el volcado de diagnóstico.", ex);
-                }
-
-                // Igual que en causas: esperamos a que se asiente el AJAX inicial de combos
-                // antes de tocar cualquier <select>, para no perder la selección.
-                try
-                {
-                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning("NetworkIdle (carga inicial de combos) timeout en colonias: {Err}", ex.Message);
-                }
-                await page.WaitForTimeoutAsync(600);
-
-                // Cachea zonas (por división) y áreas (por zona), en ese orden (área anida bajo zona).
-                await TryCacheZonasAsync(page, cveDivision);
-                await TryCacheAreasAsync(page, cveZona);
-
-                // Confirmado por DevTools: esta página usa fechas con GUION (yyyy-MM-dd),
-                // a diferencia de causas/IMU que usan diagonal (yyyy/MM/dd).
-                var fechaDesdeGuion = fechaDesde.Replace("/", "-");
-                var fechaHastaGuion = fechaHasta.Replace("/", "-");
-
-                var formState = await page.EvaluateAsync<Dictionary<string, string>>(
-                    "([d, h, z, a, ag]) => {" +
-                    "  var setField = function(name, val) {" +
-                    "    var el = document.querySelector(\"select[name='\" + name + \"']\");" +
-                    "    if (el) el.value = val;" +
-                    "  };" +
-                    "  var injectAndSet = function(name, val) {" +
-                    "    var el = document.querySelector(\"select[name='\" + name + \"']\");" +
-                    "    if (!el) return 'NO_SELECT';" +
-                    "    var existe = Array.prototype.some.call(el.options, function(o){ return o.value === val; });" +
-                    "    if (!existe) { var opt = document.createElement('option'); opt.value = val; opt.text = val; el.add(opt); }" +
-                    "    el.value = val;" +
-                    "    return el.value;" +
-                    "  };" +
-                    "  var checkOn = function(name) {" +
-                    "    var el = document.querySelector(\"input[name='\" + name + \"']\");" +
-                    "    if (el) el.checked = true;" +
-                    "  };" +
-                    "  var fd = document.querySelector(\"input[name='fechaDesde']\");" +
-                    "  var fh = document.querySelector(\"input[name='fechaHasta']\");" +
-                    "  if (fd) fd.value = d;" +
-                    "  if (fh) fh.value = h;" +
-                    "  setField('cveDivision',       '" + cveDivision + "');" +
-                    "  var zonaSet = injectAndSet('cveZona', z);" +
-                    "  var areaSet = injectAndSet('cveArea', a);" +
-                    "  setField('entidadFederativa', '0');" +
-                    "  setField('cveMunicipio',      'T');" +
-                    "  setField('cveColonia',        'T');" +
-                    "  var agSet = injectAndSet('cvePivote', ag);" +
-                    "  checkOn('fechaResueltas');" +
-                    "  checkOn('fechaPendientes');" +
-                    "  return { zonaSet: zonaSet, areaSet: areaSet, pivoteSet: agSet };" +
-                    "}",
-                    new[] { fechaDesdeGuion, fechaHastaGuion, cveZona, cveArea, AgruparColoniaValue });
-
-                _logger.LogInformation("Colonias form state before submit: {@State}", formState);
-
-                await page.ClickAsync(Sel.Submit);
-                try
-                {
-                    await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 25_000 });
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning("NetworkIdle after submit timed out en colonias: {Err}", ex.Message);
-                }
-                await page.WaitForTimeoutAsync(1500);
-
-                var html = await page.ContentAsync();
-                var doc  = new HtmlDocument();
-                doc.LoadHtml(html);
-
-                var table = doc.DocumentNode.SelectSingleNode("//table[@id='mytable']");
-                if (table == null)
-                {
-                    _logger.LogWarning("No se encontró la tabla #mytable en el reporte de colonias");
-                    await DumpDebugHtmlAsync(page, "colonias_no_table");
-                    return [];
-                }
-
-                var rows = ParseColoniasTable(table);
-                _logger.LogInformation("GetColoniasReport devolvió {Count} filas", rows.Count);
-                return rows;
+                return await ScrapeColoniasPivotAsync(page, fechaDesde, fechaHasta, cveZona, cveArea, cveDivision);
             }
             finally
             {
                 await ctx.CloseAsync();
                 pw.Dispose();
             }
+        }
+
+        /// <summary>
+        /// Núcleo del reporte de colonias (statusAtencion.asp), reutilizable con una página ya
+        /// abierta. Agrupa siempre por Colonia (cvePivote='cveColonia'); <paramref name="tipoSolTermino"/>
+        /// filtra por tipo de orden/inconformidad ('T' = Todos, por defecto). Confirmado por DevTools
+        /// que este filtro es independiente del pivote — permite pedir, para una consulta ya agrupada
+        /// por colonia, solo las solicitudes de un código específico (ej. E02), sin poder filtrar a
+        /// una colonia individual (cveColonia solo tiene la opción "Todas").
+        /// </summary>
+        private async Task<List<Dictionary<string, string>>> ScrapeColoniasPivotAsync(
+            IPage page, string fechaDesde, string fechaHasta,
+            string cveZona, string cveArea, string cveDivision, string tipoSolTermino = "T")
+        {
+            _logger.LogInformation("GetColoniasReport {Desde} -> {Hasta} zona={Zona} area={Area} tipoSolTermino={Tipo}", fechaDesde, fechaHasta, cveZona, cveArea, tipoSolTermino);
+
+            if (!await NavigateWithRetryAsync(page, ColoniasReportUrl))
+                throw new InvalidOperationException($"No se pudo cargar {ColoniasReportUrl}");
+
+            try
+            {
+                await page.WaitForSelectorAsync(Sel.FechaDesde, new() { Timeout = 30_000 });
+            }
+            catch (Exception ex)
+            {
+                await DumpDebugHtmlAsync(page, "colonias_initial");
+                throw new InvalidOperationException(
+                    "La página de colonias no cargó el formulario (sesión expirada o error de red). Revisa el volcado de diagnóstico.", ex);
+            }
+
+            // Igual que en causas: esperamos a que se asiente el AJAX inicial de combos
+            // antes de tocar cualquier <select>, para no perder la selección.
+            try
+            {
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 15_000 });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("NetworkIdle (carga inicial de combos) timeout en colonias: {Err}", ex.Message);
+            }
+            await page.WaitForTimeoutAsync(600);
+
+            // Cachea zonas (por división) y áreas (por zona), en ese orden (área anida bajo zona).
+            await TryCacheZonasAsync(page, cveDivision);
+            await TryCacheAreasAsync(page, cveZona);
+
+            // Confirmado por DevTools: esta página usa fechas con GUION (yyyy-MM-dd),
+            // a diferencia de causas/IMU que usan diagonal (yyyy/MM/dd).
+            var fechaDesdeGuion = fechaDesde.Replace("/", "-");
+            var fechaHastaGuion = fechaHasta.Replace("/", "-");
+
+            var formState = await page.EvaluateAsync<Dictionary<string, string>>(
+                "([d, h, z, a, ag, ts]) => {" +
+                "  var setField = function(name, val) {" +
+                "    var el = document.querySelector(\"select[name='\" + name + \"']\");" +
+                "    if (el) el.value = val;" +
+                "  };" +
+                "  var injectAndSet = function(name, val) {" +
+                "    var el = document.querySelector(\"select[name='\" + name + \"']\");" +
+                "    if (!el) return 'NO_SELECT';" +
+                "    var existe = Array.prototype.some.call(el.options, function(o){ return o.value === val; });" +
+                "    if (!existe) { var opt = document.createElement('option'); opt.value = val; opt.text = val; el.add(opt); }" +
+                "    el.value = val;" +
+                "    return el.value;" +
+                "  };" +
+                "  var checkOn = function(name) {" +
+                "    var el = document.querySelector(\"input[name='\" + name + \"']\");" +
+                "    if (el) el.checked = true;" +
+                "  };" +
+                "  var fd = document.querySelector(\"input[name='fechaDesde']\");" +
+                "  var fh = document.querySelector(\"input[name='fechaHasta']\");" +
+                "  if (fd) fd.value = d;" +
+                "  if (fh) fh.value = h;" +
+                "  setField('cveDivision',       '" + cveDivision + "');" +
+                "  var zonaSet = injectAndSet('cveZona', z);" +
+                "  var areaSet = injectAndSet('cveArea', a);" +
+                "  setField('entidadFederativa', '0');" +
+                "  setField('cveMunicipio',      'T');" +
+                "  setField('cveColonia',        'T');" +
+                "  setField('tipoSolTermino',    ts);" +
+                "  var agSet = injectAndSet('cvePivote', ag);" +
+                "  checkOn('fechaResueltas');" +
+                "  checkOn('fechaPendientes');" +
+                "  return { zonaSet: zonaSet, areaSet: areaSet, pivoteSet: agSet };" +
+                "}",
+                new[] { fechaDesdeGuion, fechaHastaGuion, cveZona, cveArea, AgruparColoniaValue, tipoSolTermino });
+
+            _logger.LogInformation("Colonias form state before submit: {@State}", formState);
+
+            await page.ClickAsync(Sel.Submit);
+            try
+            {
+                await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 25_000 });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("NetworkIdle after submit timed out en colonias: {Err}", ex.Message);
+            }
+            await page.WaitForTimeoutAsync(1500);
+
+            var html = await page.ContentAsync();
+            var doc  = new HtmlDocument();
+            doc.LoadHtml(html);
+
+            var table = doc.DocumentNode.SelectSingleNode("//table[@id='mytable']");
+            if (table == null)
+            {
+                _logger.LogWarning("No se encontró la tabla #mytable en el reporte de colonias");
+                await DumpDebugHtmlAsync(page, "colonias_no_table");
+                return [];
+            }
+
+            var rows = ParseColoniasTable(table);
+            _logger.LogInformation("GetColoniasReport devolvió {Count} filas", rows.Count);
+            return rows;
+        }
+
+        /// <summary>
+        /// Desglose por tipo de inconformidad (E02, E03, ...) agrupado por colonia. Como el portal
+        /// no permite filtrar a UNA colonia (cveColonia solo tiene "Todas"), se repite el reporte de
+        /// colonias una vez por código (filtrando tipoSolTermino), reutilizando la misma página/context,
+        /// y se combinan los resultados por Clave de colonia. Mismo patrón que GetCausasDataAllAsync.
+        /// </summary>
+        public async Task<List<Dictionary<string, string>>> GetColoniaInconformidadesAsync(
+            string fechaDesde, string fechaHasta,
+            string cveZona, string cveArea, string cveDivision,
+            IEnumerable<string> codes)
+        {
+            var merged = new Dictionary<string, Dictionary<string, string>>();
+
+            var (pw, ctx) = await CreateBrowserAsync(dirName: ColoniasPlaywrightDir);
+            try
+            {
+                var page = ctx.Pages.FirstOrDefault() ?? await ctx.NewPageAsync();
+                foreach (var code in codes)
+                {
+                    List<Dictionary<string, string>> rows;
+                    try
+                    {
+                        rows = await ScrapeColoniasPivotAsync(page, fechaDesde, fechaHasta, cveZona, cveArea, cveDivision, code);
+                    }
+                    catch (CfePortalUnreachableException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("GetColoniaInconformidades code {Code} failed: {Err}", code, ex.Message);
+                        continue;
+                    }
+
+                    foreach (var row in rows)
+                    {
+                        var clave = row.FirstOrDefault(kv => kv.Key.Contains("CLAVE", StringComparison.OrdinalIgnoreCase)).Value ?? "";
+                        var desc  = row.FirstOrDefault(kv => kv.Key.Contains("DESCRIP", StringComparison.OrdinalIgnoreCase)).Value ?? "";
+                        if (clave.Trim().Equals("TOTAL", StringComparison.OrdinalIgnoreCase)) continue; // salta el tfoot
+
+                        var recibidas = row.FirstOrDefault(kv => kv.Key.Contains("RECIBIDA", StringComparison.OrdinalIgnoreCase)).Value ?? "0";
+
+                        if (!merged.TryGetValue(clave, out var item))
+                            item = merged[clave] = new Dictionary<string, string> { ["Clave"] = clave, ["Descripcion"] = desc };
+                        item[code] = recibidas;
+                    }
+                }
+            }
+            finally
+            {
+                await ctx.CloseAsync();
+                pw.Dispose();
+            }
+
+            return merged.Values.ToList();
         }
 
         public async Task<Dictionary<string, List<Dictionary<string, string>>>> GetCausasDataAllAsync(

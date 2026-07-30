@@ -236,10 +236,11 @@ export class DashboardComponent implements OnInit {
     return {};
   }
 
-  get2025SubRowCellStyle(isFirst: boolean): { [key: string]: string } {
+  get2025SubRowCellStyle(isFirst: boolean, isTotalRow = false): { [key: string]: string } {
     return {
-      'background-color': 'rgba(215,228,255,0.55)',
+      'background-color': isTotalRow ? 'rgba(173,181,189,0.45)' : 'rgba(215,228,255,0.55)',
       'border-top': '1px dashed #9ca3af',
+      ...(isTotalRow ? { 'font-weight': 'bold' } : {}),
       ...(isFirst ? { 'border-left': '3px solid #6c757d' } : {})
     };
   }
@@ -541,16 +542,60 @@ export class DashboardComponent implements OnInit {
   loadCompare(): void {
     this.currentCompareMode = 'all';
     this.selectedCode = '';
-    const { desde, hasta } = this.dateRange.current;
-    this.dashboardService.getCompareData(desde, hasta).subscribe({
-      next: data => this.renderCompareChart(data),
-      error: err => console.error('Error al cargar comparativo:', err)
+
+    // OJO: NO se usa /api/data/compare aquí — ese endpoint lee de la tabla Inconformidades
+    // filtrando Codigo=="TOTAL", que el flujo actual de "Consultar" (getFullCompare, cacheado
+    // en FullCompareService) nunca escribe en BD. Usarlo regresaba silenciosamente una lista
+    // vacía (la tabla se ocultaba sin ningún error) — parecía que la opción "no hacía nada".
+    // En vez de eso, agrupamos con los mismos datos ya cargados y reales de allCompareData
+    // (poblado por "Consultar"), sumando cada zona a través de todos los códigos.
+    if (this.hasCompareData) {
+      this.renderCompareChart(this.buildGroupedCompareData());
+    } else {
+      this.compareData = [];
+      this.hasKpi = false;
+    }
+  }
+
+  /** Suma, por zona/área, los totales 2025/2026 de los códigos de inconformidad ya cargados —
+   * construye el "agrupado" a partir de datos que ya sabemos frescos y correctos (los mismos
+   * que usa la vista por código individual), en vez de depender de la BD.
+   * OJO: usa VISIBLE_COMPARE_CODES, NO Object.keys(allCompareData) — la tabla cruda scrapeada
+   * trae su propia columna "TOTAL" además de los 8 códigos reales (30202/E02-E07/Q07), y
+   * FullCompareService la mete como una clave más en allCompareData. Sumar sobre TODAS las
+   * claves duplicaba cada zona (código real + su propio TOTAL, que ya es la misma suma) —
+   * por eso salían números exactamente el doble (ej. 5,920 en vez de 2,960 para Chihuahua).
+   * getZoneTotal2026/2025 ya evitaban este mismo problema restringiéndose a
+   * VISIBLE_COMPARE_CODES; aquí se usa el mismo criterio para que ambas tablas coincidan. */
+  private buildGroupedCompareData(): any[] {
+    const codes = this.VISIBLE_COMPARE_CODES.filter(c => this.allCompareData[c]?.length);
+    if (codes.length === 0) return [];
+
+    const areas = this.allCompareData[codes[0]].map(x => x.area);
+    return areas.map(area => {
+      let total2025 = 0, total2026 = 0;
+      for (const code of codes) {
+        const row = this.allCompareData[code].find(x => x.area === area);
+        if (row) {
+          total2025 += this.parseValue(row.total2025);
+          total2026 += this.parseValue(row.total2026);
+        }
+      }
+      const variacion = total2025 > 0
+        ? Math.round(((total2026 - total2025) / total2025) * 10000) / 100
+        : (total2026 > 0 ? 100 : 0);
+      return { area, total2025, total2026, variacion };
     });
   }
 
   // =========================
   // COMPARATIVO POR CÓDIGO
   // =========================
+
+  onCodeSelectChange(value: string): void {
+    if (value === 'ALL') this.loadCompare();
+    else this.loadCompareByCode(value);
+  }
 
   loadCompareByCode(code: string): void {
     this.currentCompareMode = 'code';
@@ -649,18 +694,16 @@ export class DashboardComponent implements OnInit {
       });
       r++;
 
-      // ── Sub-fila 2025 (azul claro), solo si no es la fila TOTAL ──
-      if (!isTot) {
-        cols.forEach((col, ci) => {
-          let value: any = '';
-          if (col === 'AÑO') value = '2025';
-          else if (col === 'AREA') value = row['AREA'];
-          else if (col === 'TOTAL') value = this.getZoneTotal2025(row['AREA']);
-          else if (this.isCompareCode(col)) value = this.get2025Value(row['AREA'], col);
-          writeCell(r, ci, col, value, BLUE, true, false);
-        });
-        r++;
-      }
+      // ── Sub-fila 2025 (azul claro) — también para la fila TOTAL, en negrita ──
+      cols.forEach((col, ci) => {
+        let value: any = '';
+        if (col === 'AÑO') value = '2025';
+        else if (col === 'AREA') value = row['AREA'];
+        else if (col === 'TOTAL') value = this.getZoneTotal2025(row['AREA']);
+        else if (this.isCompareCode(col)) value = this.get2025Value(row['AREA'], col);
+        writeCell(r, ci, col, value, BLUE, !isTot, isTot);
+      });
+      r++;
     });
 
     ws['!ref'] = XLSX.utils.encode_range({ s: { c: 0, r: 0 }, e: { c: cols.length - 1, r: r - 1 } });

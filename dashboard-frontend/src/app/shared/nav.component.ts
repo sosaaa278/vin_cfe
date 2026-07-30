@@ -16,6 +16,7 @@ import { AuthService } from '../services/auth.service';
         <a routerLink="/imu" routerLinkActive="active">Por cada mil usuarios</a>
         <a routerLink="/inconformidades-meta" routerLinkActive="active">Inconformidades meta/real</a>
         <a routerLink="/colonias" routerLinkActive="active">Colonias</a>
+        <a routerLink="/quejas-emergencias" routerLinkActive="active">Quejas y Emergencias</a>
       </div>
       <button class="btn-logout" (click)="auth.logout()">Cerrar sesión</button>
     </nav>

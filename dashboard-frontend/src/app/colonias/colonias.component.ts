@@ -97,6 +97,30 @@ export class ColoniasComponent implements OnInit, OnDestroy {
 
   chart: any = null; // misma gráfica/canvas para modo normal y modo comparación
 
+  // ── Modal "desglose por colonia" (clic en una barra de la gráfica) ─────────────
+  readonly INCONFORMIDAD_CODES = [
+    { value: 'E01', label: 'Circuito fuera' },
+    { value: 'E02', label: 'Ramal fuera' },
+    { value: 'E03', label: 'Sector fuera' },
+    { value: 'E04', label: 'Falso contacto de distribución' },
+    { value: 'E05', label: 'Improcedente distribución' },
+    { value: 'E06', label: 'Servicio importante fuera' },
+    { value: 'E07', label: 'Reparación mayor' },
+    { value: 'Q01', label: 'No luz' },
+    { value: 'Q02', label: 'Falso contacto' },
+    { value: 'Q03', label: 'Acometida averiada' },
+    { value: 'Q04', label: 'Falla medidor' },
+    { value: 'Q06', label: 'Improcedente medición' },
+    { value: 'Q07', label: 'Deficiencia de voltaje' },
+    { value: 'Q08', label: 'Medidor robado' },
+    { value: 'QC2', label: 'Corte indebido' },
+    { value: 'QC7', label: 'Reconexión tardía' },
+  ];
+  modalColoniaRow: any = null;       // fila clickeada; null = modal cerrado
+  loadingInconformidades = false;
+  inconformidadesPorColonia: any[] | null = null; // caché de la respuesta completa (por consulta)
+  private modalChart: any = null;
+
   // ── Comparación con el año anterior (igual patrón que causas.component.ts) ──
   prevData: any[] = [];   // año actual - 1
   compareYear = 0;        // 0 = sin comparación
@@ -190,6 +214,7 @@ export class ColoniasComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.rangeSub?.unsubscribe();
+    if (this.modalChart) this.modalChart.destroy();
   }
 
   get selectedZonaLabel(): string {
@@ -231,6 +256,9 @@ export class ColoniasComponent implements OnInit, OnDestroy {
     this.compareYear = 0;
     this.loadingOffset = 0;
     this.compareRows = [];
+    // Nuevos filtros invalidan el caché del desglose por colonia (usado por el modal).
+    this.inconformidadesPorColonia = null;
+    this.closeModal();
 
     const { desde, hasta } = this.dateRange.current;
     this.dashboardService.getColonias(this.selectedZona, this.selectedArea, desde, hasta).subscribe({
@@ -471,11 +499,18 @@ export class ColoniasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const recibidasCol  = this.findCol('RECIBIDA');
-    const terminadasCol = this.findCol('TERMINADA', 'TOTAL') ?? this.findCol('TERMINADA');
-    const canceladasCol = this.findCol('CANCELADA', 'TOTAL') ?? this.findCol('CANCELADA');
-    const rechazadasCol = this.findCol('RECHAZADA', 'TOTAL') ?? this.findCol('RECHAZADA');
-    const pendientesCol = this.findCol('PENDIENTE', 'TOTAL') ?? this.findCol('PENDIENTE');
+    // Usamos orderedCols (ya resuelto por resolveOrderedCols()/LEAF_DEFS, la misma
+    // fuente que llena la tabla "Detalle") en vez de volver a resolver columnas aquí
+    // con findCol(): dos resoluciones independientes contra el mismo this.columns
+    // podían divergir (bug real: la gráfica graficaba columnas de "Rechazadas"/"%"
+    // en vez de los Totales de Terminadas/Canceladas/Rechazadas/Pendientes). Los
+    // índices son fijos según el orden de LEAF_DEFS: 3=Recibidas, 4=Rechazadas Total,
+    // 8=Canceladas Total, 10=Terminadas Total, 14=Pendientes Total.
+    const recibidasCol  = this.orderedCols[3];
+    const rechazadasCol = this.orderedCols[4];
+    const canceladasCol = this.orderedCols[8];
+    const terminadasCol = this.orderedCols[10];
+    const pendientesCol = this.orderedCols[14];
 
     // tableData ya viene ordenado por Recibidas de mayor a menor (sortByRecibidasDesc) —
     // la gráfica solo muestra las primeras 10, igual que el "Top" del portal.
@@ -516,6 +551,13 @@ export class ColoniasComponent implements OnInit, OnDestroy {
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: 'index' as const, intersect: false },
+          onClick: (_evt: any, elements: any[]) => {
+            if (elements.length > 0) this.onColoniaClick(dataRows[elements[0].index]);
+          },
+          onHover: (evt: any, elements: any[]) => {
+            const target = evt?.native?.target as HTMLElement | undefined;
+            if (target) target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+          },
           plugins: {
             title: {
               display: true,
@@ -527,6 +569,93 @@ export class ColoniasComponent implements OnInit, OnDestroy {
           scales: {
             x: { ticks: { maxRotation: 90, minRotation: 45, font: { size: 9 } }, grid: { display: false } },
             y: { beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
+          }
+        },
+        plugins: [BAR_DATALABELS_PLUGIN]
+      } as any);
+    }, 0);
+  }
+
+  // ── Modal "desglose por colonia" ────────────────────────────────────────────
+  // El portal no permite filtrar el reporte a una sola colonia (cveColonia solo
+  // tiene "Todas"), así que el backend scrapea, una vez por consulta, TODAS las
+  // colonias para cada código E02-E07 y las combina — por eso el primer clic
+  // siempre trae el desglose completo (se cachea en inconformidadesPorColonia) y
+  // los clics siguientes sobre otras colonias son instantáneos.
+
+  onColoniaClick(row: any): void {
+    this.modalColoniaRow = row;
+    if (this.inconformidadesPorColonia) {
+      this.renderModalChart();
+      return;
+    }
+
+    this.loadingInconformidades = true;
+    const { desde, hasta } = this.dateRange.current;
+    this.dashboardService.getColoniaInconformidades(this.selectedZona, this.selectedArea, desde, hasta)
+      .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
+      .subscribe({
+        next: data => {
+          this.inconformidadesPorColonia = data ?? [];
+          this.loadingInconformidades = false;
+          this.renderModalChart();
+        },
+        error: () => {
+          this.inconformidadesPorColonia = [];
+          this.loadingInconformidades = false;
+        }
+      });
+  }
+
+  closeModal(): void {
+    if (this.modalChart) { this.modalChart.destroy(); this.modalChart = null; }
+    this.modalColoniaRow = null;
+  }
+
+  private findModalRow(): any | undefined {
+    if (!this.inconformidadesPorColonia || !this.modalColoniaRow) return undefined;
+    const clave = String(this.modalColoniaRow[this.claveCol ?? ''] ?? '').trim();
+    const desc  = String(this.modalColoniaRow[this.descCol ?? ''] ?? '').trim();
+    return this.inconformidadesPorColonia.find(r =>
+      (clave && String(r['Clave'] ?? '').trim() === clave) ||
+      (desc && String(r['Descripcion'] ?? '').trim() === desc)
+    );
+  }
+
+  getModalRowValue(code: string): number {
+    const row = this.findModalRow();
+    return row ? this.parseNum(row[code]) : 0;
+  }
+
+  private renderModalChart(): void {
+    const row = this.findModalRow();
+    const labels = this.INCONFORMIDAD_CODES.map(c => c.value);
+    const data   = this.INCONFORMIDAD_CODES.map(c => row ? this.parseNum(row[c.value]) : 0);
+
+    setTimeout(() => {
+      if (this.modalChart) { this.modalChart.destroy(); this.modalChart = null; }
+      const canvas = document.getElementById('coloniaDesgloseChart');
+      if (!canvas) return;
+
+      this.modalChart = new Chart('coloniaDesgloseChart', {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Solicitudes',
+            data,
+            backgroundColor: 'rgba(59,130,246,0.78)',
+            borderColor: 'rgb(37,99,235)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { maxRotation: 90, minRotation: 45, font: { size: 9 } }, grid: { display: false } },
+            y: { beginAtZero: true, ticks: { precision: 0 } }
           }
         },
         plugins: [BAR_DATALABELS_PLUGIN]

@@ -109,7 +109,7 @@
       <h6 class="mb-0 fw-semibold">Detalle — {{ selectedZonaLabel }}, {{ selectedAreaLabel }}</h6>
       <button class="btn btn-success btn-sm" (click)="exportExcel()">Exportar Excel</button>
     </div>
-    <div class="table-responsive">
+    <div class="table-responsive colonias-table-scroll">
       <table class="table table-sm table-bordered table-hover mb-0 colonias-table">
         <thead>
           <tr>
@@ -210,6 +210,38 @@
           </tr>
         </tfoot>
       </table>
+    </div>
+  </div>
+
+  <!-- ==============================
+       MODAL: desglose de inconformidades por colonia (clic en la gráfica)
+  =============================== -->
+  <div class="modal-backdrop-custom" *ngIf="modalColoniaRow" (click)="closeModal()">
+    <div class="modal-dialog-custom" (click)="$event.stopPropagation()">
+      <div class="modal-header-custom">
+        <h5 class="mb-0">{{ modalColoniaRow['Descripcion'] || modalColoniaRow['Clave'] }}</h5>
+        <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeModal()"></button>
+      </div>
+      <div class="modal-body-custom">
+        <div *ngIf="loadingInconformidades" class="text-center py-4 text-muted">Cargando desglose…</div>
+        <ng-container *ngIf="!loadingInconformidades">
+          <div class="chart-box" style="height:260px">
+            <canvas id="coloniaDesgloseChart"></canvas>
+          </div>
+          <table class="table table-sm mt-3 mb-0">
+            <thead>
+              <tr><th>Código</th><th>Descripción</th><th class="text-end">Cantidad</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of INCONFORMIDAD_CODES">
+                <td>{{ c.value }}</td>
+                <td>{{ c.label }}</td>
+                <td class="text-end">{{ getModalRowValue(c.value) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </ng-container>
+      </div>
     </div>
   </div>
 

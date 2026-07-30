@@ -55,6 +55,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<WebScraperService>();
 builder.Services.AddScoped<ReporteStore>();
+builder.Services.AddScoped<SisquemService>();
 builder.Services.AddSingleton<FullCompareService>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<IJwtService, JwtService>();

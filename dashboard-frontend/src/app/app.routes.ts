@@ -47,6 +47,15 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
 
+  {
+    path: 'quejas-emergencias',
+    loadComponent: () =>
+      import('./quejas-emergencias/quejas-emergencias.component').then(
+        m => m.QuejasEmergenciasComponent
+      ),
+    canActivate: [authGuard]
+  },
+
   { path: '**', redirectTo: 'login' }
 ];
 
