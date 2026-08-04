@@ -422,6 +422,56 @@ namespace DashboardAPI.Controllers
         }
 
         // =========================
+        // REPORTE DIARIO POR CORREO (prueba manual, sin esperar el horario programado)
+        // =========================
+
+        [HttpPost("reportes/enviar-ahora")]
+        public async Task<IActionResult> EnviarReporteAhora(
+            [FromServices] EmailReportService email, [FromQuery] string? to = null)
+        {
+            if (!string.IsNullOrWhiteSpace(to) && !System.Text.RegularExpressions.Regex.IsMatch(
+                    to, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                return BadRequest("El correo indicado no es válido.");
+            }
+
+            try
+            {
+                await email.SendDailyReportAsync(to);
+                return Ok($"Correo enviado a {to ?? "el destinatario configurado"}.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "EnviarReporteAhora falló: {Err}", ex.Message);
+                return BadRequest($"Error enviando el reporte: {ex.Message}");
+            }
+        }
+
+        // Correo mínimo ("hola mundo") sin datos — para probar SMTP/credenciales sin
+        // depender de que el scraping/VPN esté disponible.
+        [HttpPost("reportes/prueba")]
+        public async Task<IActionResult> EnviarCorreoPrueba(
+            [FromServices] EmailReportService email, [FromQuery] string to)
+        {
+            if (string.IsNullOrWhiteSpace(to) || !System.Text.RegularExpressions.Regex.IsMatch(
+                    to, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                return BadRequest("El correo indicado no es válido.");
+            }
+
+            try
+            {
+                await email.SendTestEmailAsync(to);
+                return Ok($"Correo de prueba enviado a {to}.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "EnviarCorreoPrueba falló: {Err}", ex.Message);
+                return BadRequest($"Error enviando el correo de prueba: {ex.Message}");
+            }
+        }
+
+        // =========================
         // QUEJAS Y EMERGENCIAS (sistema sisquem)
         // =========================
 

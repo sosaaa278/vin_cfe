@@ -24,6 +24,30 @@
   </div>
 
   <!-- ==============================
+       REPORTE POR CORREO
+  =============================== -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="d-flex gap-2 align-items-start flex-wrap">
+        <input
+          type="email"
+          class="form-control"
+          style="max-width: 320px"
+          placeholder="correo@ejemplo.com"
+          [(ngModel)]="reporteEmail"
+          (keyup.enter)="enviarReporte()"
+        />
+        <button class="btn btn-outline-success" [disabled]="enviandoReporte" (click)="enviarReporte()">
+          {{ enviandoReporte ? 'Enviando…' : 'Enviar reporte por correo' }}
+        </button>
+        <span *ngIf="reporteMsg" [class.text-success]="reporteMsgOk" [class.text-danger]="!reporteMsgOk">
+          {{ reporteMsg }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
        TARJETAS DE ESTADO
   =============================== -->
   <div class="row mb-4 g-3">

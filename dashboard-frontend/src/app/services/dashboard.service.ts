@@ -116,6 +116,13 @@ export class DashboardService {
     return this.http.get<any[]>(`${this.API}/colonias/inconformidades${q}`);
   }
 
+  // Envía el reporte diario de Inconformidades por correo al destinatario que teclee
+  // el usuario (si se omite, el backend usa el Email:To configurado por defecto).
+  enviarReportePorCorreo(to?: string) {
+    const q = to ? `?to=${encodeURIComponent(to)}` : '';
+    return this.http.post(`${this.API}/reportes/enviar-ahora${q}`, {}, { responseType: 'text' });
+  }
+
   // Reporte "Quejas y Emergencias" (sistema sisquem) — primer caso del proyecto que
   // manda selección múltiple real por query string; HttpParams.append() soporta
   // varios valores bajo la misma clave (?zona=A&zona=B), y ASP.NET Core los bindea

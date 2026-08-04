@@ -169,6 +169,12 @@ export class DashboardComponent implements OnInit {
   kpiBestArea = '';
   hasKpi = false;
 
+  // ── Reporte por correo ──────────────────────────────────────────────────────
+  reporteEmail = '';
+  enviandoReporte = false;
+  reporteMsg = '';
+  reporteMsgOk = false;
+
   constructor(
     private dashboardService: DashboardService,
     public auth: AuthService,
@@ -183,6 +189,33 @@ export class DashboardComponent implements OnInit {
     this.dateRange.range$.subscribe(() => {
       this.loadCompare();
       if (this.tableData.length > 0) this.loadData();
+    });
+  }
+
+  enviarReporte(): void {
+    const to = this.reporteEmail.trim();
+    if (!to || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) {
+      this.reporteMsg = 'Escribe un correo válido.';
+      this.reporteMsgOk = false;
+      return;
+    }
+
+    this.enviandoReporte = true;
+    this.reporteMsg = '';
+    console.log('[enviarReporte] enviando a', to);
+    this.dashboardService.enviarReportePorCorreo(to).subscribe({
+      next: (res) => {
+        console.log('[enviarReporte] éxito:', res);
+        this.enviandoReporte = false;
+        this.reporteMsg = `Reporte enviado a ${to}.`;
+        this.reporteMsgOk = true;
+      },
+      error: (err) => {
+        console.error('[enviarReporte] error:', err);
+        this.enviandoReporte = false;
+        this.reporteMsg = err?.error || 'No se pudo enviar el reporte.';
+        this.reporteMsgOk = false;
+      }
     });
   }
 

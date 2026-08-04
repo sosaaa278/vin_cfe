@@ -59,6 +59,8 @@ builder.Services.AddScoped<SisquemService>();
 builder.Services.AddSingleton<FullCompareService>();
 builder.Services.AddSingleton<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
+builder.Services.AddSingleton<EmailReportService>();
+builder.Services.AddHostedService<DailyReportBackgroundService>();
 
 // Configuración de opciones MetaReal
 builder.Services.Configure<DashboardAPI.Models.MetaRealOptions>(builder.Configuration.GetSection("MetaReal"));
