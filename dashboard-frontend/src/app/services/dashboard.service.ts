@@ -2,40 +2,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 
-export interface GraficasQuejasEmergencias {
-  ejeX: string[];
-  emergenciasPendientes: number[];
-  quejasPendientes: number[];
-  emergenciasAtendidas: number[];
-  quejasAtendidas: number[];
-  emergenciasGeneradas: number[];
-  quejasGeneradas: number[];
-}
-
-export interface ResumenGlobalQuejasEmergencias {
-  emergenciasPendientes: number;
-  emergenciasVencidas: number;
-  emergenciasEnAtencion: number;
-  quejasPendientes: number;
-  quejasVencidas: number;
-  quejasEnAtencion: number;
-}
-
-export interface QuejasEmergenciasResponse {
-  graficas: GraficasQuejasEmergencias;
-  resumenEmergencias: any[];
-  resumenQuejas: any[];
-  detalleEmergencias: any[];
-  detalleQuejas: any[];
-  listado: any[];
-  resumenEstadoEmergencias: any[];
-  resumenMunicipioEmergencias: any[];
-  resumenEstadoQuejas: any[];
-  resumenMunicipioQuejas: any[];
-  resumenGlobal: ResumenGlobalQuejasEmergencias;
-  integridadOk: boolean;
-}
-
 @Injectable({
   providedIn: 'root'
 })
@@ -116,6 +82,17 @@ export class DashboardService {
     return this.http.get<any[]>(`${this.API}/colonias/inconformidades${q}`);
   }
 
+  // Tabla completa (todas las columnas) para UN código de inconformidad específico,
+  // agrupada por colonia — usado por el detalle en vivo dentro del modal de Colonias.
+  getColoniaInconformidadDetalle(zona: string, area: string, desde: string | undefined, hasta: string | undefined, tipoSolTermino: string) {
+    const params: string[] = [`tipoSolTermino=${encodeURIComponent(tipoSolTermino)}`];
+    if (zona !== '00000') params.push(`zona=${zona}`);
+    if (area !== '00000') params.push(`area=${area}`);
+    if (desde) params.push(`desde=${encodeURIComponent(desde)}`);
+    if (hasta) params.push(`hasta=${encodeURIComponent(hasta)}`);
+    return this.http.get<any[]>(`${this.API}/colonias/inconformidad-detalle?${params.join('&')}`);
+  }
+
   // Envía el reporte diario de Inconformidades por correo al destinatario que teclee
   // el usuario (si se omite, el backend usa el Email:To configurado por defecto).
   enviarReportePorCorreo(to?: string) {
@@ -123,16 +100,26 @@ export class DashboardService {
     return this.http.post(`${this.API}/reportes/enviar-ahora${q}`, {}, { responseType: 'text' });
   }
 
-  // Reporte "Quejas y Emergencias" (sistema sisquem) — primer caso del proyecto que
-  // manda selección múltiple real por query string; HttpParams.append() soporta
-  // varios valores bajo la misma clave (?zona=A&zona=B), y ASP.NET Core los bindea
-  // automático a un string[] en el controller sin código adicional.
-  getQuejasEmergencias(zonas: string[], tiposOrden: string[], desde?: string, hasta?: string) {
-    let params = new HttpParams();
-    zonas.forEach(z => params = params.append('zona', z));
-    tiposOrden.forEach(t => params = params.append('tipoOrden', t));
-    if (desde) params = params.set('desde', desde);
-    if (hasta) params = params.set('hasta', hasta);
-    return this.http.get<QuejasEmergenciasResponse>(`${this.API}/quejas-emergencias`, { params });
+  // SICOSS Distribución — solicitudes pendientes por zona/centro (tercer sistema CFE,
+  // independiente de cssnal.cfe.mx y sisquem). Sin rango de fechas: el sistema origen
+  // siempre da el estado actual.
+  getSicossZonas() {
+    return this.http.get<{ value: string; label: string }[]>(`${this.API}/sicoss/zonas`);
+  }
+
+  getSicossCentros(zona: string) {
+    return this.http.get<{ value: string; label: string }[]>(`${this.API}/sicoss/centros?zona=${zona}`);
+  }
+
+  getSicossPendientes(zona: string, cen: string) {
+    return this.http.get<any[]>(`${this.API}/sicoss/pendientes?zona=${zona}&cen=${cen}`);
+  }
+
+  // Detalle en vivo (bitácora de movimientos + bitácora de servicios) de una solicitud —
+  // se pide bajo demanda al hacer clic en una fila, no junto con getSicossPendientes.
+  getSicossDetalle(solicitud: string) {
+    return this.http.get<{ Movimientos: any[]; Servicios: any[] }>(
+      `${this.API}/sicoss/detalle?solicitud=${encodeURIComponent(solicitud)}`
+    );
   }
 }

@@ -191,62 +191,6 @@ namespace DashboardAPI.Services
             }
         }
 
-        // ── QUEJAS Y EMERGENCIAS (sistema sisquem) ──────────────────────────────────────
-
-        /// <summary>
-        /// Guarda solo los totales agregados por zona (resumen) del reporte de Quejas y
-        /// Emergencias. La serie horaria de las gráficas NO se persiste aquí: esa
-        /// granularidad no encaja en el esquema Anio/Mes tidy existente y no aporta valor
-        /// histórico para Power BI — se sirve al frontend en vivo en cada consulta.
-        /// </summary>
-        public async Task SaveQuejasEmergenciasAsync(
-            QuejasEmergenciasResult data, int anio, string[]? zonas)
-        {
-            try
-            {
-                var zonaFiltro = zonas is { Length: > 0 } ? string.Join(",", zonas) : "00000";
-                var previas = _db.HechosReportes.Where(h =>
-                    h.Fuente == "QUEJAS_EMERGENCIAS" && h.Anio == anio && h.ZonaFiltro == zonaFiltro);
-                _db.HechosReportes.RemoveRange(previas);
-
-                int added = 0;
-                void AddResumen(List<Dictionary<string, string>> rows, string metrica)
-                {
-                    foreach (var row in rows)
-                    {
-                        var zona = FindByKeyword(row, "ZONA");
-                        if (string.IsNullOrWhiteSpace(zona) || zona.Trim().Equals("TOTAL", StringComparison.OrdinalIgnoreCase)) continue;
-                        var totalTxt = FindByKeyword(row, "TOTAL");
-                        if (!TryParseValor(totalTxt, out var v)) continue;
-
-                        _db.HechosReportes.Add(new HechoReporte
-                        {
-                            Fuente        = "QUEJAS_EMERGENCIAS",
-                            FechaConsulta = DateTime.Now,
-                            Anio          = anio,
-                            Mes           = null,
-                            ZonaFiltro    = zonaFiltro,
-                            Cve           = zona,
-                            Area          = "",
-                            Categoria     = "RESUMEN_ZONA",
-                            Metrica       = metrica,
-                            Valor         = v
-                        });
-                        added++;
-                    }
-                }
-                AddResumen(data.ResumenEmergencias, "EMERGENCIAS_PENDIENTES");
-                AddResumen(data.ResumenQuejas, "QUEJAS_PENDIENTES");
-
-                await _db.SaveChangesAsync();
-                _logger.LogInformation("ReporteStore: guardadas {Count} filas QUEJAS_EMERGENCIAS ({Anio}, zonas {Zonas})", added, anio, zonaFiltro);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("ReporteStore.SaveQuejasEmergenciasAsync falló: {Err}", ex.Message);
-            }
-        }
-
         // ── Helpers ────────────────────────────────────────────────────────────────────
 
         /// <summary>Busca el primer valor cuya clave contenga la palabra dada (sin importar mayúsculas).</summary>

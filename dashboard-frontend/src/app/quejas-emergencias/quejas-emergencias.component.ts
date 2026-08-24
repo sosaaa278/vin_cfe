@@ -3,360 +3,356 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx-js-style';
-import { DashboardService, QuejasEmergenciasResponse } from '../services/dashboard.service';
-import { AuthService } from '../services/auth.service';
-import { DateRangeService } from '../services/date-range.service';
+import { DashboardService } from '../services/dashboard.service';
 import { NavComponent } from '../shared/nav.component';
-import { DateRangeBarComponent } from '../shared/date-range-bar.component';
 import { saveWorkbook } from '../shared/excel-export';
+import { timeout, finalize } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
-import { timeout } from 'rxjs/operators';
 
-// sisquem consulta en vivo otro sistema interno (SICOSS) y el propio portal advierte
-// que puede tardar varios minutos — igual que SCRAPE_TIMEOUT_MS en colonias/causas,
-// pero más generoso porque aquí el backend ya espera hasta 5 min por su cuenta.
+// SICOSS Distribución consulta en vivo otro sistema interno — igual que
+// SCRAPE_TIMEOUT_MS en colonias/causas.
 const SCRAPE_TIMEOUT_MS = 300_000;
 
-// Los 16 códigos de "Tipos de orden" que expone el portal sisquem. Son fijos (no
-// vienen de un endpoint) — por defecto todos seleccionados, igual que el estado
-// inicial real del multi-select del portal.
-const TIPOS_ORDEN = ['E01', 'E02', 'E03', 'E04', 'E05', 'E06', 'E07',
-                      'Q01', 'Q02', 'Q03', 'Q04', 'Q06', 'Q07', 'Q08', 'QC2', 'QC7'];
-
-// Colores de línea: Emergencias (azul), Quejas (naranja) para las 3 primeras gráficas;
-// Generadas/Pendientes/Atendidas (naranja/azul marino/verde) para "Totales", igual a la
-// combinación de colores que usa el propio sisquem en su gráfica "Totales por hora".
-const LINE_COLORS = {
-  emergencias: { border: 'rgb(30,58,138)',  bg: 'rgba(30,58,138,0.12)' },
-  quejas:      { border: 'rgb(234,88,12)',  bg: 'rgba(234,88,12,0.12)' },
-  generadas:   { border: 'rgb(234,140,20)', bg: 'rgba(234,140,20,0.12)' },
-  pendientes:  { border: 'rgb(20,30,70)',   bg: 'rgba(20,30,70,0.12)' },
-  atendidas:   { border: 'rgb(22,163,74)',  bg: 'rgba(22,163,74,0.12)' },
+// Etiqueta de valor sobre cada barra — necesario porque en "Por tipo de inconformidad"
+// las barras pueden tener escalas MUY distintas (ej. 1200 Pendientes vs 3 En atención) y
+// la barra chica se vería vacía sin esto; el número siempre queda legible encima.
+const BAR_DATALABELS_PLUGIN: any = {
+  id: 'sicossBarLabels',
+  afterDatasetsDraw(chart: any) {
+    if (chart.config.type !== 'bar') return;
+    const { ctx } = chart;
+    (chart.data.datasets as any[]).forEach((ds: any, di: number) => {
+      const meta = chart.getDatasetMeta(di);
+      if (meta.hidden) return;
+      meta.data.forEach((el: any, idx: number) => {
+        const val = ds.data[idx];
+        if (val == null || val === 0) return;
+        const txt = Number(val).toLocaleString('es-MX');
+        ctx.save();
+        ctx.fillStyle = '#1a202c';
+        ctx.font = '600 9px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(txt, el.x, el.y - 2);
+        ctx.restore();
+      });
+    });
+  }
 };
 
-interface ChartDef {
-  id: string;
-  titulo: string;
-}
-
-// Vista "Quejas y Emergencias" — monitoreo del sistema sisquem (distinto de
-// cssnal.cfe.mx: es JSON puro, sin Playwright del lado del backend). A diferencia
-// de las demás vistas, aquí Zona(s) y Tipos de orden son selección MÚLTIPLE real.
+// Vista "Quejas y Emergencias" — hoy solo consume SICOSS Distribución
+// (http://10.4.14.1/cgi-bin/sicossweb/solicitudes/pendctosa.cgi), un sistema en vivo sin
+// rango de fechas (siempre es el estado "ahora mismo").
 @Component({
   selector: 'app-quejas-emergencias',
   standalone: true,
-  imports: [CommonModule, FormsModule, NavComponent, DateRangeBarComponent],
+  imports: [CommonModule, FormsModule, NavComponent],
   templateUrl: './quejas-emergencias.component.html',
   styleUrls: ['./quejas-emergencias.component.css']
 })
 export class QuejasEmergenciasComponent implements OnInit, OnDestroy {
 
-  status: 'WAITING' | 'LOADING' | 'SUCCESS' | 'ERROR' = 'WAITING';
-  errorMsg = '';
+  // ── SICOSS Distribución — solicitudes pendientes por zona/centro ───────────────
+  sicossZonas: { value: string; label: string }[] = [];
+  sicossCentros: { value: string; label: string }[] = [];
+  sicossZona = '';
+  sicossCen = '';
+  sicossStatus: 'WAITING' | 'LOADING' | 'SUCCESS' | 'ERROR' = 'WAITING';
+  sicossErrorMsg = '';
+  sicossData: any[] = [];
+  sicossPorStatus: { status: string; count: number }[] = [];
+  sicossPorTipo: { tipo: string; pendientes: number; enAtencion: number; porAsignar: number; total: number }[] = [];
+  private sicossChart: any = null;
+  private sicossStatusChart: any = null;
+  private sicossTipoChart: any = null;
 
-  readonly TIPOS_ORDEN = TIPOS_ORDEN;
+  // ── Modal "detalle de solicitud" (clic en una fila de "Solicitudes por tipo") ──
+  // Bajo demanda: se pide solo al hacer clic, no junto con la tabla completa — mismo
+  // patrón que el detalle en vivo del modal de Colonias (evita disparar N peticiones
+  // extra, una por solicitud, cada vez que se carga la tabla).
+  modalSolicitudRow: any = null;      // fila clickeada; null = modal cerrado
+  detalleLoading = false;
+  detalleErrorMsg = '';
+  detalleMovimientos: any[] = [];
+  detalleServicios: any[] = [];
+  detalleMovimientosCols: string[] = [];
+  detalleServiciosCols: string[] = [];
+  private detalleSub?: Subscription;
 
-  zonas: { value: string; label: string }[] = [];
-  zonasLoading = false;
-
-  // Zona: selección ÚNICA (dropdown normal, igual que causas/imu/colonias) — a
-  // diferencia de Tipos de orden, el usuario pidió que aquí solo se pueda elegir una
-  // zona a la vez. "00000" = todas las zonas (mismo convenio que el resto de la app).
-  selectedZona = '00000';
-  // Tipos de orden: selección MÚLTIPLE real (checklist). Todos por defecto.
-  selectedTipos: string[] = [...TIPOS_ORDEN];
-
-  data: QuejasEmergenciasResponse | null = null;
-  integridadOk = true;
-
-  resumenEmergenciasCols: string[] = [];
-  resumenQuejasCols: string[] = [];
-  detalleEmergenciasCols: string[] = [];
-  detalleQuejasCols: string[] = [];
-  listadoCols: string[] = [];
-  resumenEstadoEmergenciasCols: string[] = [];
-  resumenMunicipioEmergenciasCols: string[] = [];
-  resumenEstadoQuejasCols: string[] = [];
-  resumenMunicipioQuejasCols: string[] = [];
-
-  // Conteo de solicitudes pendientes por tipo de orden (E01, E02, ... ), derivado del
-  // listado (columna "Tipo") en vez de pedir un endpoint nuevo — ya trae el código exacto
-  // por fila. Solo se muestran los tipos actualmente seleccionados, en el orden fijo de
-  // TIPOS_ORDEN (no el orden en que el usuario los fue marcando).
-  kpiTipos: { tipo: string; count: number }[] = [];
-
-  private charts: { [id: string]: any } = {};
-
-  private readonly CHART_DEFS: ChartDef[] = [
-    { id: 'qeChartPendientes', titulo: 'Pendientes' },
-    { id: 'qeChartAtendidas',  titulo: 'Atendidas' },
-    { id: 'qeChartGeneradas',  titulo: 'Generadas' },
-    { id: 'qeChartTotales',    titulo: 'Totales por hora (Emergencias + Quejas)' },
-  ];
-  get chartDefs(): ChartDef[] { return this.CHART_DEFS; }
-
-  private rangeSub?: Subscription;
-
-  constructor(
-    private dashboardService: DashboardService,
-    private auth: AuthService,
-    private dateRange: DateRangeService
-  ) {
-    this.zonas = this.auth.getZonas();
-
-    let first = true;
-    this.rangeSub = this.dateRange.range$.subscribe(() => {
-      if (first) { first = false; return; }
-      if (this.data) this.consultar();
-    });
-  }
+  constructor(private dashboardService: DashboardService) {}
 
   ngOnInit(): void {
-    this.zonasLoading = true;
-    this.dashboardService.getZonas().subscribe({
-      next: zonas => {
-        if (zonas?.length > 1) this.zonas = zonas;
-        this.zonasLoading = false;
-      },
-      error: () => { this.zonasLoading = false; }
+    this.dashboardService.getSicossZonas().subscribe({
+      next: zonas => { this.sicossZonas = zonas ?? []; },
+      error: () => { this.sicossZonas = []; }
     });
   }
 
   ngOnDestroy(): void {
-    this.rangeSub?.unsubscribe();
-    Object.values(this.charts).forEach(c => c?.destroy());
+    this.destroySicossCharts();
+    this.detalleSub?.unsubscribe();
   }
 
-  toggleTipo(t: string): void {
-    const i = this.selectedTipos.indexOf(t);
-    if (i >= 0) this.selectedTipos.splice(i, 1);
-    else this.selectedTipos.push(t);
-  }
+  /** Clic en una solicitud de la tabla "detalle" — trae bitácora de movimientos (quién
+   * preasignó y a qué cuadrilla de CFE, ej. "Cuad:C2223" en Observaciones) y bitácora de
+   * servicios (historial en esa dirección, incluye contratista cuando "Atendido por" dice
+   * algo como "CONTT - CONTRATISTA CCC1"). Clic de nuevo en la misma solicitud lo cierra. */
+  onSolicitudClick(row: any): void {
+    if (this.modalSolicitudRow === row) {
+      this.closeDetalleModal();
+      return;
+    }
+    // Ya hay un detalle en curso — ignora el clic en vez de apilar otra petición
+    // (mismo criterio que colonias tras el problema de scrapes acumulados).
+    if (this.detalleLoading) return;
 
-  seleccionarTodosTipos(): void {
-    this.selectedTipos = [...TIPOS_ORDEN];
-  }
+    this.modalSolicitudRow = row;
+    this.detalleErrorMsg = '';
+    this.detalleMovimientos = [];
+    this.detalleServicios = [];
+    this.detalleMovimientosCols = [];
+    this.detalleServiciosCols = [];
+    this.detalleLoading = true;
 
-  limpiarTipos(): void {
-    this.selectedTipos = [];
-  }
-
-  consultar(): void {
-    this.status = 'LOADING';
-    this.errorMsg = '';
-
-    const { desde, hasta } = this.dateRange.current;
-    const zonas = this.selectedZona === '00000' ? [] : [this.selectedZona];
-    this.dashboardService.getQuejasEmergencias(zonas, this.selectedTipos, desde, hasta)
-      .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
+    const folio = String(row['Solicitud'] ?? '').trim();
+    this.detalleSub?.unsubscribe();
+    this.detalleSub = this.dashboardService.getSicossDetalle(folio)
+      .pipe(finalize(() => { this.detalleLoading = false; }))
       .subscribe({
-      next: resp => {
-        // Igual que el propio portal (tablesorter sortList: [[6,1]] = columna Horas,
-        // descendente) — el HTML crudo no viene garantizado en ese orden porque ese sort
-        // lo aplica el JS del portal después de renderizar, no el servidor.
-        if (resp?.listado?.length) {
-          resp.listado = [...resp.listado].sort(
-            (a, b) => (parseFloat(b['Horas']) || 0) - (parseFloat(a['Horas']) || 0)
-          );
+        next: data => {
+          this.detalleMovimientos = data?.Movimientos ?? [];
+          this.detalleServicios = data?.Servicios ?? [];
+          this.detalleMovimientosCols = this.detalleMovimientos[0] ? Object.keys(this.detalleMovimientos[0]) : [];
+          this.detalleServiciosCols = this.detalleServicios[0] ? Object.keys(this.detalleServicios[0]) : [];
+        },
+        error: err => {
+          this.detalleErrorMsg = err?.error || 'No se pudo consultar el detalle de esta solicitud.';
         }
-        this.data = resp;
-        this.integridadOk = resp?.integridadOk ?? true;
-        this.resumenEmergenciasCols = this.colsOf(resp?.resumenEmergencias);
-        this.resumenQuejasCols      = this.colsOf(resp?.resumenQuejas);
-        this.detalleEmergenciasCols = this.colsOf(resp?.detalleEmergencias, true);
-        this.detalleQuejasCols      = this.colsOf(resp?.detalleQuejas, true);
-        this.listadoCols            = this.colsOf(resp?.listado);
-        this.resumenEstadoEmergenciasCols    = this.colsOf(resp?.resumenEstadoEmergencias);
-        this.resumenMunicipioEmergenciasCols = this.colsOf(resp?.resumenMunicipioEmergencias);
-        this.resumenEstadoQuejasCols         = this.colsOf(resp?.resumenEstadoQuejas);
-        this.resumenMunicipioQuejasCols      = this.colsOf(resp?.resumenMunicipioQuejas);
-        this.kpiTipos = this.computeKpiTipos(resp?.listado);
-        this.status = 'SUCCESS';
-        this.renderCharts();
-      },
-      error: err => this.fail(err)
+      });
+  }
+
+  closeDetalleModal(): void {
+    this.detalleSub?.unsubscribe();
+    this.modalSolicitudRow = null;
+    this.detalleLoading = false;
+    this.detalleErrorMsg = '';
+    this.detalleMovimientos = [];
+    this.detalleServicios = [];
+    this.detalleMovimientosCols = [];
+    this.detalleServiciosCols = [];
+  }
+
+  private destroySicossCharts(): void {
+    if (this.sicossChart) { this.sicossChart.destroy(); this.sicossChart = null; }
+    if (this.sicossStatusChart) { this.sicossStatusChart.destroy(); this.sicossStatusChart = null; }
+    if (this.sicossTipoChart) { this.sicossTipoChart.destroy(); this.sicossTipoChart = null; }
+  }
+
+  sicossOnZonaChange(zona: string): void {
+    this.sicossZona = zona;
+    this.sicossCen = '';
+    this.sicossCentros = [];
+    this.sicossData = [];
+    this.sicossPorStatus = [];
+    this.sicossPorTipo = [];
+    this.sicossStatus = 'WAITING';
+    this.destroySicossCharts();
+    if (!zona) return;
+
+    this.dashboardService.getSicossCentros(zona).subscribe({
+      next: centros => { this.sicossCentros = centros ?? []; },
+      error: () => { this.sicossCentros = []; }
     });
   }
 
-  // Columnas dinámicas a partir de la primera fila — los nombres exactos de columna
-  // dependen de cómo sisquem componga el HTML de cada tabla (no confirmados al 100%
-  // hasta la primera prueba real). Con excludeColorCols=true se omiten los campos
-  // companion "<col>_color" (son solo para pintar celdas, no columnas visibles).
-  private colsOf(rows: any[] | undefined, excludeColorCols = false): string[] {
-    if (!rows || rows.length === 0) return [];
-    const keys = Object.keys(rows[0]);
-    return excludeColorCols ? keys.filter(k => !k.endsWith('_color')) : keys;
+  sicossGenerar(): void {
+    if (!this.sicossZona || !this.sicossCen) return;
+
+    this.sicossStatus = 'LOADING';
+    this.sicossErrorMsg = '';
+    this.dashboardService.getSicossPendientes(this.sicossZona, this.sicossCen)
+      .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
+      .subscribe({
+        next: data => {
+          this.sicossData = data ?? [];
+          this.sicossPorStatus = this.computeSicossPorStatus();
+          this.sicossPorTipo = this.computeSicossPorTipo();
+          this.sicossStatus = 'SUCCESS';
+          this.renderSicossChart();
+          this.renderSicossStatusChart();
+          this.renderSicossTipoChart();
+        },
+        error: err => {
+          this.sicossStatus = 'ERROR';
+          this.sicossErrorMsg = err?.error || 'No se pudo consultar SICOSS Distribución.';
+        }
+      });
   }
 
-  cellColor(row: any, col: string): string | null {
-    return row?.[`${col}_color`] ?? null;
+  // El texto real que manda el portal es "1 - Pendiente", "2 - EnAtencion",
+  // "W - PreAsignada" — clasificamos por el primer caracter (el código), no por el
+  // texto completo, para no depender de espacios/mayúsculas exactas.
+  private sicossStatusLabel(raw: string): 'Pendientes' | 'En atención' | 'Por asignar' | 'Otro' {
+    const c = (raw || '').trim().charAt(0).toUpperCase();
+    if (c === '1') return 'Pendientes';
+    if (c === '2') return 'En atención';
+    if (c === 'W') return 'Por asignar';
+    return 'Otro';
   }
 
-  // Las tablas resumen (Zona/Estado/Municipio) ahora traen una fila final "Total" (viene
-  // del <tfoot> real de sisquem) — se resalta igual que la fila Total del dashboard
-  // principal, en vez de verse como una zona/estado más.
-  isRowTotal(row: any, cols: string[]): boolean {
-    const first = cols[0];
-    return /^total$/i.test(String(row?.[first] ?? '').trim());
+  private computeSicossPorStatus(): { status: string; count: number }[] {
+    const counts = new Map<string, number>();
+    for (const row of this.sicossData) {
+      const label = this.sicossStatusLabel(row['Status']);
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    const order = ['Pendientes', 'En atención', 'Por asignar', 'Otro'];
+    return order
+      .filter(s => counts.has(s))
+      .map(status => ({ status, count: counts.get(status)! }));
   }
 
-  private computeKpiTipos(listado: any[] | undefined): { tipo: string; count: number }[] {
-    const rows = listado ?? [];
-    return this.selectedTipos
-      .slice()
-      .sort((a, b) => TIPOS_ORDEN.indexOf(a) - TIPOS_ORDEN.indexOf(b))
-      .map(tipo => ({ tipo, count: rows.filter(r => r['Tipo'] === tipo).length }));
+  private computeSicossPorTipo(): { tipo: string; pendientes: number; enAtencion: number; porAsignar: number; total: number }[] {
+    const map = new Map<string, { pendientes: number; enAtencion: number; porAsignar: number }>();
+    for (const row of this.sicossData) {
+      const tipo = row['Tipo'] || '';
+      if (!map.has(tipo)) map.set(tipo, { pendientes: 0, enAtencion: 0, porAsignar: 0 });
+      const entry = map.get(tipo)!;
+      const label = this.sicossStatusLabel(row['Status']);
+      if (label === 'Pendientes') entry.pendientes++;
+      else if (label === 'En atención') entry.enAtencion++;
+      else if (label === 'Por asignar') entry.porAsignar++;
+    }
+    return Array.from(map.entries())
+      .map(([tipo, v]) => ({ tipo, ...v, total: v.pendientes + v.enAtencion + v.porAsignar }))
+      .sort((a, b) => b.total - a.total);
   }
 
-  private fail(err: any): void {
-    this.errorMsg = err?.name === 'TimeoutError'
-      ? 'La consulta tardó demasiado (sisquem no respondió a tiempo). Vuelve a intentarlo.'
-      : typeof err?.error === 'string'
-        ? err.error
-        : 'No se pudo cargar el reporte de Quejas y Emergencias. Verifica la conexión/VPN a la red de CFE.';
-    this.status = 'ERROR';
-    this.data = null;
-  }
-
-  // ── Gráficas ──────────────────────────────────────────────────────────────────
-
-  private renderCharts(): void {
-    const g = this.data?.graficas;
-    if (!g || g.ejeX.length === 0) return;
+  private renderSicossChart(): void {
+    const counts = new Map<string, number>();
+    for (const row of this.sicossData) {
+      const tipo = row['Tipo'] || '';
+      counts.set(tipo, (counts.get(tipo) ?? 0) + 1);
+    }
+    const labels = Array.from(counts.keys()).sort((a, b) => counts.get(b)! - counts.get(a)!);
+    const data = labels.map(l => counts.get(l)!);
 
     setTimeout(() => {
-      this.destroyCharts();
+      if (this.sicossChart) { this.sicossChart.destroy(); this.sicossChart = null; }
+      const canvas = document.getElementById('sicossChart');
+      if (!canvas || labels.length === 0) return;
 
-      // "Pendientes" es una FOTO del backlog en ese momento (no un conteo de eventos) —
-      // sumar sus horas dentro de un día inflaría el número (el mismo pendiente contaría
-      // varias veces). Se agrupa por día tomando el ÚLTIMO valor del día, no la suma.
-      const pend = this.prepareSeries(g.ejeX, [g.emergenciasPendientes, g.quejasPendientes], ['last', 'last']);
-      this.buildLineChart('qeChartPendientes', 'Pendientes', pend.labels, [
-        { label: 'Emergencias', data: pend.series[0], color: LINE_COLORS.emergencias },
-        { label: 'Quejas',      data: pend.series[1], color: LINE_COLORS.quejas },
-      ]);
-
-      const aten = this.prepareSeries(g.ejeX, [g.emergenciasAtendidas, g.quejasAtendidas]);
-      this.buildLineChart('qeChartAtendidas', 'Atendidas', aten.labels, [
-        { label: 'Emergencias', data: aten.series[0], color: LINE_COLORS.emergencias },
-        { label: 'Quejas',      data: aten.series[1], color: LINE_COLORS.quejas },
-      ]);
-
-      const gen = this.prepareSeries(g.ejeX, [g.emergenciasGeneradas, g.quejasGeneradas]);
-      this.buildLineChart('qeChartGeneradas', 'Generadas', gen.labels, [
-        { label: 'Emergencias', data: gen.series[0], color: LINE_COLORS.emergencias },
-        { label: 'Quejas',      data: gen.series[1], color: LINE_COLORS.quejas },
-      ]);
-
-      // "Totales por hora (Emergencias + Quejas)" — 3 series (Generadas/Pendientes/
-      // Atendidas), cada una sumando Emergencias + Quejas de esa métrica, agrupadas por
-      // día igual que las otras 3 gráficas (Pendientes con 'last', las demás con 'sum').
-      const totalesGeneradas  = g.emergenciasGeneradas.map((v, i) => v + (g.quejasGeneradas[i] ?? 0));
-      const totalesPendientes = g.emergenciasPendientes.map((v, i) => v + (g.quejasPendientes[i] ?? 0));
-      const totalesAtendidas  = g.emergenciasAtendidas.map((v, i) => v + (g.quejasAtendidas[i] ?? 0));
-      const tot = this.prepareSeries(g.ejeX, [totalesGeneradas, totalesPendientes, totalesAtendidas], ['sum', 'last', 'sum']);
-      this.buildLineChart('qeChartTotales', 'Totales por hora (Emergencias + Quejas)', tot.labels, [
-        { label: 'Generadas',  data: tot.series[0], color: LINE_COLORS.generadas },
-        { label: 'Pendientes', data: tot.series[1], color: LINE_COLORS.pendientes },
-        { label: 'Atendidas',  data: tot.series[2], color: LINE_COLORS.atendidas },
-      ]);
+      this.sicossChart = new Chart('sicossChart', {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Solicitudes',
+            data,
+            backgroundColor: 'rgba(22,163,74,0.75)',
+            borderColor: 'rgb(21,128,61)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        },
+        plugins: [BAR_DATALABELS_PLUGIN]
+      } as any);
     }, 0);
   }
 
-  // Con rangos largos, sisquem devuelve datos POR HORA (ej. 6 meses = miles de puntos) —
-  // ilegible en una gráfica de línea. Si hay más de ~2 días de puntos se agrupan por
-  // fecha (YYYY-MM-DD). modes[i]='sum' para conteos de eventos, 'last' para fotos de
-  // backlog (Pendientes) — por defecto 'sum' si no se especifica para esa serie.
-  private prepareSeries(
-    ejeX: string[], series: number[][], modes: ('sum' | 'last')[] = []
-  ): { labels: string[]; series: number[][] } {
-    if (ejeX.length <= 48) return { labels: ejeX, series };
+  private renderSicossStatusChart(): void {
+    setTimeout(() => {
+      if (this.sicossStatusChart) { this.sicossStatusChart.destroy(); this.sicossStatusChart = null; }
+      const canvas = document.getElementById('sicossStatusChart');
+      if (!canvas || this.sicossPorStatus.length === 0) return;
 
-    const dayIndex = new Map<string, number>();
-    const labels: string[] = [];
-    const acc: number[][] = series.map(() => []);
+      const colors: { [k: string]: string } = {
+        'Pendientes': 'rgba(251,191,36,0.85)',
+        'En atención': 'rgba(22,163,74,0.80)',
+        'Por asignar': 'rgba(156,163,175,0.80)',
+        'Otro': 'rgba(108,117,125,0.60)',
+      };
 
-    ejeX.forEach((ts, i) => {
-      const day = ts.slice(0, 10);
-      let idx = dayIndex.get(day);
-      if (idx === undefined) {
-        idx = labels.length;
-        dayIndex.set(day, idx);
-        labels.push(day);
-        acc.forEach(arr => arr.push(0));
-      }
-      series.forEach((s, si) => {
-        const v = s[i] ?? 0;
-        const mode = modes[si] ?? 'sum';
-        acc[si][idx] = mode === 'sum' ? acc[si][idx] + v : v;
-      });
-    });
-
-    return { labels, series: acc };
-  }
-
-  private buildLineChart(
-    canvasId: string, titulo: string, labels: string[],
-    series: { label: string; data: number[]; color: { border: string; bg: string } }[]
-  ): void {
-    const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
-    if (!canvas) return;
-
-    // Rangos largos traen miles de puntos por hora — sin puntos visibles (solo la línea)
-    // y sin animación se mantiene fluido; el hover sigue funcionando por pointHitRadius.
-    const dense = labels.length > 300;
-
-    this.charts[canvasId] = new Chart(canvasId, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: series.map(s => ({
-          label: s.label,
-          data: s.data,
-          borderColor: s.color.border,
-          backgroundColor: s.color.bg,
-          fill: true,
-          tension: 0.2,
-          borderWidth: dense ? 1.25 : 2,
-          pointRadius: dense ? 0 : 2,
-          pointHitRadius: 6,
-        }))
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: dense ? false : undefined,
-        interaction: { mode: 'index' as const, intersect: false },
-        plugins: {
-          title: { display: true, text: titulo, font: { size: 12, weight: 'bold' } },
-          legend: { position: 'top' as const, labels: { usePointStyle: true, padding: 8, boxWidth: 12, font: { size: 11 } } }
+      this.sicossStatusChart = new Chart('sicossStatusChart', {
+        type: 'bar',
+        data: {
+          labels: this.sicossPorStatus.map(s => s.status),
+          datasets: [{
+            label: 'Solicitudes',
+            data: this.sicossPorStatus.map(s => s.count),
+            backgroundColor: this.sicossPorStatus.map(s => colors[s.status] ?? 'rgba(108,117,125,0.6)'),
+            borderWidth: 1
+          }]
         },
-        scales: {
-          x: { ticks: { maxRotation: 60, minRotation: 30, font: { size: 8 }, autoSkip: true, maxTicksLimit: 40 }, grid: { display: false } },
-          y: { beginAtZero: true, ticks: { font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.06)' } }
-        }
-      } as any
-    });
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+        },
+        plugins: [BAR_DATALABELS_PLUGIN]
+      } as any);
+    }, 0);
   }
 
-  private destroyCharts(): void {
-    Object.values(this.charts).forEach(c => c?.destroy());
-    this.charts = {};
+  private renderSicossTipoChart(): void {
+    setTimeout(() => {
+      if (this.sicossTipoChart) { this.sicossTipoChart.destroy(); this.sicossTipoChart = null; }
+      const canvas = document.getElementById('sicossTipoChart');
+      if (!canvas || this.sicossPorTipo.length === 0) return;
+
+      this.sicossTipoChart = new Chart('sicossTipoChart', {
+        type: 'bar',
+        data: {
+          labels: this.sicossPorTipo.map(t => t.tipo),
+          datasets: [
+            { label: 'Pendientes',   data: this.sicossPorTipo.map(t => t.pendientes), backgroundColor: 'rgba(251,191,36,0.85)' },
+            { label: 'En atención',  data: this.sicossPorTipo.map(t => t.enAtencion), backgroundColor: 'rgba(22,163,74,0.80)' },
+            { label: 'Por asignar',  data: this.sicossPorTipo.map(t => t.porAsignar), backgroundColor: 'rgba(156,163,175,0.80)' },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' as const } },
+          scales: {
+            x: { stacked: false },
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        },
+        plugins: [BAR_DATALABELS_PLUGIN]
+      } as any);
+    }, 0);
   }
 
   // ── Exportar ──────────────────────────────────────────────────────────────────
 
-  /** Exporta cualquiera de las tablas del reporte a un .xlsx — usado por el botón "Excel"
-   * de cada tarjeta. Quita las columnas companion "<col>_color" (solo sirven para pintar
-   * celdas en pantalla, no son datos que el usuario quiera ver en el archivo). */
+  /** Exporta cualquier gráfica (por id de canvas) a PNG con fondo blanco — Chart.js
+   * deja el fondo transparente por defecto y se ve negro al abrir el PNG. */
+  exportChartImage(canvasId: string, filename: string): void {
+    const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;
+    if (!canvas) return;
+    const off = document.createElement('canvas');
+    off.width = canvas.width;
+    off.height = canvas.height;
+    const offCtx = off.getContext('2d')!;
+    offCtx.fillStyle = '#ffffff';
+    offCtx.fillRect(0, 0, off.width, off.height);
+    offCtx.drawImage(canvas, 0, 0);
+    const link = document.createElement('a');
+    link.href = off.toDataURL('image/png');
+    link.download = filename;
+    link.click();
+  }
+
   exportTableExcel(rows: any[] | null | undefined, filename: string): void {
     if (!rows || rows.length === 0) return;
-    const clean = rows.map(row => {
-      const out: any = {};
-      Object.keys(row).forEach(k => { if (!k.endsWith('_color')) out[k] = row[k]; });
-      return out;
-    });
-    const ws = XLSX.utils.json_to_sheet(clean);
+    const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos');
     saveWorkbook(wb, filename);

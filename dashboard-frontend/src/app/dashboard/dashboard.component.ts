@@ -492,6 +492,23 @@ export class DashboardComponent implements OnInit {
       }
     ];
 
+    // En "Todos (agrupado)" cada barra es la suma de 8 códigos por zona, y las zonas
+    // varían muchísimo entre sí (una con 5,000 solicitudes y otra con 200) — con escala
+    // lineal la barra chica se aplasta casi invisible junto a la grande. La escala
+    // logarítmica comprime ese rango para que las columnas se vean más parejas SIN
+    // perder el dato real: BAR_DATALABELS_PLUGIN ya imprime el número exacto encima de
+    // cada barra, y aquí se formatean los ticks del eje para que se lean como números
+    // normales (1,000) en vez de notación científica.
+    const useLogScale = this.currentCompareMode === 'all' && !isLine;
+    const valueAxis: any = useLogScale
+      ? {
+          type: 'logarithmic',
+          min: 1,
+          grid: { color: 'rgba(0,0,0,0.06)' },
+          ticks: { callback: (value: any) => Number(value).toLocaleString('es-MX') }
+        }
+      : { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' } };
+
     const config: any = {
       type: resolvedType,
       data: { labels, datasets },
@@ -527,7 +544,7 @@ export class DashboardComponent implements OnInit {
         },
         scales: {
           x: { ticks: { maxRotation: 45, minRotation: 0 }, grid: { display: false } },
-          y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' } }
+          y: valueAxis
         }
       },
       plugins: isLine ? [] : [BG_COLUMNS_PLUGIN, BAR_DATALABELS_PLUGIN]
@@ -536,7 +553,7 @@ export class DashboardComponent implements OnInit {
     if (isHorizontal) {
       config.options.indexAxis = 'y';
       config.options.scales = {
-        x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' } },
+        x: valueAxis,
         y: { grid: { display: false } }
       };
     }

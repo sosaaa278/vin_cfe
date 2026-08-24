@@ -103,6 +103,30 @@ namespace DashboardAPI.Services
         }
 
         /// <summary>
+        /// Cierra el contexto de Playwright con un tope de tiempo. Visto en producción:
+        /// ctx.CloseAsync() a veces se queda colgado (sin lanzar excepción) después de que
+        /// el scrape ya terminó y los datos ya están en memoria — eso bloqueaba la respuesta
+        /// HTTP para siempre (el navegador del usuario se quedaba "cargando" aunque el log
+        /// del backend ya mostrara el scrape exitoso). Perder la limpieza del contexto no
+        /// pierde datos del usuario, así que después de este tope simplemente se sigue.
+        /// </summary>
+        private async Task CloseBrowserSafeAsync(IPlaywright pw, IBrowserContext ctx)
+        {
+            try
+            {
+                await ctx.CloseAsync().WaitAsync(TimeSpan.FromSeconds(15));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("ctx.CloseAsync() tardó más de 15s o falló, se continúa sin bloquear la respuesta: {Err}", ex.Message);
+            }
+            finally
+            {
+                pw.Dispose();
+            }
+        }
+
+        /// <summary>
         /// Navega a <paramref name="url"/> con reintentos de espera exponencial.
         /// Devuelve true si tuvo éxito, false si fallan todos los intentos.
         /// </summary>
@@ -1008,8 +1032,7 @@ namespace DashboardAPI.Services
             }
             finally
             {
-                await ctx.CloseAsync();
-                pw.Dispose();
+                await CloseBrowserSafeAsync(pw, ctx);
             }
         }
 
@@ -1038,8 +1061,30 @@ namespace DashboardAPI.Services
             }
             finally
             {
-                await ctx.CloseAsync();
-                pw.Dispose();
+                await CloseBrowserSafeAsync(pw, ctx);
+            }
+        }
+
+        /// <summary>
+        /// Igual que GetColoniasReportAsync (agrupado por colonia), pero filtrado a UN solo
+        /// tipo de inconformidad (ej. "E03") — tabla completa con todas sus columnas (Rechazadas/
+        /// Canceladas/Terminadas/Pendientes/etc.), no solo "Recibidas" como en el resumen del
+        /// modal. Usado por el detalle en vivo que se abre al hacer clic en una inconformidad
+        /// dentro del modal de Colonias.
+        /// </summary>
+        public async Task<List<Dictionary<string, string>>> GetColoniasPorInconformidadAsync(
+            string fechaDesde, string fechaHasta, string cveZona, string cveArea, string cveDivision,
+            string tipoSolTermino)
+        {
+            var (pw, ctx) = await CreateBrowserAsync(dirName: ColoniasPlaywrightDir);
+            try
+            {
+                var page = ctx.Pages.FirstOrDefault() ?? await ctx.NewPageAsync();
+                return await ScrapeColoniasPivotAsync(page, fechaDesde, fechaHasta, cveZona, cveArea, cveDivision, tipoSolTermino);
+            }
+            finally
+            {
+                await CloseBrowserSafeAsync(pw, ctx);
             }
         }
 
@@ -1158,58 +1203,127 @@ namespace DashboardAPI.Services
             return rows;
         }
 
+        // Tope de páginas simultáneas para el desglose por colonia (16 códigos). Todas comparten
+        // el MISMO navegador/contexto persistente (mismas cookies/sesión) — no se abren navegadores
+        // nuevos, solo pestañas adicionales dentro de uno solo — así que el costo extra de RAM/CPU
+        // es acotado y mucho menor que el de los Chromium huérfanos que vimos antes.
+        private const int ColoniasScrapeConcurrency = 4;
+
         /// <summary>
         /// Desglose por tipo de inconformidad (E02, E03, ...) agrupado por colonia. Como el portal
         /// no permite filtrar a UNA colonia (cveColonia solo tiene "Todas"), se repite el reporte de
-        /// colonias una vez por código (filtrando tipoSolTermino), reutilizando la misma página/context,
-        /// y se combinan los resultados por Clave de colonia. Mismo patrón que GetCausasDataAllAsync.
+        /// colonias una vez por código (filtrando tipoSolTermino) y se combinan los resultados por
+        /// Clave de colonia.
+        /// El primer código corre solo, en serie: TryCacheZonasAsync/TryCacheAreasAsync usan banderas
+        /// de instancia ("una vez por request") para decidir si repueblan el caché estático de
+        /// zonas/áreas — si dos páginas paralelas las dispararan a la vez, ambas verían la bandera en
+        /// false y escribirían al mismo Dictionary no thread-safe al mismo tiempo. Corriendo el primer
+        /// código antes de lanzar el resto, la bandera ya queda en true para cuando arranca el lote
+        /// paralelo, así que esas llamadas regresan de inmediato sin tocar el caché compartido.
+        /// Los códigos 2..N sí corren en paralelo (hasta <see cref="ColoniasScrapeConcurrency"/> a la
+        /// vez, cada uno en su propia pestaña) — recorta el tiempo total de "varios minutos" a una
+        /// fracción, sin abrir navegadores adicionales.
         /// </summary>
         public async Task<List<Dictionary<string, string>>> GetColoniaInconformidadesAsync(
             string fechaDesde, string fechaHasta,
             string cveZona, string cveArea, string cveDivision,
             IEnumerable<string> codes)
         {
-            var merged = new Dictionary<string, Dictionary<string, string>>();
+            var merged    = new Dictionary<string, Dictionary<string, string>>();
+            var mergeLock = new object();
+
+            // Además de Recibidas (item[code], igual que antes — no se toca para no romper a
+            // quien ya lo consume así), ahora también se guardan Rechazadas/Pendientes/Cumplidas
+            // por código, con el mismo criterio de coincidencia difusa que usa el frontend
+            // (LEAF_DEFS en colonias.component.ts) para que ambos lados queden alineados. Esto
+            // habilita el filtro por métrica dentro del modal sin tener que volver a scrapear
+            // nada — ScrapeColoniasPivotAsync ya traía todas estas columnas, antes solo se
+            // aprovechaba "Recibidas" y se descartaba el resto.
+            void MergeRows(List<Dictionary<string, string>> rows, string code)
+            {
+                foreach (var row in rows)
+                {
+                    var clave = row.FirstOrDefault(kv => kv.Key.Contains("CLAVE", StringComparison.OrdinalIgnoreCase)).Value ?? "";
+                    var desc  = row.FirstOrDefault(kv => kv.Key.Contains("DESCRIP", StringComparison.OrdinalIgnoreCase)).Value ?? "";
+                    if (clave.Trim().Equals("TOTAL", StringComparison.OrdinalIgnoreCase)) continue; // salta el tfoot
+
+                    var recibidas  = row.FirstOrDefault(kv => kv.Key.Contains("RECIBIDA", StringComparison.OrdinalIgnoreCase)).Value ?? "0";
+                    var rechazadas = row.FirstOrDefault(kv => kv.Key.Contains("RECHAZADA", StringComparison.OrdinalIgnoreCase) && kv.Key.Contains("TOTAL", StringComparison.OrdinalIgnoreCase)).Value ?? "0";
+                    var pendientes = row.FirstOrDefault(kv => kv.Key.Contains("PENDIENTE", StringComparison.OrdinalIgnoreCase) && kv.Key.Contains("TOTAL", StringComparison.OrdinalIgnoreCase)).Value ?? "0";
+                    var cumplidas  = row.FirstOrDefault(kv => kv.Key.Contains("TERMINADA", StringComparison.OrdinalIgnoreCase)
+                                                            && kv.Key.Contains("CUMPLID", StringComparison.OrdinalIgnoreCase)
+                                                            && !kv.Key.Contains("NO CUMPLID", StringComparison.OrdinalIgnoreCase)).Value ?? "0";
+
+                    lock (mergeLock)
+                    {
+                        if (!merged.TryGetValue(clave, out var item))
+                            item = merged[clave] = new Dictionary<string, string> { ["Clave"] = clave, ["Descripcion"] = desc };
+                        item[code] = recibidas;
+                        item[$"{code}_RECHAZADAS"] = rechazadas;
+                        item[$"{code}_PENDIENTES"] = pendientes;
+                        item[$"{code}_CUMPLIDAS"]  = cumplidas;
+                    }
+                }
+            }
 
             var (pw, ctx) = await CreateBrowserAsync(dirName: ColoniasPlaywrightDir);
             try
             {
+                var codesList = codes.ToList();
+                if (codesList.Count == 0) return [];
+
                 var page = ctx.Pages.FirstOrDefault() ?? await ctx.NewPageAsync();
-                foreach (var code in codes)
+
+                var firstCode = codesList[0];
+                try
                 {
-                    List<Dictionary<string, string>> rows;
-                    try
-                    {
-                        rows = await ScrapeColoniasPivotAsync(page, fechaDesde, fechaHasta, cveZona, cveArea, cveDivision, code);
-                    }
-                    catch (CfePortalUnreachableException)
-                    {
-                        throw;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning("GetColoniaInconformidades code {Code} failed: {Err}", code, ex.Message);
-                        continue;
-                    }
+                    var firstRows = await ScrapeColoniasPivotAsync(page, fechaDesde, fechaHasta, cveZona, cveArea, cveDivision, firstCode);
+                    MergeRows(firstRows, firstCode);
+                }
+                catch (CfePortalUnreachableException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("GetColoniaInconformidades code {Code} failed: {Err}", firstCode, ex.Message);
+                }
 
-                    foreach (var row in rows)
+                var restCodes = codesList.Skip(1).ToList();
+                if (restCodes.Count > 0)
+                {
+                    using var throttle = new SemaphoreSlim(ColoniasScrapeConcurrency);
+                    var tasks = restCodes.Select(async code =>
                     {
-                        var clave = row.FirstOrDefault(kv => kv.Key.Contains("CLAVE", StringComparison.OrdinalIgnoreCase)).Value ?? "";
-                        var desc  = row.FirstOrDefault(kv => kv.Key.Contains("DESCRIP", StringComparison.OrdinalIgnoreCase)).Value ?? "";
-                        if (clave.Trim().Equals("TOTAL", StringComparison.OrdinalIgnoreCase)) continue; // salta el tfoot
+                        await throttle.WaitAsync();
+                        IPage? codePage = null;
+                        try
+                        {
+                            codePage = await ctx.NewPageAsync();
+                            var rows = await ScrapeColoniasPivotAsync(codePage, fechaDesde, fechaHasta, cveZona, cveArea, cveDivision, code);
+                            MergeRows(rows, code);
+                        }
+                        catch (CfePortalUnreachableException)
+                        {
+                            throw;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning("GetColoniaInconformidades code {Code} failed: {Err}", code, ex.Message);
+                        }
+                        finally
+                        {
+                            if (codePage != null) await codePage.CloseAsync();
+                            throttle.Release();
+                        }
+                    });
 
-                        var recibidas = row.FirstOrDefault(kv => kv.Key.Contains("RECIBIDA", StringComparison.OrdinalIgnoreCase)).Value ?? "0";
-
-                        if (!merged.TryGetValue(clave, out var item))
-                            item = merged[clave] = new Dictionary<string, string> { ["Clave"] = clave, ["Descripcion"] = desc };
-                        item[code] = recibidas;
-                    }
+                    await Task.WhenAll(tasks);
                 }
             }
             finally
             {
-                await ctx.CloseAsync();
-                pw.Dispose();
+                await CloseBrowserSafeAsync(pw, ctx);
             }
 
             return merged.Values.ToList();

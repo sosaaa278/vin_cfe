@@ -54,7 +54,7 @@ namespace DashboardAPI.Services
                 //    división para que el servidor actualice Session("cveDivision") vía AJAX.
                 //    gInconformidadesMetaReal.asp lee la división de la sesión del servidor
                 //    (no del campo de formulario), por eso hay que "primear" la sesión aquí.
-                const string sessionPrimerUrl = "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";
+                const string sessionPrimerUrl = "https://cssnal.cfe.mx/Inconformidades/solTermino.asp";a
                 _logger.LogInformation("Iniciando sesión de división en portal principal ({Url})...", sessionPrimerUrl);
                 await page.GotoAsync(sessionPrimerUrl, new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded, Timeout = 60_000 });
                 try { await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 6_000 }); } catch { }

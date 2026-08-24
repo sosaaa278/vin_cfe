@@ -26,7 +26,7 @@
   <!-- ==============================
        REPORTE POR CORREO
   =============================== -->
-  <div class="row mb-4">
+  <!-- <div class="row mb-4">
     <div class="col-md-12">
       <div class="d-flex gap-2 align-items-start flex-wrap">
         <input
@@ -45,7 +45,7 @@
         </span>
       </div>
     </div>
-  </div>
+  </div> -->
 
   <!-- ==============================
        TARJETAS DE ESTADO
@@ -60,15 +60,15 @@
     </div>
 
     <div class="col-md-4">
-      <div class="kpi-card" [ngClass]="{ 'kpi-success': tableDetected === 'YES', 'kpi-neutral': tableDetected === 'NO' }">
+      <div class="kpi-card"
+        [ngClass]="{ 'kpi-success': tableDetected === 'YES', 'kpi-neutral': tableDetected === 'NO' }">
         <span class="kpi-label">Tabla Detectada</span>
         <span class="kpi-value">{{ tableDetected }}</span>
       </div>
     </div>
 
     <div class="col-md-4">
-      <div class="kpi-card"
-        [ngClass]="{
+      <div class="kpi-card" [ngClass]="{
           'kpi-success': status === 'SUCCESS',
           'kpi-warning': status === 'LOADING',
           'kpi-danger':  status === 'ERROR',
@@ -115,10 +115,9 @@
           <span class="kpi-label">Variación Total</span>
           <span class="kpi-value">
             <span class="trend-icon">
-              {{ kpiVariacionTotal > 0 ? '▲' : kpiVariacionTotal < 0 ? '▼' : '→' }}
+              {{ kpiVariacionTotal > 0 ? '▲' : kpiVariacionTotal < 0 ? '▼' : '→' }} </span>
+                {{ kpiVariacionTotal | number:'1.1-1' }}%
             </span>
-            {{ kpiVariacionTotal | number:'1.1-1' }}%
-          </span>
         </div>
       </div>
 
@@ -162,10 +161,7 @@
 
       <div class="col-md-5">
         <label class="form-label fw-semibold">Tipo de inconformidad</label>
-        <select
-          class="form-select"
-          [ngModel]="selectedCode || 'ALL'"
-          (ngModelChange)="onCodeSelectChange($event)">
+        <select class="form-select" [ngModel]="selectedCode || 'ALL'" (ngModelChange)="onCodeSelectChange($event)">
           <option value="ALL">Todas (agrupado)</option>
           <option value="30202">30202</option>
           <option value="E02">E02</option>
@@ -180,10 +176,7 @@
 
       <div class="col-md-4">
         <label class="form-label fw-semibold">Tipo de gráfica</label>
-        <select
-          id="chartTypeSelect"
-          class="form-select"
-          [(ngModel)]="chartType"
+        <select id="chartTypeSelect" class="form-select" [(ngModel)]="chartType"
           (change)="onChartTypeChange(chartType)">
           <option value="bar">Barras verticales</option>
           <option value="line">Línea (tendencia)</option>
@@ -204,13 +197,9 @@
     <div *ngIf="chartType === 'pie'" class="pie-year-row mt-3">
       <span class="fw-semibold me-2 pie-year-label">Año:</span>
       <div class="btn-group btn-group-sm">
-        <button class="btn"
-          [class.btn-primary]="pieYear === '2026'"
-          [class.btn-outline-secondary]="pieYear !== '2026'"
+        <button class="btn" [class.btn-primary]="pieYear === '2026'" [class.btn-outline-secondary]="pieYear !== '2026'"
           (click)="onPieYearChange('2026')">2026</button>
-        <button class="btn"
-          [class.btn-primary]="pieYear === '2025'"
-          [class.btn-outline-secondary]="pieYear !== '2025'"
+        <button class="btn" [class.btn-primary]="pieYear === '2025'" [class.btn-outline-secondary]="pieYear !== '2025'"
           (click)="onPieYearChange('2025')">2025</button>
       </div>
     </div>
@@ -252,8 +241,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of tableData"
-            [ngClass]="{ 'fw-bold table-secondary': isTotal(row['AREA']) }">
+          <tr *ngFor="let row of tableData" [ngClass]="{ 'fw-bold table-secondary': isTotal(row['AREA']) }">
             <td *ngFor="let column of rawDataColumns">{{ row[column] }}</td>
           </tr>
         </tbody>
@@ -284,11 +272,12 @@
             <!-- Fila principal 2026 (coloreada rojo/verde) -->
             <tr [ngClass]="{ 'fw-bold table-secondary': isTotal(row['AREA']) }">
               <td *ngFor="let col of visibleColumns"
-                  [ngStyle]="!isTotal(row['AREA']) ? get2026CellStyle(row, col) : {}">
+                [ngStyle]="!isTotal(row['AREA']) ? get2026CellStyle(row, col) : {}">
                 {{ row[col] }}
               </td>
-              <td [ngStyle]="!isTotal(row['AREA']) ? getTotalZoneCellStyle2026(row) : { 'font-weight': 'bold', 'border': '2px solid #343a40' }"
-                  class="td-center">
+              <td
+                [ngStyle]="!isTotal(row['AREA']) ? getTotalZoneCellStyle2026(row) : { 'font-weight': 'bold', 'border': '2px solid #343a40' }"
+                class="td-center">
                 {{ getZoneTotal2026(row) | number }}
               </td>
             </tr>
@@ -297,7 +286,7 @@
                  fila TOTAL (antes se ocultaba con *ngIf, dejando el total 2025 sin mostrar) -->
             <tr class="tr-subrow">
               <td *ngFor="let col of visibleColumns; let isFirst = first"
-                  [ngStyle]="get2025SubRowCellStyle(isFirst, isTotal(row['AREA']))">
+                [ngStyle]="get2025SubRowCellStyle(isFirst, isTotal(row['AREA']))">
                 <ng-container *ngIf="col === 'AREA'">
                   <em class="em-year-label">↳ 2025</em>
                 </ng-container>
@@ -339,25 +328,25 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            *ngFor="let item of compareData"
-            [ngClass]="{ 'fw-bold table-secondary': isTotal(item.area) }">
+          <tr *ngFor="let item of compareData" [ngClass]="{ 'fw-bold table-secondary': isTotal(item.area) }">
 
             <td>{{ item.area }}</td>
 
-            <td [ngStyle]="{ 'background-color': !isTotal(item.area) && item.total2026 > item.total2025 ? 'rgba(220,53,69,0.12)' : !isTotal(item.area) && item.total2026 < item.total2025 ? 'rgba(40,167,69,0.12)' : '' }">
+            <td
+              [ngStyle]="{ 'background-color': !isTotal(item.area) && item.total2026 > item.total2025 ? 'rgba(220,53,69,0.12)' : !isTotal(item.area) && item.total2026 < item.total2025 ? 'rgba(40,167,69,0.12)' : '' }">
               {{ item.total2025 | number }}
             </td>
 
-            <td [ngStyle]="{ 'background-color': !isTotal(item.area) && item.total2026 > item.total2025 ? 'rgba(220,53,69,0.12)' : !isTotal(item.area) && item.total2026 < item.total2025 ? 'rgba(40,167,69,0.12)' : '' }">
+            <td
+              [ngStyle]="{ 'background-color': !isTotal(item.area) && item.total2026 > item.total2025 ? 'rgba(220,53,69,0.12)' : !isTotal(item.area) && item.total2026 < item.total2025 ? 'rgba(40,167,69,0.12)' : '' }">
               {{ item.total2026 | number }}
             </td>
 
-            <td [ngStyle]="{ 'background-color': !isTotal(item.area) && item.variacion > 0 ? 'rgba(220,53,69,0.12)' : !isTotal(item.area) && item.variacion < 0 ? 'rgba(40,167,69,0.12)' : '' }">
+            <td
+              [ngStyle]="{ 'background-color': !isTotal(item.area) && item.variacion > 0 ? 'rgba(220,53,69,0.12)' : !isTotal(item.area) && item.variacion < 0 ? 'rgba(40,167,69,0.12)' : '' }">
               <span class="trend-icon">
-                {{ !isTotal(item.area) ? (item.variacion > 0 ? '▲' : item.variacion < 0 ? '▼' : '→') : '' }}
-              </span>
-              {{ item.variacion | number:'1.1-1' }} %
+                {{ !isTotal(item.area) ? (item.variacion > 0 ? '▲' : item.variacion < 0 ? '▼' : '→' ) : '' }} </span>
+                  {{ item.variacion | number:'1.1-1' }} %
             </td>
 
           </tr>

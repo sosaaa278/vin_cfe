@@ -124,6 +124,11 @@ namespace DashboardAPI.Services
             message.Subject = subject;
             message.Body = new TextPart("html") { Text = html };
 
+            // Puerto 465 = SSL directo desde el handshake; cualquier otro (587/25) = STARTTLS
+            // (empieza en texto plano y sube a TLS). Algunas redes bloquean uno pero no el
+            // otro — probar el que falle cambiando solo Email:SmtpPort en appsettings.json.
+            var security = port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
+
             using var client = new SmtpClient
             {
                 // Default de MailKit es 2 min — si la red bloquea el puerto saliente
@@ -131,7 +136,7 @@ namespace DashboardAPI.Services
                 // colgar cada prueba 2 minutos.
                 Timeout = 15_000
             };
-            await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
+            await client.ConnectAsync(host, port, security);
             await client.AuthenticateAsync(user, appPassword);
             await client.SendAsync(message);
             await client.DisconnectAsync(true);

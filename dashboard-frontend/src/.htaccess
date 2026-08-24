@@ -1,0 +1,13 @@
+# Angular es un SPA: solo existe index.html en disco, las demás rutas
+# (/colonias, /causas, etc.) las resuelve el router de Angular en el navegador.
+# Sin esta regla, Apache busca esas rutas como archivos/carpetas reales y
+# responde 404 en vez de servir index.html.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /vin/
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  RewriteRule ^ index.html [L]
+</IfModule>

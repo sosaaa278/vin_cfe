@@ -125,3 +125,10 @@
   border-bottom: 1px solid #eee;
   padding-bottom: 10px;
 }
+
+.qe-clickable-row {
+  cursor: pointer;
+}
+.qe-clickable-row:hover {
+  background: rgba(0, 99, 65, .06);
+}

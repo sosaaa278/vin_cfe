@@ -21,7 +21,6 @@ namespace DashboardAPI.Controllers
         private readonly WebScraperService _scraper;
         private readonly FullCompareService _fullCompare;
         private readonly ReporteStore _store;
-        private readonly SisquemService _sisquem;
         private readonly ILogger<DataController> _logger;
 
         public DataController(
@@ -29,14 +28,12 @@ namespace DashboardAPI.Controllers
             AppDbContext context,
             FullCompareService fullCompare,
             ReporteStore store,
-            SisquemService sisquem,
             ILogger<DataController> logger)
         {
             _scraper     = scraper;
             _context     = context;
             _fullCompare = fullCompare;
             _store       = store;
-            _sisquem     = sisquem;
             _logger      = logger;
         }
 
@@ -421,6 +418,39 @@ namespace DashboardAPI.Controllers
             }
         }
 
+        // Tabla completa (todas las columnas: Rechazadas/Canceladas/Terminadas/Pendientes/etc.,
+        // no solo "Recibidas") para UN código específico, agrupada por colonia — usado por el
+        // detalle en vivo que se abre al hacer clic en una inconformidad dentro del modal.
+        [HttpGet("colonias/inconformidad-detalle")]
+        public async Task<IActionResult> ColoniaInconformidadDetalle(
+            [FromQuery] string zona = "00000",
+            [FromQuery] string area = "00000",
+            [FromQuery] string? desde = null,
+            [FromQuery] string? hasta = null,
+            [FromQuery] string tipoSolTermino = "T")
+        {
+            var today    = DateTime.Now;
+            var useYear  = hasta != null ? RangoFechas.Anio(hasta) : today.Year;
+            var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(useYear);
+            var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(useYear);
+
+            try
+            {
+                var data = await _scraper.GetColoniasPorInconformidadAsync(
+                    desdeUse, hastaUse, zona, area, GetUserDivision(), tipoSolTermino);
+                return Ok(data);
+            }
+            catch (CfePortalUnreachableException ex)
+            {
+                _logger.LogError("ColoniaInconformidadDetalle: portal CFE inaccesible: {Err}", ex.Message);
+                return StatusCode(503, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error scraping detalle de la inconformidad: {ex.Message}");
+            }
+        }
+
         // =========================
         // REPORTE DIARIO POR CORREO (prueba manual, sin esperar el horario programado)
         // =========================
@@ -472,68 +502,47 @@ namespace DashboardAPI.Controllers
         }
 
         // =========================
-        // QUEJAS Y EMERGENCIAS (sistema sisquem)
+        // SICOSS DISTRIBUCION (solicitudes pendientes por zona/centro)
         // =========================
 
-        [HttpGet("quejas-emergencias")]
-        public async Task<IActionResult> QuejasEmergencias(
-            [FromQuery] string[]? zona = null,
-            [FromQuery] string[]? tipoOrden = null,
-            [FromQuery] string? desde = null,
-            [FromQuery] string? hasta = null)
+        [HttpGet("sicoss/zonas")]
+        public IActionResult SicossZonas([FromServices] SicossDistribucionService svc) =>
+            Ok(svc.GetZonas().Select(z => new { value = z.Value, label = z.Label }));
+
+        [HttpGet("sicoss/centros")]
+        public IActionResult SicossCentros([FromServices] SicossDistribucionService svc, [FromQuery] string zona) =>
+            Ok(svc.GetCentros(zona).Select(c => new { value = c.Value, label = c.Label }));
+
+        [HttpGet("sicoss/pendientes")]
+        public async Task<IActionResult> SicossPendientes(
+            [FromServices] SicossDistribucionService svc, [FromQuery] string zona, [FromQuery] string cen)
         {
-            var today    = DateTime.Now;
-            var useYear  = hasta != null ? RangoFechas.Anio(hasta) : today.Year;
-            var desdeUse = desde != null ? RangoFechas.Normaliza(desde) : RangoFechas.Desde(useYear);
-            var hastaUse = hasta != null ? RangoFechas.Normaliza(hasta) : RangoFechas.Hasta(useYear);
-
-            // sisquem usa el código corto de división (ej. "DC"), distinto al formato
-            // "DC000" que usa GetUserDivision() para el resto de los reportes (cssnal.cfe.mx).
-            var divisionLarga = GetUserDivision();
-            var divisionCorta = divisionLarga.Length >= 2 ? divisionLarga[..2] : divisionLarga;
-
             try
             {
-                var data = await _sisquem.GetReporteAsync(desdeUse, hastaUse, divisionCorta, zona, tipoOrden);
-                if (data.ResumenEmergencias.Count > 0 || data.ResumenQuejas.Count > 0)
-                    await _store.SaveQuejasEmergenciasAsync(data, useYear, zona);
-                return Ok(data);
-            }
-            catch (CfePortalUnreachableException ex)
-            {
-                _logger.LogError("QuejasEmergencias: sisquem inaccesible: {Err}", ex.Message);
-                return StatusCode(503, ex.Message);
+                return Ok(await svc.GetPendientesAsync(zona, cen, GetUserDivision()));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "QuejasEmergencias: error inesperado: {Err}", ex.Message);
-                return BadRequest($"Error consultando el reporte de Quejas y Emergencias: {ex.Message}");
+                _logger.LogError(ex, "SicossPendientes falló: {Err}", ex.Message);
+                return BadRequest($"Error consultando SICOSS Distribución: {ex.Message}");
             }
         }
 
-        [HttpGet("quejas-emergencias/debug")]
-        public IActionResult QuejasEmergenciasDebug()
+        // Detalle en vivo de UNA solicitud (bitácora de movimientos + bitácora de servicios) —
+        // se pide bajo demanda al hacer clic en una fila de la tabla de pendientes, no en cada
+        // carga (ver comentario en SicossDistribucionService.GetDetalleSolicitudAsync).
+        [HttpGet("sicoss/detalle")]
+        public async Task<IActionResult> SicossDetalle(
+            [FromServices] SicossDistribucionService svc, [FromQuery] string solicitud)
         {
             try
             {
-                var dir = Path.Combine(Directory.GetCurrentDirectory(), WebScraperService.DebugDumpDir);
-                if (!Directory.Exists(dir))
-                    return NotFound("No hay volcados de diagnóstico todavía.");
-
-                var latest = new DirectoryInfo(dir)
-                    .GetFiles("debug_quejas_emergencias_*.json")
-                    .OrderByDescending(f => f.LastWriteTimeUtc)
-                    .FirstOrDefault();
-
-                if (latest == null)
-                    return NotFound("No hay volcados de diagnóstico de Quejas y Emergencias todavía.");
-
-                var json = System.IO.File.ReadAllText(latest.FullName);
-                return Content(json, "application/json");
+                return Ok(await svc.GetDetalleSolicitudAsync(solicitud));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error leyendo el volcado de diagnóstico: {ex.Message}");
+                _logger.LogError(ex, "SicossDetalle falló: {Err}", ex.Message);
+                return BadRequest($"Error consultando el detalle de la solicitud: {ex.Message}");
             }
         }
 

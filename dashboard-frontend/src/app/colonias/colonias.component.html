@@ -109,6 +109,7 @@
       <h6 class="mb-0 fw-semibold">Detalle — {{ selectedZonaLabel }}, {{ selectedAreaLabel }}</h6>
       <button class="btn btn-success btn-sm" (click)="exportExcel()">Exportar Excel</button>
     </div>
+    <p class="text-muted small px-2 mb-1">Clic en una fila para ver el desglose por tipo de inconformidad de esa colonia.</p>
     <div class="table-responsive colonias-table-scroll">
       <table class="table table-sm table-bordered table-hover mb-0 colonias-table">
         <thead>
@@ -136,7 +137,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of tableData">
+          <tr *ngFor="let row of visibleTableData" class="qe-clickable-row" (click)="onColoniaClick(row)">
             <td *ngFor="let col of orderedCols">{{ col ? row[col] : '' }}</td>
           </tr>
         </tbody>
@@ -223,23 +224,79 @@
         <button type="button" class="btn-close" aria-label="Cerrar" (click)="closeModal()"></button>
       </div>
       <div class="modal-body-custom">
-        <div *ngIf="loadingInconformidades" class="text-center py-4 text-muted">Cargando desglose…</div>
-        <ng-container *ngIf="!loadingInconformidades">
+        <div *ngIf="loadingInconformidades" class="text-center py-4 text-muted">
+          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+          Cargando desglose (16 consultas al portal, una por tipo)… con "Todas las áreas" puede tardar varios minutos.
+        </div>
+        <div *ngIf="!loadingInconformidades && inconformidadesErrorMsg" class="alert alert-danger">
+          {{ inconformidadesErrorMsg }}
+          <button type="button" class="btn btn-sm btn-outline-danger d-block mt-2" (click)="onColoniaClick(modalColoniaRow)">
+            Reintentar
+          </button>
+        </div>
+        <ng-container *ngIf="!loadingInconformidades && !inconformidadesErrorMsg">
+          <div class="btn-group btn-group-sm mb-2 w-100" role="group">
+            <button *ngFor="let m of METRIC_OPTIONS"
+                    type="button"
+                    class="btn"
+                    [class.btn-success]="selectedMetric === m.value"
+                    [class.btn-outline-success]="selectedMetric !== m.value"
+                    (click)="onMetricFilterChange(m.value)">
+              {{ m.label }}
+            </button>
+          </div>
           <div class="chart-box" style="height:260px">
             <canvas id="coloniaDesgloseChart"></canvas>
           </div>
-          <table class="table table-sm mt-3 mb-0">
+          <p class="text-muted small mt-2 mb-1">
+            Clic en una fila para ver el detalle completo (en vivo) de esa inconformidad.
+            <span *ngIf="modalDetalleLoading">Espera a que termine la consulta actual antes de pedir otra.</span>
+          </p>
+          <table class="table table-sm table-hover mb-0" [class.pe-none]="modalDetalleLoading">
             <thead>
               <tr><th>Código</th><th>Descripción</th><th class="text-end">Cantidad</th></tr>
             </thead>
             <tbody>
-              <tr *ngFor="let c of INCONFORMIDAD_CODES">
-                <td>{{ c.value }}</td>
+              <tr *ngFor="let c of sortedModalCodesCache"
+                  [class.qe-clickable-row]="c.value !== 'OTRAS'"
+                  [class.fst-italic]="c.value === 'OTRAS'"
+                  [class.text-muted]="c.value === 'OTRAS'"
+                  [class.table-primary]="modalDetalleCodigo === c.value"
+                  [class.opacity-50]="modalDetalleLoading && modalDetalleCodigo !== c.value"
+                  (click)="onInconformidadClick(c.value)">
+                <td>{{ c.value !== 'OTRAS' ? c.value : '—' }}</td>
                 <td>{{ c.label }}</td>
                 <td class="text-end">{{ getModalRowValue(c.value) }}</td>
               </tr>
             </tbody>
           </table>
+
+          <!-- Detalle en vivo de la inconformidad clickeada, YA filtrado a esta colonia
+               específica (el portal trae todas las colonias; nos quedamos solo con la fila
+               que coincide) — se agrega debajo, sin quitar lo de arriba. -->
+          <div *ngIf="modalDetalleCodigo" class="mt-3 pt-3 border-top">
+            <h6 class="fw-semibold mb-2">
+              Detalle en vivo — {{ modalDetalleCodigo }} en {{ modalColoniaRow['Descripcion'] || modalColoniaRow['Clave'] }}
+            </h6>
+            <div *ngIf="modalDetalleLoading" class="text-center py-3 text-muted">
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+              Consultando el portal en vivo… con "Todas las áreas" puede tardar varios minutos.
+            </div>
+            <div *ngIf="modalDetalleErrorMsg" class="alert alert-danger mb-0">{{ modalDetalleErrorMsg }}</div>
+            <div *ngIf="!modalDetalleLoading && !modalDetalleErrorMsg && !modalDetalleRow" class="alert alert-info mb-0">
+              Esta colonia no tuvo solicitudes de {{ modalDetalleCodigo }} en el rango seleccionado.
+            </div>
+            <div *ngIf="!modalDetalleLoading && modalDetalleRow" class="table-responsive" style="max-height:320px; overflow-y:auto">
+              <table class="table table-sm table-bordered mb-0" style="font-size:.78rem">
+                <tbody>
+                  <tr *ngFor="let f of modalDetalleFields">
+                    <td class="fw-semibold" style="white-space:nowrap">{{ f.label }}</td>
+                    <td>{{ f.value }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </ng-container>
       </div>
     </div>

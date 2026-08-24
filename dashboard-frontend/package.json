@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:vin": "ng build --base-href /vin/",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:dashboard-frontend": "node dist/dashboard-frontend/server/server.mjs"

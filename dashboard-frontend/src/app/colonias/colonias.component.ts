@@ -1,9 +1,9 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import Chart from 'chart.js/auto';
 import * as XLSX from 'xlsx-js-style';
-import { timeout } from 'rxjs/operators';
+import { timeout, finalize } from 'rxjs/operators';
 import { DashboardService } from '../services/dashboard.service';
 import { AuthService } from '../services/auth.service';
 import { DateRangeService } from '../services/date-range.service';
@@ -95,6 +95,16 @@ export class ColoniasComponent implements OnInit, OnDestroy {
   orderedCols: (string | undefined)[] = [];
   totalRow: { [k: string]: string } = {};
 
+  // Con "Todas las áreas" el portal puede regresar miles de colonias — renderizar esa
+  // cantidad de <tr> de un jalón congela el navegador (no es una excepción, es
+  // simplemente demasiado DOM síncrono). tableData se queda completo (para el total y
+  // el export a Excel), pero la tabla en pantalla solo pinta las primeras N (ya vienen
+  // ordenadas por Recibidas descendente, así que son las más relevantes).
+  readonly MAX_FILAS_VISIBLES = 300;
+  get visibleTableData(): any[] {
+    return this.tableData.slice(0, this.MAX_FILAS_VISIBLES);
+  }
+
   chart: any = null; // misma gráfica/canvas para modo normal y modo comparación
 
   // ── Modal "desglose por colonia" (clic en una barra de la gráfica) ─────────────
@@ -118,8 +128,55 @@ export class ColoniasComponent implements OnInit, OnDestroy {
   ];
   modalColoniaRow: any = null;       // fila clickeada; null = modal cerrado
   loadingInconformidades = false;
+  inconformidadesErrorMsg = '';
   inconformidadesPorColonia: any[] | null = null; // caché de la respuesta completa (por consulta)
   private modalChart: any = null;
+
+  // Caché de findModalRow()/sortedModalCodes para la colonia actualmente abierta en el
+  // modal. ANTES estos se recalculaban en getters llamados desde el template —
+  // sortedModalCodes llama a findModalRow() (un .find() sobre TODA
+  // inconformidadesPorColonia, que con "Todas las áreas" puede tener miles de filas), y
+  // getModalRowValue() lo vuelve a llamar UNA VEZ POR CADA una de las 16 filas de la
+  // tabla del modal — o sea 17 recorridos completos del arreglo en CADA ciclo de
+  // detección de cambios de Angular (que puede dispararse muy seguido, ej. por los
+  // frames de animación de Chart.js). Con un dataset grande eso congelaba la pestaña
+  // entera. Ahora se calcula UNA sola vez por clic de colonia y se reusa.
+  private modalRowCache: any | undefined;
+  sortedModalCodesCache: { value: string; label: string }[] = [];
+
+  // ── Filtro por métrica dentro del modal (Recibidas/Rechazadas/Pendientes/Cumplidas) ──
+  // El backend ahora guarda las 4 métricas por código (antes solo Recibidas) — ver
+  // MergeRows en GetColoniaInconformidadesAsync. "Otras" es lo que le falta a la suma de
+  // los 16 códigos rastreados para cuadrar con el total real de la columna correspondiente
+  // en la tabla principal (el portal tiene más tipos de inconformidad de los 16 que este
+  // modal desglosa uno por uno).
+  readonly METRIC_OPTIONS: { value: 'recibidas' | 'rechazadas' | 'pendientes' | 'cumplidas'; label: string }[] = [
+    { value: 'recibidas',  label: 'Recibidas' },
+    { value: 'rechazadas', label: 'Rechazadas' },
+    { value: 'pendientes', label: 'Pendientes' },
+    { value: 'cumplidas',  label: 'Cumplidas' },
+  ];
+  selectedMetric: 'recibidas' | 'rechazadas' | 'pendientes' | 'cumplidas' = 'recibidas';
+  private otrasValue = 0;
+
+  // ── Detalle en vivo de UNA inconformidad, dentro del modal (clic en E02..QC7) ──
+  // Aparece debajo de la gráfica/resumen sin quitarlos — tabla completa (todas las
+  // columnas) scrapeada en el momento, filtrada a ese código, agrupada por colonia
+  // (misma Zona/Área/rango de fechas ya seleccionados arriba en el apartado).
+  modalDetalleCodigo: string | null = null;
+  modalDetalleLoading = false;
+  modalDetalleErrorMsg = '';
+  // El portal no permite filtrar a UNA colonia — se scrapea la tabla completa (todas
+  // las colonias) para el código clickeado y se queda solo la fila que coincide con
+  // la colonia ya abierta en el modal (mismo criterio que findModalRow()).
+  modalDetalleRow: any | null = null;
+  modalDetalleCols: string[] = [];
+  // Cada clic en un código lanza un scrape en vivo que abre un navegador Chromium nuevo
+  // en el backend (ver GetColoniasPorInconformidadAsync) y puede tardar varios minutos
+  // con "Todas las áreas". Sin esta referencia, clics repetidos/otro código mientras uno
+  // sigue en curso apilaban varios Chromium corriendo en paralelo en el servidor — eso
+  // es lo que se sentía como "se traba" (consumo de RAM/CPU del servidor, no del navegador).
+  private modalDetalleSub?: Subscription;
 
   // ── Comparación con el año anterior (igual patrón que causas.component.ts) ──
   prevData: any[] = [];   // año actual - 1
@@ -149,30 +206,50 @@ export class ColoniasComponent implements OnInit, OnDestroy {
   // Descripcion, Recibidas, Rechazadas[4], Canceladas[2], Terminadas[4], Pendientes[5],
   // Con optico, Reiterativas[2]). Cada entrada se resuelve contra los nombres de columna
   // reales (compuestos por el parser del backend) por coincidencia difusa.
-  private readonly LEAF_DEFS: { kind: 'text' | 'count' | 'pct'; match: (u: string) => boolean; pctSourceMatch?: (u: string) => boolean }[] = [
-    { kind: 'text',  match: u => u === 'SEC' },
-    { kind: 'text',  match: u => u.includes('CLAVE') },
-    { kind: 'text',  match: u => u.includes('DESCRIP') },
-    { kind: 'count', match: u => u.includes('RECIBIDA') },
-    { kind: 'count', match: u => u.includes('RECHAZADA') && u.includes('TOTAL') },
-    { kind: 'count', match: u => u.includes('RECHAZADA') && u.includes('VENCIDA') },
-    { kind: 'count', match: u => u.includes('RECHAZADA') && u.includes('TIEMPO') },
-    { kind: 'pct',   match: u => u.includes('RECHAZADA') && u.includes('%'), pctSourceMatch: u => u.includes('RECHAZADA') && u.includes('TOTAL') },
-    { kind: 'count', match: u => u.includes('CANCELADA') && u.includes('TOTAL') },
-    { kind: 'pct',   match: u => u.includes('CANCELADA') && u.includes('%'), pctSourceMatch: u => u.includes('CANCELADA') && u.includes('TOTAL') },
-    { kind: 'count', match: u => u.includes('TERMINADA') && u.includes('TOTAL') },
-    { kind: 'count', match: u => u.includes('TERMINADA') && u.includes('NO CUMPLID') },
-    { kind: 'count', match: u => u.includes('TERMINADA') && u.includes('CUMPLID') && !u.includes('NO CUMPLID') },
-    { kind: 'pct',   match: u => u.includes('TERMINADA') && u.includes('%'), pctSourceMatch: u => u.includes('TERMINADA') && u.includes('TOTAL') },
-    { kind: 'count', match: u => u.includes('PENDIENTE') && u.includes('TOTAL') },
-    { kind: 'count', match: u => u.includes('PENDIENTE') && u.includes('VENCIDA') },
-    { kind: 'count', match: u => u.includes('PENDIENTE') && u.includes('VENCER') },
-    { kind: 'count', match: u => u.includes('PENDIENTE') && u.includes('TIEMPO') },
-    { kind: 'pct',   match: u => u.includes('PENDIENTE') && u.includes('%'), pctSourceMatch: u => u.includes('PENDIENTE') && u.includes('TOTAL') },
-    { kind: 'count', match: u => u.includes('OPTICO') },
-    { kind: 'count', match: u => u.includes('REITERATIVA') && u.includes('TOTAL') },
-    { kind: 'pct',   match: u => u.includes('REITERATIVA') && u.includes('%'), pctSourceMatch: u => u.includes('REITERATIVA') && u.includes('TOTAL') },
+  private readonly LEAF_DEFS: { kind: 'text' | 'count' | 'pct'; label: string; match: (u: string) => boolean; pctSourceMatch?: (u: string) => boolean }[] = [
+    { kind: 'text',  label: 'Sec',                      match: u => u === 'SEC' },
+    { kind: 'text',  label: 'Clave',                     match: u => u.includes('CLAVE') },
+    { kind: 'text',  label: 'Descripción',                match: u => u.includes('DESCRIP') },
+    { kind: 'count', label: 'Recibidas',                  match: u => u.includes('RECIBIDA') },
+    { kind: 'count', label: 'Rechazadas — Total',          match: u => u.includes('RECHAZADA') && u.includes('TOTAL') },
+    { kind: 'count', label: 'Rechazadas — Vencidas',       match: u => u.includes('RECHAZADA') && u.includes('VENCIDA') },
+    { kind: 'count', label: 'Rechazadas — En tiempo',      match: u => u.includes('RECHAZADA') && u.includes('TIEMPO') },
+    { kind: 'pct',   label: 'Rechazadas — %',              match: u => u.includes('RECHAZADA') && u.includes('%'), pctSourceMatch: u => u.includes('RECHAZADA') && u.includes('TOTAL') },
+    { kind: 'count', label: 'Canceladas — Total',          match: u => u.includes('CANCELADA') && u.includes('TOTAL') },
+    { kind: 'pct',   label: 'Canceladas — %',              match: u => u.includes('CANCELADA') && u.includes('%'), pctSourceMatch: u => u.includes('CANCELADA') && u.includes('TOTAL') },
+    { kind: 'count', label: 'Terminadas — Total',          match: u => u.includes('TERMINADA') && u.includes('TOTAL') },
+    { kind: 'count', label: 'Terminadas — No cumplidas',   match: u => u.includes('TERMINADA') && u.includes('NO CUMPLID') },
+    { kind: 'count', label: 'Terminadas — Cumplidas',      match: u => u.includes('TERMINADA') && u.includes('CUMPLID') && !u.includes('NO CUMPLID') },
+    { kind: 'pct',   label: 'Terminadas — %',              match: u => u.includes('TERMINADA') && u.includes('%'), pctSourceMatch: u => u.includes('TERMINADA') && u.includes('TOTAL') },
+    { kind: 'count', label: 'Pendientes — Total',          match: u => u.includes('PENDIENTE') && u.includes('TOTAL') },
+    { kind: 'count', label: 'Pendientes — Vencidas',       match: u => u.includes('PENDIENTE') && u.includes('VENCIDA') },
+    { kind: 'count', label: 'Pendientes — Por vencer',     match: u => u.includes('PENDIENTE') && u.includes('VENCER') },
+    { kind: 'count', label: 'Pendientes — En tiempo',      match: u => u.includes('PENDIENTE') && u.includes('TIEMPO') },
+    { kind: 'pct',   label: 'Pendientes — %',              match: u => u.includes('PENDIENTE') && u.includes('%'), pctSourceMatch: u => u.includes('PENDIENTE') && u.includes('TOTAL') },
+    { kind: 'count', label: 'Con óptico',                  match: u => u.includes('OPTICO') },
+    { kind: 'count', label: 'Reiterativas — Total',        match: u => u.includes('REITERATIVA') && u.includes('TOTAL') },
+    { kind: 'pct',   label: 'Reiterativas — %',            match: u => u.includes('REITERATIVA') && u.includes('%'), pctSourceMatch: u => u.includes('REITERATIVA') && u.includes('TOTAL') },
   ];
+
+  /** Versión "bonita" del detalle en vivo del modal: en vez de los nombres de columna
+   * crudos y compuestos que trae el scraper (ej. "Resueltas registradas en el periodo
+   * Rechazadas Total"), usa las mismas etiquetas cortas y el mismo orden que ya usa la
+   * tabla principal de Colonias (LEAF_DEFS) — resueltas contra las columnas reales de
+   * ESTA fila puntual, sin tocar this.columns/this.orderedCols (que son de la tabla
+   * principal, no de este detalle). Trae TODAS las columnas (Sec..Reiterativas), igual
+   * que la fila completa de la tabla principal — pedido explícito: ver la fila entera
+   * de esa colonia para ese código, no solo un resumen de 4 campos. */
+  get modalDetalleFields(): { label: string; value: string }[] {
+    if (!this.modalDetalleRow || this.modalDetalleCols.length === 0) return [];
+    const fields: { label: string; value: string }[] = [
+      { label: 'Tipo', value: this.modalDetalleCodigo ?? '' }
+    ];
+    for (const def of this.LEAF_DEFS) {
+      const col = this.modalDetalleCols.find(c => def.match(c.toUpperCase()));
+      if (col) fields.push({ label: def.label, value: String(this.modalDetalleRow[col] ?? '') });
+    }
+    return fields;
+  }
 
   zonas: { value: string; label: string }[] = [];
   areas: { value: string; label: string }[] = [{ value: '00000', label: 'Todas las áreas' }];
@@ -187,7 +264,8 @@ export class ColoniasComponent implements OnInit, OnDestroy {
   constructor(
     private dashboardService: DashboardService,
     private auth: AuthService,
-    private dateRange: DateRangeService
+    private dateRange: DateRangeService,
+    private cdr: ChangeDetectorRef
   ) {
     this.zonas = this.auth.getZonas();
 
@@ -214,6 +292,7 @@ export class ColoniasComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.rangeSub?.unsubscribe();
+    this.modalDetalleSub?.unsubscribe();
     if (this.modalChart) this.modalChart.destroy();
   }
 
@@ -387,7 +466,11 @@ export class ColoniasComponent implements OnInit, OnDestroy {
 
     setTimeout(() => {
       if (this.chart) { this.chart.destroy(); this.chart = null; }
-      this.chart = new Chart('coloniasChart', {
+      this.cdr.detectChanges();
+      const canvasEl = document.getElementById('coloniasChart');
+      if (!(canvasEl instanceof HTMLCanvasElement)) return;
+
+      this.chart = new Chart(canvasEl, {
         type: 'bar',
         data: { labels, datasets },
         options: {
@@ -489,6 +572,20 @@ export class ColoniasComponent implements OnInit, OnDestroy {
     return String(row[this.descCol ?? ''] ?? row[this.claveCol ?? ''] ?? '').trim();
   }
 
+  // Normaliza texto para comparar Clave/Descripcion entre dos scrapes independientes
+  // (resumen combinado vs detalle en vivo por codigo): colapsa espacios -- incluye el
+  // caracter   (nbsp) que HtmlAgilityPack deja al decodificar &nbsp; -- quita espacios
+  // extremos y compara sin distinguir mayusculas. Sin esto, diferencias triviales de
+  // espaciado hacian que nunca se encontrara la fila de la colonia (el "no aparece la
+  // tablita" reportado).
+  private normStr(v: any): string {
+    return String(v ?? '')
+      .replace(/ /g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+  }
+
   // ── Gráfica ───────────────────────────────────────────────────────────────────
 
   private renderChart(): void {
@@ -544,7 +641,14 @@ export class ColoniasComponent implements OnInit, OnDestroy {
       if (this.chart) { this.chart.destroy(); this.chart = null; }
       if (datasets.length === 0 || labels.length === 0) return;
 
-      this.chart = new Chart('coloniasChart', {
+      // Igual que en renderModalChart(): garantiza que el *ngIf de la sección de gráfica
+      // ya haya pintado el <canvas> antes de buscarlo, para no toparse con "can't acquire
+      // context from the given item" si el DOM todavía no se actualizó.
+      this.cdr.detectChanges();
+      const canvasEl = document.getElementById('coloniasChart');
+      if (!(canvasEl instanceof HTMLCanvasElement)) return;
+
+      this.chart = new Chart(canvasEl, {
         type: 'bar',
         data: { labels, datasets },
         options: {
@@ -585,12 +689,16 @@ export class ColoniasComponent implements OnInit, OnDestroy {
 
   onColoniaClick(row: any): void {
     this.modalColoniaRow = row;
+    this.selectedMetric = 'recibidas';
+    this.resetModalDetalle();
     if (this.inconformidadesPorColonia) {
+      this.computeModalCaches();
       this.renderModalChart();
       return;
     }
 
     this.loadingInconformidades = true;
+    this.inconformidadesErrorMsg = '';
     const { desde, hasta } = this.dateRange.current;
     this.dashboardService.getColoniaInconformidades(this.selectedZona, this.selectedArea, desde, hasta)
       .pipe(timeout({ each: SCRAPE_TIMEOUT_MS }))
@@ -598,68 +706,220 @@ export class ColoniasComponent implements OnInit, OnDestroy {
         next: data => {
           this.inconformidadesPorColonia = data ?? [];
           this.loadingInconformidades = false;
+          this.computeModalCaches();
           this.renderModalChart();
         },
-        error: () => {
-          this.inconformidadesPorColonia = [];
+        error: err => {
+          // ANTES esto dejaba inconformidadesPorColonia en [] sin avisar nada — la tabla
+          // se veía "correcta" pero con todo en 0, indistinguible de un resultado real
+          // vacío. Además [] es truthy en JS, así que el siguiente clic en OTRA colonia
+          // entraba por la rama de caché y jamás reintentaba el scrape. Ahora se deja en
+          // null (para que el próximo clic sí reintente) y se muestra el error real.
+          this.inconformidadesPorColonia = null;
           this.loadingInconformidades = false;
+          this.inconformidadesErrorMsg = err?.error || err?.message || 'No se pudo obtener el desglose de esta colonia.';
         }
       });
+  }
+
+  // Calcula UNA vez (por clic de colonia, o al cambiar el filtro de métrica) la fila
+  // combinada, el orden de códigos y el residual "Otras" — ver el comentario junto a
+  // modalRowCache sobre por qué esto ya NO se hace en un getter.
+  private computeModalCaches(): void {
+    this.modalRowCache = this.findModalRow();
+    const sorted = [...this.INCONFORMIDAD_CODES].sort(
+      (a, b) => this.getModalRowValue(b.value) - this.getModalRowValue(a.value)
+    );
+
+    const totalColoniaCol = this.metricTotalCol();
+    const totalColonia = totalColoniaCol ? this.parseNum(this.modalColoniaRow?.[totalColoniaCol]) : 0;
+    const sumaCodigos = sorted.reduce((s, c) => s + this.getModalRowValue(c.value), 0);
+    this.otrasValue = Math.max(0, totalColonia - sumaCodigos);
+
+    this.sortedModalCodesCache = this.otrasValue > 0
+      ? [...sorted, { value: 'OTRAS', label: 'Otras (no clasificadas)' }]
+      : sorted;
+  }
+
+  // Columna de la tabla principal (orderedCols, misma resolución que llena "Detalle") que
+  // trae el TOTAL real de la colonia para la métrica actualmente seleccionada — índices
+  // fijos según LEAF_DEFS: 3=Recibidas, 4=Rechazadas Total, 12=Terminadas Cumplidas,
+  // 14=Pendientes Total.
+  private metricTotalCol(): string | undefined {
+    switch (this.selectedMetric) {
+      case 'rechazadas': return this.orderedCols[4];
+      case 'pendientes': return this.orderedCols[14];
+      case 'cumplidas':  return this.orderedCols[12];
+      default:           return this.orderedCols[3];
+    }
+  }
+
+  // Sufijo de clave que el backend agregó por código para cada métrica (ver MergeRows en
+  // GetColoniaInconformidadesAsync) — Recibidas no lleva sufijo (item[code] tal cual, por
+  // compatibilidad con lo que ya existía).
+  private metricKey(code: string): string {
+    switch (this.selectedMetric) {
+      case 'rechazadas': return `${code}_RECHAZADAS`;
+      case 'pendientes': return `${code}_PENDIENTES`;
+      case 'cumplidas':  return `${code}_CUMPLIDAS`;
+      default:           return code;
+    }
+  }
+
+  onMetricFilterChange(metric: 'recibidas' | 'rechazadas' | 'pendientes' | 'cumplidas'): void {
+    if (this.selectedMetric === metric) return;
+    this.selectedMetric = metric;
+    this.computeModalCaches();
+    this.renderModalChart();
   }
 
   closeModal(): void {
     if (this.modalChart) { this.modalChart.destroy(); this.modalChart = null; }
     this.modalColoniaRow = null;
+    this.modalRowCache = undefined;
+    this.sortedModalCodesCache = [];
+    this.selectedMetric = 'recibidas';
+    this.otrasValue = 0;
+    this.inconformidadesErrorMsg = '';
+    this.resetModalDetalle();
+  }
+
+  private resetModalDetalle(): void {
+    this.modalDetalleSub?.unsubscribe();
+    this.modalDetalleSub = undefined;
+    this.modalDetalleCodigo = null;
+    this.modalDetalleLoading = false;
+    this.modalDetalleErrorMsg = '';
+    this.modalDetalleRow = null;
+    this.modalDetalleCols = [];
+  }
+
+  /** Clic en una inconformidad (E02..QC7) dentro del modal — scrapea en vivo la tabla
+   * completa de ESE código, agrupada por TODAS las colonias (el portal no permite
+   * filtrar a una sola), y de esa tabla se queda solo la fila que corresponde a la
+   * colonia que ya está abierta en el modal. Clic de nuevo en el mismo código lo cierra. */
+  onInconformidadClick(code: string): void {
+    // "Otras" es un residual calculado en el cliente (total real de la colonia menos la
+    // suma de los 16 códigos rastreados) — no es un código real que el portal reconozca,
+    // así que no tiene detalle en vivo que consultar.
+    if (code === 'OTRAS') return;
+    if (this.modalDetalleCodigo === code) {
+      this.resetModalDetalle();
+      return;
+    }
+    // Ya hay un scrape en curso (otro código o el mismo) — ignora el clic en vez de
+    // apilar otro navegador Chromium en el backend. El usuario tiene que esperar a que
+    // termine (o falle) el actual antes de pedir otro código.
+    if (this.modalDetalleLoading) return;
+
+    this.modalDetalleCodigo = code;
+    this.modalDetalleLoading = true;
+    this.modalDetalleErrorMsg = '';
+    this.modalDetalleRow = null;
+    this.modalDetalleCols = [];
+
+    // Buscados por nombre difuso (no asumimos "Clave"/"Descripcion" exactos — el
+    // scraper compone los nombres de columna y pueden variar) contra la fila de
+    // colonia ya abierta en el modal.
+    const claveBuscada = this.normStr(this.modalColoniaRow?.[this.claveCol ?? '']);
+    const descBuscada  = this.normStr(this.modalColoniaRow?.[this.descCol ?? '']);
+
+    const { desde, hasta } = this.dateRange.current;
+    this.modalDetalleSub?.unsubscribe();
+    this.modalDetalleSub = this.dashboardService.getColoniaInconformidadDetalle(this.selectedZona, this.selectedArea, desde, hasta, code)
+      .pipe(
+        timeout({ each: SCRAPE_TIMEOUT_MS }),
+        finalize(() => { this.modalDetalleLoading = false; }) // siempre se apaga, pase lo que pase
+      )
+      .subscribe({
+        next: rows => {
+          try {
+            const list = rows ?? [];
+            const first = list[0] ?? {};
+            const rowClaveCol = Object.keys(first).find(c => c.toUpperCase().includes('CLAVE'));
+            const rowDescCol  = Object.keys(first).find(c => c.toUpperCase().includes('DESCRIP'));
+            const match = list.find((r: any) =>
+              (claveBuscada && rowClaveCol && this.normStr(r[rowClaveCol]) === claveBuscada) ||
+              (descBuscada && rowDescCol && this.normStr(r[rowDescCol]) === descBuscada)
+            );
+            this.modalDetalleRow = match ?? null;
+            this.modalDetalleCols = match ? Object.keys(match) : [];
+          } catch {
+            this.modalDetalleRow = null;
+            this.modalDetalleCols = [];
+            this.modalDetalleErrorMsg = 'No se pudo interpretar la respuesta del portal.';
+          }
+        },
+        error: err => {
+          this.modalDetalleErrorMsg = err?.error || 'No se pudo consultar el detalle de esta inconformidad.';
+        }
+      });
   }
 
   private findModalRow(): any | undefined {
     if (!this.inconformidadesPorColonia || !this.modalColoniaRow) return undefined;
-    const clave = String(this.modalColoniaRow[this.claveCol ?? ''] ?? '').trim();
-    const desc  = String(this.modalColoniaRow[this.descCol ?? ''] ?? '').trim();
+    const clave = this.normStr(this.modalColoniaRow[this.claveCol ?? '']);
+    const desc  = this.normStr(this.modalColoniaRow[this.descCol ?? '']);
     return this.inconformidadesPorColonia.find(r =>
-      (clave && String(r['Clave'] ?? '').trim() === clave) ||
-      (desc && String(r['Descripcion'] ?? '').trim() === desc)
+      (clave && this.normStr(r['Clave']) === clave) ||
+      (desc && this.normStr(r['Descripcion']) === desc)
     );
   }
 
   getModalRowValue(code: string): number {
-    const row = this.findModalRow();
-    return row ? this.parseNum(row[code]) : 0;
+    if (code === 'OTRAS') return this.otrasValue;
+    return this.modalRowCache ? this.parseNum(this.modalRowCache[this.metricKey(code)]) : 0;
   }
 
   private renderModalChart(): void {
-    const row = this.findModalRow();
-    const labels = this.INCONFORMIDAD_CODES.map(c => c.value);
-    const data   = this.INCONFORMIDAD_CODES.map(c => row ? this.parseNum(row[c.value]) : 0);
+    const sorted = this.sortedModalCodesCache;
+    const labels = sorted.map(c => c.value);
+    const data   = sorted.map(c => this.getModalRowValue(c.value));
+    const metricLabel = this.METRIC_OPTIONS.find(m => m.value === this.selectedMetric)?.label ?? 'Recibidas';
 
     setTimeout(() => {
       if (this.modalChart) { this.modalChart.destroy(); this.modalChart = null; }
-      const canvas = document.getElementById('coloniaDesgloseChart');
-      if (!canvas) return;
 
-      this.modalChart = new Chart('coloniaDesgloseChart', {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Solicitudes',
-            data,
-            backgroundColor: 'rgba(59,130,246,0.78)',
-            borderColor: 'rgb(37,99,235)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { maxRotation: 90, minRotation: 45, font: { size: 9 } }, grid: { display: false } },
-            y: { beginAtZero: true, ticks: { precision: 0 } }
-          }
-        },
-        plugins: [BAR_DATALABELS_PLUGIN]
-      } as any);
+      // onColoniaClick() llega aquí desde el handler onClick de Chart.js (no un (click) de
+      // Angular), y a veces desde la rama de caché — se fuerza el ciclo de detección de
+      // cambios ANTES de buscar el canvas para garantizar que el *ngIf del modal ya haya
+      // pintado el <canvas> en el DOM (si no, document.getElementById lo encuentra null o
+      // Chart.js tira "can't acquire context from the given item").
+      this.cdr.detectChanges();
+      const canvas = document.getElementById('coloniaDesgloseChart');
+      if (!(canvas instanceof HTMLCanvasElement)) return;
+
+      try {
+        this.modalChart = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: metricLabel,
+              data,
+              backgroundColor: 'rgba(59,130,246,0.78)',
+              borderColor: 'rgb(37,99,235)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              title: { display: true, text: metricLabel, font: { size: 11, weight: 'bold' }, padding: { bottom: 6 } }
+            },
+            scales: {
+              x: { ticks: { maxRotation: 90, minRotation: 45, font: { size: 9 } }, grid: { display: false } },
+              y: { beginAtZero: true, ticks: { precision: 0 } }
+            }
+          },
+          plugins: [BAR_DATALABELS_PLUGIN]
+        } as any);
+      } catch (err) {
+        console.warn('No se pudo dibujar la gráfica del modal de colonias', err);
+        this.modalChart = null;
+      }
     }, 0);
   }
 
